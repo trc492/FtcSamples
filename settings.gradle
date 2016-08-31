@@ -1,0 +1,2 @@
+include ':FtcRobotController', ':openCVLibrary310', ':Ftc3543Lib', ':FtcSampleCode'
+include ':TeamCode'
