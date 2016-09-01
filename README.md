@@ -1,5 +1,5 @@
 # FtcSamples
-A collection of FTC sample code using the Titan Robotics Framework:
+A collection of FTC sample code for 2016-2017 season using the Titan Robotics Framework:
 
 * **FtcAutoK9**: K9Bot doing various autonomous programs.
 * **FtcAutoK9LineFollow**: K9Bot doing line following autonomously.
