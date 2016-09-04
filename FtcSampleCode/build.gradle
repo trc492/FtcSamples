@@ -27,9 +27,3 @@ repositories {
 }
 
 apply from: 'build.release.gradle'
-dependencies {
-    compile project(path: ':Ftc3543Lib')
-    compile project(path: ':FtcRobotController')
-    compile project(path: ':openCVLibrary310')
-}
-
