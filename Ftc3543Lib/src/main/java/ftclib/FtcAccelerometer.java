@@ -26,6 +26,8 @@ package ftclib;
 import com.qualcomm.robotcore.hardware.AccelerationSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
+import org.firstinspires.ftc.robotcore.external.navigation.Acceleration;
+
 import hallib.HalUtil;
 import trclib.TrcAccelerometer;
 import trclib.TrcDbgTrace;
@@ -125,8 +127,8 @@ public class FtcAccelerometer extends TrcAccelerometer
 
         if (dataType == DataType.ACCELERATION)
         {
-            AccelerationSensor.Acceleration accelData = accel.getAcceleration();
-            data = new SensorData(HalUtil.getCurrentTime(), accelData.x);
+            Acceleration accelData = accel.getAcceleration();
+            data = new SensorData(HalUtil.getCurrentTime(), accelData.xAccel);
         }
         else
         {
@@ -158,8 +160,8 @@ public class FtcAccelerometer extends TrcAccelerometer
 
         if (dataType == DataType.ACCELERATION)
         {
-            AccelerationSensor.Acceleration accelData = accel.getAcceleration();
-            data = new SensorData(HalUtil.getCurrentTime(), accelData.y);
+            Acceleration accelData = accel.getAcceleration();
+            data = new SensorData(HalUtil.getCurrentTime(), accelData.yAccel);
         }
         else
         {
@@ -191,8 +193,8 @@ public class FtcAccelerometer extends TrcAccelerometer
 
         if (dataType == DataType.ACCELERATION)
         {
-            AccelerationSensor.Acceleration accelData = accel.getAcceleration();
-            data = new SensorData(HalUtil.getCurrentTime(), accelData.z);
+            Acceleration accelData = accel.getAcceleration();
+            data = new SensorData(HalUtil.getCurrentTime(), accelData.zAccel);
         }
         else
         {

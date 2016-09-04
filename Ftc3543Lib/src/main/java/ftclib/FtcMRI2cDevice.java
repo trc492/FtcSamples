@@ -92,8 +92,9 @@ public class FtcMRI2cDevice extends FtcI2cDevice implements TrcI2cDevice.Complet
      * This method sets a new I2C address to the Modern Robotics device.
      *
      * @param newAddress specifies the new I2C address.
+     * @param addressIs7Bit specifies true if the I2C address is a 7-bit address, false if it is 8-bit.
      */
-    public void setI2cAddress(byte newAddress)
+    public void setI2cAddress(int newAddress, boolean addressIs7Bit)
     {
         final String funcName = "setI2cAddress";
 
@@ -103,9 +104,19 @@ public class FtcMRI2cDevice extends FtcI2cDevice implements TrcI2cDevice.Complet
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        byte[] data = {newAddress, I2CADDR_TRIGGER_BYTE_1, I2CADDR_TRIGGER_BYTE_2};
+        byte[] data = {(byte)(newAddress & 0xff), I2CADDR_TRIGGER_BYTE_1, I2CADDR_TRIGGER_BYTE_2};
         write(REG_SET_I2C_ADDRESS, data.length, data);
-        updateI2cAddress(newAddress);
+        updateI2cAddress(newAddress, addressIs7Bit);
+    }   //setI2cAddress
+
+    /**
+     * This method sets a new I2C address to the Modern Robotics device.
+     *
+     * @param newAddress specifies the new I2C address.
+     */
+    public void setI2cAddress(int newAddress)
+    {
+        setI2cAddress(newAddress, false);
     }   //setI2cAddress
 
     /**

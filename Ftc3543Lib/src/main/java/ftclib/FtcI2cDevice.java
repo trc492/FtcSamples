@@ -43,7 +43,7 @@ public class FtcI2cDevice extends TrcI2cDevice
     private static final boolean debugEnabled = false;
     private TrcDbgTrace dbgTrace = null;
 
-    private int i2cAddress;
+    private I2cAddr i2cAddr;
     private I2cDevice device;
 
     /**
@@ -52,8 +52,9 @@ public class FtcI2cDevice extends TrcI2cDevice
      * @param hardwareMap specifies the global hardware map.
      * @param instanceName specifies the instance name.
      * @param i2cAddress specifies the I2C address of the device.
+     * @param addressIs7Bit specifies true if the I2C address is a 7-bit address, false if it is 8-bit.
      */
-    public FtcI2cDevice(HardwareMap hardwareMap, String instanceName, int i2cAddress)
+    public FtcI2cDevice(HardwareMap hardwareMap, String instanceName, int i2cAddress, boolean addressIs7Bit)
     {
         super(instanceName);
 
@@ -66,8 +67,20 @@ public class FtcI2cDevice extends TrcI2cDevice
                     TrcDbgTrace.MsgLevel.INFO);
         }
 
-        this.i2cAddress = i2cAddress;
+        updateI2cAddress(i2cAddress, addressIs7Bit);
         device = hardwareMap.i2cDevice.get(instanceName);
+    }   //FtcI2cDevice
+
+    /**
+     * Constructor: Creates an instance of the object.
+     *
+     * @param hardwareMap specifies the global hardware map.
+     * @param instanceName specifies the instance name.
+     * @param i2cAddress specifies the I2C address of the device.
+     */
+    public FtcI2cDevice(HardwareMap hardwareMap, String instanceName, int i2cAddress)
+    {
+        this(hardwareMap, instanceName, i2cAddress, false);
     }   //FtcI2cDevice
 
     /**
@@ -78,7 +91,7 @@ public class FtcI2cDevice extends TrcI2cDevice
      */
     public FtcI2cDevice(String instanceName, int i2cAddress)
     {
-        this(FtcOpMode.getInstance().hardwareMap, instanceName, i2cAddress);
+        this(FtcOpMode.getInstance().hardwareMap, instanceName, i2cAddress, false);
     }   //FtcI2cDevice
 
     /**
@@ -86,8 +99,9 @@ public class FtcI2cDevice extends TrcI2cDevice
      * called by the child class to update the I2C address after changing it.
      *
      * @param newAddress specifies the new I2C address.
+     * @param addressIs7Bit specifies true if the I2C address is a 7-bit address, false if it is 8-bit.
      */
-    protected void updateI2cAddress(int newAddress)
+    protected void updateI2cAddress(int newAddress, boolean addressIs7Bit)
     {
         final String funcName = "updateI2cAddress";
 
@@ -97,7 +111,14 @@ public class FtcI2cDevice extends TrcI2cDevice
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        i2cAddress = newAddress;
+        if (addressIs7Bit)
+        {
+            this.i2cAddr = I2cAddr.create7bit(newAddress);
+        }
+        else
+        {
+            this.i2cAddr = I2cAddr.create8bit(newAddress);
+        }
     }   //updateI2cAddress
 
     //
@@ -164,7 +185,7 @@ public class FtcI2cDevice extends TrcI2cDevice
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        device.enableI2cReadMode(I2cAddr.create8bit(i2cAddress), regAddress, length);
+        device.enableI2cReadMode(i2cAddr, regAddress, length);
         device.setI2cPortActionFlag();
         device.writeI2cCacheToController();
     }   //sendReadCommand
@@ -188,7 +209,7 @@ public class FtcI2cDevice extends TrcI2cDevice
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        device.enableI2cWriteMode(I2cAddr.create8bit(i2cAddress), regAddress, length);
+        device.enableI2cWriteMode(i2cAddr, regAddress, length);
         device.copyBufferIntoWriteBuffer(data);
         device.setI2cPortActionFlag();
         device.writeI2cCacheToController();

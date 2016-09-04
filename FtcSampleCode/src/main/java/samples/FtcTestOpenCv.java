@@ -59,7 +59,7 @@ import trclib.TrcDbgTrace;
  * This class implements an OpenCV view for Face Detection.
  */
 @Autonomous(name="Test: OpenCV Face Detection", group="Ftc3543Sample")
-@Disabled
+//@Disabled
 public class FtcTestOpenCv extends FtcOpMode implements CameraBridgeViewBase.CvCameraViewListener2
 {
     private static final String moduleName = "FtcTestOpenCv";
@@ -173,6 +173,7 @@ public class FtcTestOpenCv extends FtcOpMode implements CameraBridgeViewBase.CvC
 //        cameraPreview = (GLSurfaceView)activity.findViewById(R.id.CameraPreview);
 //        overlayView = (ImageView)activity.findViewById(R.id.OverlayView);
         cameraView = (CameraBridgeViewBase)activity.findViewById(R.id.ImageView01);
+        cameraView.setCameraIndex(1);   //use front camera
         if (cameraEnabled)
         {
             cameraView.setCvCameraViewListener(this);

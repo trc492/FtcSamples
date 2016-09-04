@@ -85,10 +85,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   <include layout="@layout/header"
            android:id="@+id/included_header"/>
 
-  <!--
   <include layout="@layout/camera_view"
            android:id="@+id/included_camera_view"/>
-  -->
 
   <RelativeLayout
     android:id="@+id/RelativeLayout"
