@@ -23,9 +23,14 @@
 
 package samples;
 
+import android.widget.TextView;
+
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
+import org.firstinspires.ftc.robotcontroller.internal.FtcRobotControllerActivity;
+
+import FtcSampleCode.R;
 import ftclib.FtcAdaFruitColorSensor;
 import ftclib.FtcOpMode;
 import hallib.HalDashboard;
@@ -47,6 +52,8 @@ public class FtcTestAdaFruitColorSensor extends FtcOpMode
     {
         hardwareMap.logDevices();
         dashboard = getDashboard();
+        FtcRobotControllerActivity activity = (FtcRobotControllerActivity)hardwareMap.appContext;
+        dashboard.setTextView((TextView)activity.findViewById(R.id.textOpMode));
         sensor = new FtcAdaFruitColorSensor("adaFruitColorSensor");
     }   //initRobot
 
@@ -63,10 +70,11 @@ public class FtcTestAdaFruitColorSensor extends FtcOpMode
     @Override
     public void runPeriodic(double elapsedTime)
     {
+        final int LABEL_WIDTH = 100;
         TrcSensor.SensorData data;
 
-        dashboard.displayPrintf(1, "ID:\t\t%d", sensor.getID());
-        dashboard.displayPrintf(2, "Status:\t%02x", sensor.getStatus());
+        dashboard.displayPrintf(1, LABEL_WIDTH, "ID: ", "%d", sensor.getID());
+        dashboard.displayPrintf(2, LABEL_WIDTH, "Status: ", "%02x", sensor.getStatus());
 
         //
         // The data may not be ready yet, check it!
@@ -75,25 +83,25 @@ public class FtcTestAdaFruitColorSensor extends FtcOpMode
         data = sensor.getClearValue();
         if (data.value != null)
         {
-            dashboard.displayPrintf(3, "Clear:\t%d", data.value);
+            dashboard.displayPrintf(3, LABEL_WIDTH, "Clear: ", "%d", data.value);
         }
 
         data = sensor.getRedValue();
         if (data.value != null)
         {
-            dashboard.displayPrintf(4, "Red:\t\t%d", data.value);
+            dashboard.displayPrintf(4, LABEL_WIDTH, "Red: ", "%d", data.value);
         }
 
         data = sensor.getGreenValue();
         if (data.value != null)
         {
-            dashboard.displayPrintf(5, "Green:\t%d", data.value);
+            dashboard.displayPrintf(5, LABEL_WIDTH, "Green: ", "%d", data.value);
         }
 
         data = sensor.getBlueValue();
         if (data.value != null)
         {
-            dashboard.displayPrintf(6, "Blue:\t\t%d", data.value);
+            dashboard.displayPrintf(6, LABEL_WIDTH, "Blue: ", "%d", data.value);
         }
     }   //runPeriodic
 

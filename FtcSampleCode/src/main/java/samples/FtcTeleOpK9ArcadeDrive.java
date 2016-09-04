@@ -23,9 +23,14 @@
 
 package samples;
 
+import android.widget.TextView;
+
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
+import org.firstinspires.ftc.robotcontroller.internal.FtcRobotControllerActivity;
+
+import FtcSampleCode.R;
 import ftclib.FtcDcMotor;
 import ftclib.FtcGamepad;
 import ftclib.FtcOpMode;
@@ -63,6 +68,8 @@ public class FtcTeleOpK9ArcadeDrive extends FtcOpMode implements FtcGamepad.Butt
     {
         hardwareMap.logDevices();
         dashboard = getDashboard();
+        FtcRobotControllerActivity activity = (FtcRobotControllerActivity)hardwareMap.appContext;
+        dashboard.setTextView((TextView)activity.findViewById(R.id.textOpMode));
         //
         // Initializing Gamepads.
         //
@@ -111,6 +118,7 @@ public class FtcTeleOpK9ArcadeDrive extends FtcOpMode implements FtcGamepad.Butt
     @Override
     public void runPeriodic(double elapsedTime)
     {
+        final int LABEL_WIDTH = 200;
         //
         // DriveBase subsystem.
         //
@@ -118,11 +126,11 @@ public class FtcTeleOpK9ArcadeDrive extends FtcOpMode implements FtcGamepad.Butt
         double direction = gamepad.getLeftStickX(true);
         driveBase.arcadeDrive(throttle, direction);
 
-        dashboard.displayPrintf(1, "Text     : *** Robot Data ***");
-        dashboard.displayPrintf(2, "arm      : %.2f", armServo.getPosition());
-        dashboard.displayPrintf(3, "claw     : %.2f", clawServo.getPosition());
-        dashboard.displayPrintf(4, "throttle : %.2f", throttle);
-        dashboard.displayPrintf(5, "direction: %.2f", direction);
+        dashboard.displayPrintf(1, LABEL_WIDTH, "Text: ", "*** Robot Data ***");
+        dashboard.displayPrintf(2, LABEL_WIDTH, "arm: ", "%.2f", armServo.getPosition());
+        dashboard.displayPrintf(3, LABEL_WIDTH, "claw: ", "%.2f", clawServo.getPosition());
+        dashboard.displayPrintf(4, LABEL_WIDTH, "throttle: ", "%.2f", throttle);
+        dashboard.displayPrintf(5, LABEL_WIDTH, "direction: ", "%.2f", direction);
     }   //runPeriodic
 
     //

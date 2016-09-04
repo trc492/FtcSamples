@@ -26,12 +26,16 @@ package samples;
 import android.content.Context;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
+import android.widget.TextView;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
+import org.firstinspires.ftc.robotcontroller.internal.FtcRobotControllerActivity;
+
 import java.util.List;
 
+import FtcSampleCode.R;
 import ftclib.FtcAndroidSensor;
 import ftclib.FtcOpMode;
 import hallib.HalDashboard;
@@ -60,6 +64,8 @@ public class FtcTestAndroidSensors extends FtcOpMode
     {
         hardwareMap.logDevices();
         dashboard = getDashboard();
+        FtcRobotControllerActivity activity = (FtcRobotControllerActivity)hardwareMap.appContext;
+        dashboard.setTextView((TextView)activity.findViewById(R.id.textOpMode));
         //
         // Enumerates all Android sensors.
         //
@@ -207,57 +213,58 @@ public class FtcTestAndroidSensors extends FtcOpMode
     @Override
     public void runPeriodic(double elapsedTime)
     {
+        final int LABEL_WIDTH = 120;
         if (accel != null)
         {
-            dashboard.displayPrintf(1, "Accel:x=%.2f,y=%.2f,z=%.2f (m/s2)",
+            dashboard.displayPrintf(1, LABEL_WIDTH, "Accel: ", "x=%.2f,y=%.2f,z=%.2f (m/s2)",
                                     accel.getData(0, null).value,
                                     accel.getData(1, null).value,
                                     accel.getData(2, null).value);
         }
         else
         {
-            dashboard.displayPrintf(1, "Accel:none.");
+            dashboard.displayPrintf(1, LABEL_WIDTH, "Accel: ", "none.");
         }
 
         if (gravity != null)
         {
-            dashboard.displayPrintf(2, "Gravity:x=%.2f,y=%.2f,z=%.2f (m/s2)",
+            dashboard.displayPrintf(2, LABEL_WIDTH, "Gravity: ", "x=%.2f,y=%.2f,z=%.2f (m/s2)",
                                     gravity.getData(0, null).value,
                                     gravity.getData(1, null).value,
                                     gravity.getData(2, null).value);
         }
         else
         {
-            dashboard.displayPrintf(2, "Gravity:none.");
+            dashboard.displayPrintf(2, LABEL_WIDTH, "Gravity: ", "none.");
         }
 
         if (gyro != null)
         {
-            dashboard.displayPrintf(3, "Gyro:x=%.2f,y=%.2f,z=%.2f (deg/s)",
+            dashboard.displayPrintf(3, LABEL_WIDTH, "Gyro: ", "x=%.2f,y=%.2f,z=%.2f (deg/s)",
                                     (Double)gyro.getData(0, null).value*180.0/Math.PI,
                                     (Double)gyro.getData(1, null).value*180.0/Math.PI,
                                     (Double)gyro.getData(2, null).value*180.0/Math.PI);
         }
         else
         {
-            dashboard.displayPrintf(3, "Gyro:none.");
+            dashboard.displayPrintf(3, LABEL_WIDTH, "Gyro: ", "none.");
         }
 
         if (linearAccel != null)
         {
-            dashboard.displayPrintf(4, "LinearAccel:x=%.2f,y=%.2f,z=%.2f (m/s2)",
+            dashboard.displayPrintf(4, LABEL_WIDTH, "LinearAccel: ", "x=%.2f,y=%.2f,z=%.2f (m/s2)",
                                     linearAccel.getData(0, null).value,
                                     linearAccel.getData(1, null).value,
                                     linearAccel.getData(2, null).value);
         }
         else
         {
-            dashboard.displayPrintf(4, "LinearAccel:none.");
+            dashboard.displayPrintf(4, LABEL_WIDTH, "LinearAccel: ", "none.");
         }
 
         if (rotation != null)
         {
-            dashboard.displayPrintf(5, "Rotation:x=%.2f,y=%.2f,z=%.2f,s=%.2f",
+            dashboard.displayPrintf(5, LABEL_WIDTH, "Rotation: ", "x=%.2f,y=%.2f,z=%.2f,s=%.2f",
                                     rotation.getData(0, null).value,
                                     rotation.getData(1, null).value,
                                     rotation.getData(2, null).value,
@@ -265,51 +272,51 @@ public class FtcTestAndroidSensors extends FtcOpMode
         }
         else
         {
-            dashboard.displayPrintf(5, "Rotation:none.");
+            dashboard.displayPrintf(5, LABEL_WIDTH, "Rotation: ", "none.");
         }
 
         if (magnetic != null)
         {
-            dashboard.displayPrintf(6, "Magnetic:x=%.2f,y=%.2f,z=%.2f (uT)",
+            dashboard.displayPrintf(6, LABEL_WIDTH, "Magnetic: ", "x=%.2f,y=%.2f,z=%.2f (uT)",
                                     magnetic.getData(0, null).value,
                                     magnetic.getData(1, null).value,
                                     magnetic.getData(2, null).value);
         }
         else
         {
-            dashboard.displayPrintf(6, "Magnetic:none.");
+            dashboard.displayPrintf(6, LABEL_WIDTH, "Magnetic: ", "none.");
         }
 
         /*
         if (orientation != null)
         {
-            dashboard.displayPrintf(7, "Orientation:Azimuth=%.2f,Pitch=%.2f,Roll=%.2f (deg)",
+            dashboard.displayPrintf(7, LABEL_WIDTH, "Orientation: ", "Azimuth=%.2f,Pitch=%.2f,Roll=%.2f (deg)",
                                     orientation.getData(0, null).value,
                                     orientation.getData(1, null).value,
                                     orientation.getData(2, null).value);
         }
         else
         {
-            dashboard.displayPrintf(7, "Orietation:none.");
+            dashboard.displayPrintf(7, LABEL_WIDTH, "Orietation: ", "none.");
         }
         */
 
         if (proximity != null)
         {
-            dashboard.displayPrintf(8, "Proximity:%.0f cm", proximity.getData(0, null).value);
+            dashboard.displayPrintf(8, LABEL_WIDTH, "Proximity: ", "%.0f cm", proximity.getData(0, null).value);
         }
         else
         {
-            dashboard.displayPrintf(8, "Proximity:none.");
+            dashboard.displayPrintf(8, LABEL_WIDTH, "Proximity: ", "none.");
         }
 
         if (light != null)
         {
-            dashboard.displayPrintf(9, "Light:%.0f lux", light.getData(0, null).value);
+            dashboard.displayPrintf(9, LABEL_WIDTH, "Light: ", "%.0f lux", light.getData(0, null).value);
         }
         else
         {
-            dashboard.displayPrintf(9, "Light:none.");
+            dashboard.displayPrintf(9, LABEL_WIDTH, "Light: ", "none.");
         }
     }   //runPeriodic
 

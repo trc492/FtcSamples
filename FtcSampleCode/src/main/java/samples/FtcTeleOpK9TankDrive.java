@@ -23,9 +23,14 @@
 
 package samples;
 
+import android.widget.TextView;
+
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
+import org.firstinspires.ftc.robotcontroller.internal.FtcRobotControllerActivity;
+
+import FtcSampleCode.R;
 import ftclib.FtcDcMotor;
 import ftclib.FtcGamepad;
 import ftclib.FtcOpMode;
@@ -63,6 +68,8 @@ public class FtcTeleOpK9TankDrive extends FtcOpMode implements FtcGamepad.Button
     {
         hardwareMap.logDevices();
         dashboard = getDashboard();
+        FtcRobotControllerActivity activity = (FtcRobotControllerActivity)hardwareMap.appContext;
+        dashboard.setTextView((TextView)activity.findViewById(R.id.textOpMode));
         //
         // Initializing Gamepads.
         //
@@ -111,6 +118,7 @@ public class FtcTeleOpK9TankDrive extends FtcOpMode implements FtcGamepad.Button
     @Override
     public void runPeriodic(double elapsedTime)
     {
+        final int LABEL_WIDTH = 200;
         //
         // DriveBase subsystem.
         //
@@ -118,11 +126,11 @@ public class FtcTeleOpK9TankDrive extends FtcOpMode implements FtcGamepad.Button
         double right = gamepad.getRightStickY(true);
         driveBase.tankDrive(left, right);
 
-        dashboard.displayPrintf(1, "Text       : *** Robot Data ***");
-        dashboard.displayPrintf(2, "arm        : %.2f", armServo.getPosition());
-        dashboard.displayPrintf(3, "claw       : %.2f", clawServo.getPosition());
-        dashboard.displayPrintf(4, "left power : %.2f", left);
-        dashboard.displayPrintf(5, "right power: %.2f", right);
+        dashboard.displayPrintf(1, LABEL_WIDTH, "Text: ", "*** Robot Data ***");
+        dashboard.displayPrintf(2, LABEL_WIDTH, "arm: ", "%.2f", armServo.getPosition());
+        dashboard.displayPrintf(3, LABEL_WIDTH, "claw: ", "%.2f", clawServo.getPosition());
+        dashboard.displayPrintf(4, LABEL_WIDTH, "left power: ", "%.2f", left);
+        dashboard.displayPrintf(5, LABEL_WIDTH, "right power: ", "%.2f", right);
     }   //runPeriodic
 
     //

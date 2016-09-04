@@ -23,9 +23,14 @@
 
 package samples;
 
+import android.widget.TextView;
+
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
+import org.firstinspires.ftc.robotcontroller.internal.FtcRobotControllerActivity;
+
+import FtcSampleCode.R;
 import ftclib.FtcAndroidGyro;
 import ftclib.FtcOpMode;
 import hallib.HalDashboard;
@@ -47,6 +52,8 @@ public class FtcTestAndroidGyro extends FtcOpMode
     {
         hardwareMap.logDevices();
         dashboard = getDashboard();
+        FtcRobotControllerActivity activity = (FtcRobotControllerActivity)hardwareMap.appContext;
+        dashboard.setTextView((TextView)activity.findViewById(R.id.textOpMode));
 
         gyro = new FtcAndroidGyro("AndroidGyro");
         gyro.calibrate();
@@ -76,15 +83,17 @@ public class FtcTestAndroidGyro extends FtcOpMode
     @Override
     public void runPeriodic(double elapsedTime)
     {
-        dashboard.displayPrintf(1, "Raw:x=%.2f,y=%.2f,z=%.2f (rad/s)",
+        final int LABEL_WIDTH = 100;
+
+        dashboard.displayPrintf(1, LABEL_WIDTH, "Raw: ", "x=%.2f,y=%.2f,z=%.2f (rad/s)",
                                 gyro.getRawXData(TrcGyro.DataType.ROTATION_RATE).value,
                                 gyro.getRawYData(TrcGyro.DataType.ROTATION_RATE).value,
                                 gyro.getRawZData(TrcGyro.DataType.ROTATION_RATE).value);
-        dashboard.displayPrintf(2, "Rot:x=%.2f,y=%.2f,z=%.2f (deg/s)",
+        dashboard.displayPrintf(2, LABEL_WIDTH, "Rot: ", "x=%.2f,y=%.2f,z=%.2f (deg/s)",
                                 gyro.getXRotationRate().value,
                                 gyro.getYRotationRate().value,
                                 gyro.getZRotationRate().value);
-        dashboard.displayPrintf(3, "Heading:x=%.2f,y=%.2f,z=%.2f (deg)",
+        dashboard.displayPrintf(3, LABEL_WIDTH, "Heading: ", "x=%.2f,y=%.2f,z=%.2f (deg)",
                                 gyro.getXHeading().value,
                                 gyro.getYHeading().value,
                                 gyro.getZHeading().value);

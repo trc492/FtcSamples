@@ -23,10 +23,15 @@
 
 package samples;
 
+import android.widget.TextView;
+
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.hardware.LightSensor;
 
+import org.firstinspires.ftc.robotcontroller.internal.FtcRobotControllerActivity;
+
+import FtcSampleCode.R;
 import ftclib.FtcDcMotor;
 import ftclib.FtcOpMode;
 import hallib.HalDashboard;
@@ -55,6 +60,8 @@ public class FtcAutoK9LineFollow extends FtcOpMode
     {
         hardwareMap.logDevices();
         dashboard = getDashboard();
+        FtcRobotControllerActivity activity = (FtcRobotControllerActivity)hardwareMap.appContext;
+        dashboard.setTextView((TextView)activity.findViewById(R.id.textOpMode));
         //
         // Sensors.
         //
@@ -89,6 +96,7 @@ public class FtcAutoK9LineFollow extends FtcOpMode
     @Override
     public void runContinuous(double elapsedTime)
     {
+        final int LABEL_WIDTH = 200;
         double left = 0.0;
         double right = 0.0;
         double reflection = reflectedLight.getLightDetected();
@@ -113,10 +121,10 @@ public class FtcAutoK9LineFollow extends FtcOpMode
         }
         driveBase.tankDrive(left, right);
 
-        dashboard.displayPrintf(1, "Text       : *** Robot Data ***");
-        dashboard.displayPrintf(2, "reflection : %.2f", reflection);
-        dashboard.displayPrintf(3, "left power : %.2f", left);
-        dashboard.displayPrintf(4, "right power: %.2f", right);
+        dashboard.displayPrintf(1, LABEL_WIDTH, "Text: ", "*** Robot Data ***");
+        dashboard.displayPrintf(2, LABEL_WIDTH, "reflection: ", "%.2f", reflection);
+        dashboard.displayPrintf(3, LABEL_WIDTH, "left power: ", "%.2f", left);
+        dashboard.displayPrintf(4, LABEL_WIDTH, "right power: ", "%.2f", right);
     }   //runContinuous
 
 }   //class FtcAutoK9LineFollow

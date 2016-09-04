@@ -23,9 +23,14 @@
 
 package samples;
 
+import android.widget.TextView;
+
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
+import org.firstinspires.ftc.robotcontroller.internal.FtcRobotControllerActivity;
+
+import FtcSampleCode.R;
 import ftclib.FtcOpMode;
 import ftclib.FtcZXDistanceSensor;
 import hallib.HalDashboard;
@@ -47,6 +52,8 @@ public class FtcTestZXDistanceSensor extends FtcOpMode
     {
         hardwareMap.logDevices();
         dashboard = getDashboard();
+        FtcRobotControllerActivity activity = (FtcRobotControllerActivity)hardwareMap.appContext;
+        dashboard.setTextView((TextView)activity.findViewById(R.id.textOpMode));
         sensor = new FtcZXDistanceSensor("zxSensor", FtcZXDistanceSensor.ALTERNATE_I2CADDRESS);
     }   //initRobot
 
@@ -63,11 +70,12 @@ public class FtcTestZXDistanceSensor extends FtcOpMode
     @Override
     public void runPeriodic(double elapsedTime)
     {
+        final int LABEL_WIDTH = 200;
         TrcSensor.SensorData data;
 
-        dashboard.displayPrintf(1, "Model:\t\t\t\t%d", sensor.getModelVersion());
-        dashboard.displayPrintf(2, "RegVersion:\t%d", sensor.getRegMapVersion());
-        dashboard.displayPrintf(3, "Status:\t%02x", sensor.getStatus());
+        dashboard.displayPrintf(1, LABEL_WIDTH, "Model: ", "%d", sensor.getModelVersion());
+        dashboard.displayPrintf(2, LABEL_WIDTH, "RegVersion: ", "%d", sensor.getRegMapVersion());
+        dashboard.displayPrintf(3, LABEL_WIDTH, "Status: ", "%02x", sensor.getStatus());
 
         //
         // The data may not be ready yet, check it!
@@ -76,37 +84,37 @@ public class FtcTestZXDistanceSensor extends FtcOpMode
         data = sensor.getGesture();
         if (data.value != null)
         {
-            dashboard.displayPrintf(4, "Gesture:\t\t\t\t\t%s", data.value.toString());
+            dashboard.displayPrintf(4, LABEL_WIDTH, "Gesture: ", "%s", data.value.toString());
         }
 
         data = sensor.getGestureSpeed();
         if (data.value != null)
         {
-            dashboard.displayPrintf(5, "GestureSpeed:\t%d", data.value);
+            dashboard.displayPrintf(5, LABEL_WIDTH, "GestureSpeed: ", "%d", data.value);
         }
 
         data = sensor.getX();
         if (data.value != null)
         {
-            dashboard.displayPrintf(6, "X:\t\t\t\t\t\t\t\t\t%d", data.value);
+            dashboard.displayPrintf(6, LABEL_WIDTH, "X: ", "%d", data.value);
         }
 
         data = sensor.getZ();
         if (data.value != null)
         {
-            dashboard.displayPrintf(7, "Z:\t\t\t\t\t\t\t\t\t%d", data.value);
+            dashboard.displayPrintf(7, LABEL_WIDTH, "Z: ", "%d", data.value);
         }
 
         data = sensor.getLeftRangingData();
         if (data.value != null)
         {
-            dashboard.displayPrintf(8, "LRng:\t\t\t\t\t\t\t%d", data.value);
+            dashboard.displayPrintf(8, LABEL_WIDTH, "LRng: ", "%d", data.value);
         }
 
         data = sensor.getRightRangingData();
         if (data.value != null)
         {
-            dashboard.displayPrintf(9, "RRng:\t\t\t\t\t\t\t%d", data.value);
+            dashboard.displayPrintf(9, LABEL_WIDTH, "RRng: ", "%d", data.value);
         }
     }   //runPeriodic
 

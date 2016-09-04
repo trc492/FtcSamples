@@ -23,9 +23,14 @@
 
 package samples;
 
+import android.widget.TextView;
+
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
+import org.firstinspires.ftc.robotcontroller.internal.FtcRobotControllerActivity;
+
+import FtcSampleCode.R;
 import ftclib.FtcMRI2cGyro;
 import ftclib.FtcOpMode;
 import hallib.HalDashboard;
@@ -47,6 +52,8 @@ public class FtcTestMRI2cGyro extends FtcOpMode
     {
         hardwareMap.logDevices();
         dashboard = getDashboard();
+        FtcRobotControllerActivity activity = (FtcRobotControllerActivity)hardwareMap.appContext;
+        dashboard.setTextView((TextView)activity.findViewById(R.id.textOpMode));
         gyro = new FtcMRI2cGyro("mrGyro");
     }   //initRobot
 
@@ -63,23 +70,24 @@ public class FtcTestMRI2cGyro extends FtcOpMode
     @Override
     public void runPeriodic(double elapsedTime)
     {
-        dashboard.displayPrintf(1, "FirmwareRev:\t\t\t\t%x", gyro.getFirmwareRevision());
-        dashboard.displayPrintf(2, "ManufacturerCode:\t%x", gyro.getManufacturerCode());
-        dashboard.displayPrintf(3, "IDCode:\t\t\t\t\t\t\t%x", gyro.getIdCode());
+        final int LABEL_WIDTH = 200;
+        dashboard.displayPrintf(1, LABEL_WIDTH, "FirmwareRev: ", "%x", gyro.getFirmwareRevision());
+        dashboard.displayPrintf(2, LABEL_WIDTH, "ManufacturerCode: ", "%x", gyro.getManufacturerCode());
+        dashboard.displayPrintf(3, LABEL_WIDTH, "IDCode: ", "%x", gyro.getIdCode());
         TrcSensor.SensorData data = gyro.getHeading();
         //
         // The data may not be ready yet, check it!
         //
         if (data.value != null)
         {
-            dashboard.displayPrintf(4, "Heading:\t\t\t%d", (Integer)gyro.getHeading().value);
-            dashboard.displayPrintf(5, "IntegratedZ:\t%d", (Integer)gyro.getIntegratedZ().value);
-            dashboard.displayPrintf(6, "RawXYZ:\t\t\t%d/%d/%d",
+            dashboard.displayPrintf(4, LABEL_WIDTH, "Heading: ", "%d", (Integer)gyro.getHeading().value);
+            dashboard.displayPrintf(5, LABEL_WIDTH, "IntegratedZ: ", "%d", (Integer)gyro.getIntegratedZ().value);
+            dashboard.displayPrintf(6, LABEL_WIDTH, "RawXYZ: ", "%d/%d/%d",
                                     (Integer)gyro.getRawX().value,
                                     (Integer)gyro.getRawY().value,
                                     (Integer)gyro.getRawZ().value);
-            dashboard.displayPrintf(7, "ZOffset:\t\t\t%d", (Integer)gyro.getZOffset().value);
-            dashboard.displayPrintf(8, "ZScaling:\t\t\t%d", (Integer)gyro.getZScaling().value);
+            dashboard.displayPrintf(7, LABEL_WIDTH, "ZOffset: ", "%d", (Integer)gyro.getZOffset().value);
+            dashboard.displayPrintf(8, LABEL_WIDTH, "ZScaling: ", "%d", (Integer)gyro.getZScaling().value);
         }
     }   //runPeriodic
 

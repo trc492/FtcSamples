@@ -65,7 +65,7 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice implements TrcI2cDevice.Complet
 
     private static final int READ_START             = REG_HEADING_LSB;
     private static final int READ_END               = REG_Z_SCALING_MSB;
-    private static final int READ_LENGTH            = (READ_START - READ_END + 1);
+    private static final int READ_LENGTH            = (READ_END - READ_START + 1);
 
     private static final byte CMD_MEASUREMENT_MODE  = 0x00;
     private static final byte CMD_RESET_OFFSET_CAL  = 0x4e;

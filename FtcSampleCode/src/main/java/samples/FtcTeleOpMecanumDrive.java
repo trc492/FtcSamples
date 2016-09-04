@@ -23,9 +23,14 @@
 
 package samples;
 
+import android.widget.TextView;
+
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
+import org.firstinspires.ftc.robotcontroller.internal.FtcRobotControllerActivity;
+
+import FtcSampleCode.R;
 import ftclib.FtcDcMotor;
 import ftclib.FtcGamepad;
 import ftclib.FtcMRGyro;
@@ -56,6 +61,8 @@ public class FtcTeleOpMecanumDrive extends FtcOpMode implements FtcGamepad.Butto
     {
         hardwareMap.logDevices();
         dashboard = getDashboard();
+        FtcRobotControllerActivity activity = (FtcRobotControllerActivity)hardwareMap.appContext;
+        dashboard.setTextView((TextView)activity.findViewById(R.id.textOpMode));
         //
         // Initializing sensors.
         //
@@ -106,6 +113,7 @@ public class FtcTeleOpMecanumDrive extends FtcOpMode implements FtcGamepad.Butto
     @Override
     public void runPeriodic(double elapsedTime)
     {
+        final int LABEL_WIDTH = 200;
         //
         // DriveBase subsystem.
         //
@@ -119,10 +127,10 @@ public class FtcTeleOpMecanumDrive extends FtcOpMode implements FtcGamepad.Butto
         driveBase.mecanumDrive_Cartesian(x, y, rotation, false,
                                          fixedOnTarget? (Double)gyro.getZHeading().value: 0.0);
 
-        dashboard.displayPrintf(1, "Text    : *** Robot Data ***");
-        dashboard.displayPrintf(2, "x       : %.2f", x);
-        dashboard.displayPrintf(3, "y       : %.2f", y);
-        dashboard.displayPrintf(4, "rotation: %.2f", rotation);
+        dashboard.displayPrintf(1, LABEL_WIDTH, "Text: ", "*** Robot Data ***");
+        dashboard.displayPrintf(2, LABEL_WIDTH, "x: ", "%.2f", x);
+        dashboard.displayPrintf(3, LABEL_WIDTH, "y: ", "%.2f", y);
+        dashboard.displayPrintf(4, LABEL_WIDTH, "rotation: ", "%.2f", rotation);
     }   //runPeriodic
 
     //

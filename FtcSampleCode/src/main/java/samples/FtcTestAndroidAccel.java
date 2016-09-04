@@ -24,10 +24,14 @@
 package samples;
 
 import android.hardware.SensorManager;
+import android.widget.TextView;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
+import org.firstinspires.ftc.robotcontroller.internal.FtcRobotControllerActivity;
+
+import FtcSampleCode.R;
 import ftclib.FtcAndroidAccel;
 import ftclib.FtcOpMode;
 import hallib.HalDashboard;
@@ -50,6 +54,8 @@ public class FtcTestAndroidAccel extends FtcOpMode
     {
         hardwareMap.logDevices();
         dashboard = getDashboard();
+        FtcRobotControllerActivity activity = (FtcRobotControllerActivity)hardwareMap.appContext;
+        dashboard.setTextView((TextView)activity.findViewById(R.id.textOpMode));
         //
         // Create 3 filters, one for each axis.
         // Accelerometer is very sensitive, so the data is very noisy.
@@ -92,19 +98,20 @@ public class FtcTestAndroidAccel extends FtcOpMode
     @Override
     public void runPeriodic(double elapsedTime)
     {
-        dashboard.displayPrintf(1, "Raw:x=%.2f,y=%.2f,z=%.2f",
+        final int LABEL_WIDTH = 100;
+        dashboard.displayPrintf(1, LABEL_WIDTH, "Raw: ", "x=%.2f,y=%.2f,z=%.2f",
                                 accel.getRawXData(TrcAccelerometer.DataType.ACCELERATION).value,
                                 accel.getRawYData(TrcAccelerometer.DataType.ACCELERATION).value,
                                 accel.getRawZData(TrcAccelerometer.DataType.ACCELERATION).value);
-        dashboard.displayPrintf(2, "Accel:x=%.2f,y=%.2f,z=%.2f (in/s2)",
+        dashboard.displayPrintf(2, LABEL_WIDTH, "Accel: ", "x=%.2f,y=%.2f,z=%.2f (in/s2)",
                                 accel.getXAcceleration().value,
                                 accel.getYAcceleration().value,
                                 accel.getZAcceleration().value);
-        dashboard.displayPrintf(3, "Vel:x=%.2f,y=%.2f,z=%.2f (in/s)",
+        dashboard.displayPrintf(3, LABEL_WIDTH, "Vel: ", "x=%.2f,y=%.2f,z=%.2f (in/s)",
                                 accel.getXVelocity().value,
                                 accel.getYVelocity().value,
                                 accel.getZVelocity().value);
-        dashboard.displayPrintf(4, "Dist:x=%.2f,y=%.2f,z=%.2f (in)",
+        dashboard.displayPrintf(4, LABEL_WIDTH, "Dist: ", "x=%.2f,y=%.2f,z=%.2f (in)",
                                 accel.getXDistance().value,
                                 accel.getYDistance().value,
                                 accel.getZDistance().value);

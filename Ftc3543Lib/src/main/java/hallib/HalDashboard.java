@@ -46,7 +46,7 @@ import trclib.TrcDbgTrace;
 public class HalDashboard
 {
     private static final String moduleName = "HalDashboard";
-    private static final boolean debugEnabled = true;
+    private static final boolean debugEnabled = false;
     private TrcDbgTrace dbgTrace = null;
 
     public static final int MAX_NUM_TEXTLINES = 16;
@@ -128,10 +128,6 @@ public class HalDashboard
             {
                 text = rightJustified? rightJustifiedText(fieldWidth, text): centeredText(fieldWidth, text);
             }
-            dbgTrace.traceInfo(
-                    funcName,
-                    "lineNum=%d,text=%s,width=%d,rightJust=%s",
-                    lineNum, text, fieldWidth, Boolean.toString(rightJustified));
             display[lineNum].setValue(text);
             telemetry.update();
         }
@@ -196,7 +192,6 @@ public class HalDashboard
      */
     public void displayPrintf(int lineNum, int labelWidth, String labelText, String format, Object... args)
     {
-        dbgTrace.traceInfo("Dashboard", "label=%s", labelText);
         String text = rightJustifiedText(labelWidth, labelText) + String.format(format, args);
         displayText(lineNum, text, 0, false);
     }   //displayPrintf
