@@ -238,14 +238,15 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.Button
         }
         driveBase.tankDrive(left, right);
 
-        final int labelWidth = 200;
-        dashboard.displayCenterPrintf(1, 444, "WildThumper");
-        dashboard.displayPrintf(2, labelWidth, "left power = ", "%.2f", left);
-        dashboard.displayPrintf(3, labelWidth, "right power = ", "%.2f", right);
-        dashboard.displayPrintf(4, labelWidth, "Gyro heading = ", "%.2f", gyro.getZHeading().value);
-        dashboard.displayPrintf(5, labelWidth, "Full Power = ", "%s", Boolean.toString(fullPowerEnabled));
-        dashboard.displayPrintf(6, labelWidth, "SoundEnvelope = ", "%s", envelopeToggle.getState()? "ON": "OFF");
-        dashboard.displayPrintf(7, labelWidth, "Tone device = ", "%s",
+        final int DISPLAY_WIDTH = 444;
+        final int LABEL_WIDTH = DISPLAY_WIDTH/2;
+        dashboard.displayCenterPrintf(1, DISPLAY_WIDTH, "WildThumper");
+        dashboard.displayPrintf(2, LABEL_WIDTH, "left power = ", "%.2f", left);
+        dashboard.displayPrintf(3, LABEL_WIDTH, "right power = ", "%.2f", right);
+        dashboard.displayPrintf(4, LABEL_WIDTH, "Gyro heading = ", "%.2f", gyro.getZHeading().value);
+        dashboard.displayPrintf(5, LABEL_WIDTH, "Full Power = ", "%s", Boolean.toString(fullPowerEnabled));
+        dashboard.displayPrintf(6, LABEL_WIDTH, "SoundEnvelope = ", "%s", envelopeToggle.getState()? "ON": "OFF");
+        dashboard.displayPrintf(7, LABEL_WIDTH, "Tone device = ", "%s",
                                 analogToneToggle.getState()? "AnalogOut": "Android");
     }   //runPeriodic
 
