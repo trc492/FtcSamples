@@ -1,6 +1,5 @@
 /*
- * Titan Robotics Framework Library
- * Copyright (c) 2016 Titan Robotics Club (http://www.titanrobotics.net)
+ * Copyright (c) 2015 Titan Robotics Club (http://www.titanrobotics.com)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
