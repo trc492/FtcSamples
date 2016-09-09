@@ -154,4 +154,17 @@ public class TrcUtil
         return bytesToInt(data, (byte)0);
     }   //bytesToInt
 
+    /**
+     * This method combines two bytes into a short.
+     *
+     * @param low specifies the low byte.
+     * @param high specifies the high byte.
+     *
+     * @return the converted short.
+     */
+    public static short bytesToShort(byte low, byte high)
+    {
+        return (short)bytesToInt(low, high);
+    }   //bytesToShort
+
 }   //class TrcUtil

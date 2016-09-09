@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Titan Robotics Club (http://www.titanrobotics.com)
+ * Copyright (c) 2016 Titan Robotics Club (http://www.titanrobotics.com)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,25 +25,26 @@ package ftclib;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.I2cAddr;
 import com.qualcomm.robotcore.hardware.I2cDevice;
+import com.qualcomm.robotcore.hardware.I2cDeviceSynchImpl;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 
 import trclib.TrcDbgTrace;
-import trclib.TrcI2cDevice;
 
 /**
  * This class implements a platform dependent I2C device.
- * extending TrcI2cDevice. It provides implementation of the
- * abstract methods in TrcI2cDevice.
  */
-public class FtcI2cDevice extends TrcI2cDevice
+public class FtcI2cDevice
 {
     private static final String moduleName = "FtcI2cDevice";
     private static final boolean debugEnabled = false;
     private TrcDbgTrace dbgTrace = null;
 
-    private I2cAddr i2cAddr;
     private I2cDevice device;
+    private I2cAddr i2cAddr;
+    private I2cDeviceSynchImpl syncDevice;
+    private ArrayList<FtcI2cDeviceReader> readers = new ArrayList<>();
 
     /**
      * Constructor: Creates an instance of the object.
@@ -55,8 +56,6 @@ public class FtcI2cDevice extends TrcI2cDevice
      */
     public FtcI2cDevice(HardwareMap hardwareMap, String instanceName, int i2cAddress, boolean addressIs7Bit)
     {
-        super(instanceName);
-
         if (debugEnabled)
         {
             dbgTrace = new TrcDbgTrace(
@@ -66,8 +65,8 @@ public class FtcI2cDevice extends TrcI2cDevice
                     TrcDbgTrace.MsgLevel.INFO);
         }
 
-        updateI2cAddress(i2cAddress, addressIs7Bit);
         device = hardwareMap.i2cDevice.get(instanceName);
+        setI2cAddress(i2cAddress, addressIs7Bit);
     }   //FtcI2cDevice
 
     /**
@@ -94,15 +93,15 @@ public class FtcI2cDevice extends TrcI2cDevice
     }   //FtcI2cDevice
 
     /**
-     * This method updates the I2C address of the device to a new address. This is typically
-     * called by the child class to update the I2C address after changing it.
+     * This method sets the I2C address of the device. This is typically called by the subclass to update
+     * the I2C address after changing it.
      *
      * @param newAddress specifies the new I2C address.
      * @param addressIs7Bit specifies true if the I2C address is a 7-bit address, false if it is 8-bit.
      */
-    protected void updateI2cAddress(int newAddress, boolean addressIs7Bit)
+    protected void setI2cAddress(int newAddress, boolean addressIs7Bit)
     {
-        final String funcName = "updateI2cAddress";
+        final String funcName = "setI2cAddress";
 
         if (debugEnabled)
         {
@@ -110,122 +109,166 @@ public class FtcI2cDevice extends TrcI2cDevice
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        if (addressIs7Bit)
+        i2cAddr = addressIs7Bit? I2cAddr.create7bit(newAddress): I2cAddr.create8bit(newAddress);
+        //
+        // I2C address has changed, discard the old sync device and create a new one with updated address.
+        //
+        syncDevice = new I2cDeviceSynchImpl(device, i2cAddr, false);
+        //
+        // Recreate all readers with the new I2C address if any.
+        //
+        for (int i = 0; i < readers.size(); i++)
         {
-            this.i2cAddr = I2cAddr.create7bit(newAddress);
+            FtcI2cDeviceReader reader = readers.get(i);
+            readers.set(i, new FtcI2cDeviceReader(
+                    reader.toString(), device, i2cAddr, reader.getMemStart(), reader.getMemLength()));
         }
-        else
-        {
-            this.i2cAddr = I2cAddr.create8bit(newAddress);
-        }
-    }   //updateI2cAddress
-
-    //
-    // Implements TrcI2cDevice abstract methods.
-    //
+    }   //setI2cAddress
 
     /**
-     * This method checks if the I2C port is ready for bus transaction.
+     * This method adds a device reader to read the specified block of memory.
      *
-     * @return true if port is ready, false otherwise.
+     * @param readerName specifies the instqance name of the reader.
+     * @param memStart specifies the starting memory address to read from.
+     * @param memLength specifies the length of the memory block to read.
+     * @return ID of the new reader created.
      */
-    @Override
-    public boolean isPortReady()
+    public int addReader(String readerName, int memStart, int memLength)
     {
-        final String funcName = "isPortReady";
-        boolean ready = device.isI2cPortReady();
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
-                               "=%s", Boolean.toString(ready));
-        }
-
-        return ready;
-    }   //isPortReady
-
-    /**
-     * This method checks if the I2C port is in write mode.
-     *
-     * @return true if port is in write mode, false otherwise.
-     */
-    @Override
-    public boolean isPortInWriteMode()
-    {
-        final String funcName = "isPortInWriteMode";
-        boolean writeMode = device.isI2cPortInWriteMode();
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
-                               "=%s", Boolean.toString(writeMode));
-        }
-
-        return writeMode;
-    }   //isPortInWriteMode
-
-    /**
-     * This method sends the read command to the device.
-     *
-     * @param regAddress specifies the register address.
-     * @param length specifies the number of bytes to read.
-     */
-    @Override
-    public void sendReadCommand(int regAddress, int length)
-    {
-        final String funcName = "sendReadCommand";
+        final String funcName = "addReader";
+        int readerId = readers.size();
 
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
-                                "addr=%x,len=%d", regAddress, length);
+                    "name=%s,start=0x%02x,len=%d", readerName, memStart, memLength);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        device.enableI2cReadMode(i2cAddr, regAddress, length);
-        device.setI2cPortActionFlag();
-        device.writeI2cCacheToController();
-    }   //sendReadCommand
+        readers.add(readerId, new FtcI2cDeviceReader(readerName, device, i2cAddr, memStart, memLength));
+
+        return readerId;
+    }   //addReader
 
     /**
-     * This method sends the write command to the device.
+     * This method is doing a synchronous read from the device with the specified starting address and length
+     * of the register block.
      *
-     * @param regAddress specifies the register address.
-     * @param length specifies the number of bytes to write.
-     * @param data specifies the data buffer containing the data to write to the device.
+     * @param startAddress specifies the starting register to read from.
+     * @param length specifies the length of the register block to read.
+     * @return data read.
      */
-    @Override
-    public void sendWriteCommand(int regAddress, int length, byte[] data)
+    public byte[] syncRead(int startAddress, int length)
     {
-        final String funcName = "sendWriteCommand";
+        final String funcName = "syncRead";
+        byte[] data = syncDevice.read(startAddress, length);
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
-                                "addr=%x,len=%d", regAddress, length);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "start=0x%02x,len=%d", startAddress, length);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", Arrays.toString(data));
+        }
+
+        return data;
+    }   //syncRead
+
+    /**
+     * This method is doing a synchronous write to the device with the specified starting address and data
+     * of the register block.
+     *
+     * @param startAddress specifies the starting register to read from.
+     * @param data specifies the data to write to the device.
+     */
+    public void syncWrite(int startAddress, byte[] data)
+    {
+        final String funcName = "syncWrite";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(
+                    funcName, TrcDbgTrace.TraceLevel.API, "start=0x%02x,data=%s", startAddress, Arrays.toString(data));
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        device.enableI2cWriteMode(i2cAddr, regAddress, length);
-        device.copyBufferIntoWriteBuffer(data);
-        device.setI2cPortActionFlag();
-        device.writeI2cCacheToController();
-    }   //sendWriteCommand
+        syncDevice.write(startAddress, data, true);
+    }   //syncWrite
 
     /**
-     * This method retrieves the data read from the device.
+     * This method is doing an asynchronous write to the device with the specified starting address and data
+     * of the register block.
      *
-     * @return byte array containing the data read.
+     * @param startAddress specifies the starting register to read from.
+     * @param data specifies the data to write to the device.
      */
-    @Override
-    public byte[] getData()
+    public void asyncWrite(int startAddress, byte[] data)
+    {
+        final String funcName = "asyncWrite";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(
+                    funcName, TrcDbgTrace.TraceLevel.API, "start=0x%02x,data=%s", startAddress, Arrays.toString(data));
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+
+        syncDevice.write(startAddress, data, false);
+    }   //asyncWrite
+
+    /**
+     * This method sends a byte command to the device.
+     *
+     * @param regAddress specifies the register address to write to.
+     * @param command specifies the command byte.
+     * @param waitForCompletion specifies true to wait for write completion.
+     */
+    public void sendByteCommand(int regAddress, byte command, boolean waitForCompletion)
+    {
+        final String funcName = "sendByteCommand";
+        byte[] data = new byte[1];
+
+        data[0] = command;
+        syncDevice.write(regAddress, data, waitForCompletion);
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "command=%x", command);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+    }   //sendByteCommand
+
+    /**
+     * This method sends a 16-bit command to the device.
+     *
+     * @param regAddress specifies the register address to write to.
+     * @param command specifies the 16-bit command.
+     * @param waitForCompletion specifies true to wait for write completion.
+     */
+    public void sendWordCommand(int regAddress, short command, boolean waitForCompletion)
+    {
+        final String funcName = "sendWordCommand";
+        byte[] data = new byte[2];
+
+        data[0] = (byte)(command & 0xff);
+        data[1] = (byte)(command >> 8);
+        syncDevice.write(regAddress, data, waitForCompletion);
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "command=%x", command);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+    }   //sendWordCommand
+
+    /**
+     * This method retrieves the data read from the specified reader.
+     *
+     * @param readerId specifies the reader ID for the reader to get the data from.
+     * @return device data.
+     */
+    public byte[] getData(int readerId)
     {
         final String funcName = "getData";
-
-        device.readI2cCacheFromController();
-        byte[] data = device.getCopyOfReadBuffer();
+        byte[] data = readers.get(readerId).getData();
 
         if (debugEnabled)
         {
@@ -235,5 +278,25 @@ public class FtcI2cDevice extends TrcI2cDevice
 
         return data;
     }   //getData
+
+    /**
+     * This method retrieves the timestamp of the cached data from the specified reader.
+     *
+     * @param readerId specifies the reader ID for the reader to get the data from.
+     * @return data timestamp.
+     */
+    public double getDataTimestamp(int readerId)
+    {
+        final String funcName = "getDataTimestamp";
+        double timestamp = readers.get(readerId).getDataTimestamp();
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%.3f", timestamp);
+        }
+
+        return timestamp;
+    }   //getDataTimestamp
 
 }   //class FtcI2cDevice

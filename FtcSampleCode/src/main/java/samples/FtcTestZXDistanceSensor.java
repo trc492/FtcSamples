@@ -53,7 +53,7 @@ public class FtcTestZXDistanceSensor extends FtcOpMode
         dashboard = getDashboard();
         FtcRobotControllerActivity activity = (FtcRobotControllerActivity)hardwareMap.appContext;
         dashboard.setTextView((TextView)activity.findViewById(R.id.textOpMode));
-        sensor = new FtcZXDistanceSensor("zxSensor", FtcZXDistanceSensor.ALTERNATE_I2CADDRESS);
+        sensor = new FtcZXDistanceSensor("zxSensor", FtcZXDistanceSensor.ALTERNATE_I2CADDRESS, false);
     }   //initRobot
 
     //

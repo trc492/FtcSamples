@@ -26,17 +26,14 @@ package ftclib;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import trclib.TrcDbgTrace;
-import trclib.TrcI2cDevice;
 import trclib.TrcSensor;
 import trclib.TrcSensorDataSource;
 import trclib.TrcUtil;
 
 /**
  * This class implements the AdaFruit Color Sensor extending FtcI2cDevice.
- * It provides the TrcI2cDevice.CompletionHandler interface to read the received data.
  */
-public class FtcAdaFruitColorSensor extends FtcI2cDevice implements TrcI2cDevice.CompletionHandler,
-                                                                    TrcSensorDataSource
+public class FtcAdaFruitColorSensor extends FtcI2cDevice implements TrcSensorDataSource
 {
     private static final String moduleName = "FtcAdaFruitColorSensor";
     private static final boolean debugEnabled = false;
@@ -99,12 +96,14 @@ public class FtcAdaFruitColorSensor extends FtcI2cDevice implements TrcI2cDevice
     private static final byte STATUS_AVALID = ((byte)(1 << 0)); //RGBC Valid.
     private static final byte STATUS_AINT   = ((byte)(1 << 4)); //RGBC clear channel Interrupt.
 
+    private int readerId = -1;
     private int deviceID = 0;
     private int deviceStatus = 0;
     private TrcSensor.SensorData clearValue = new TrcSensor.SensorData(0.0, null);
     private TrcSensor.SensorData redValue = new TrcSensor.SensorData(0.0, null);
     private TrcSensor.SensorData greenValue = new TrcSensor.SensorData(0.0, null);
     private TrcSensor.SensorData blueValue = new TrcSensor.SensorData(0.0, null);
+    private double cacheTimestamp = 0.0;
 
     /**
      * Constructor: Creates an instance of the object.
@@ -112,10 +111,11 @@ public class FtcAdaFruitColorSensor extends FtcI2cDevice implements TrcI2cDevice
      * @param hardwareMap specifies the global hardware map.
      * @param instanceName specifies the instance name.
      * @param i2cAddress specifies the I2C address of the device.
+     * @param addressIs7Bit specifies true if the I2C address is a 7-bit address, false if it is 8-bit.
      */
-    public FtcAdaFruitColorSensor(HardwareMap hardwareMap, String instanceName, int i2cAddress)
+    public FtcAdaFruitColorSensor(HardwareMap hardwareMap, String instanceName, int i2cAddress, boolean addressIs7Bit)
     {
-        super(hardwareMap, instanceName, i2cAddress);
+        super(hardwareMap, instanceName, i2cAddress, addressIs7Bit);
 
         if (debugEnabled)
         {
@@ -127,8 +127,9 @@ public class FtcAdaFruitColorSensor extends FtcI2cDevice implements TrcI2cDevice
         }
 
         setSensorEnabled(true);
-        read(REG_ID, 1, this);
-        read(READ_START, READ_LENGTH, this);
+        byte[] data = syncRead(REG_ID, 1);
+        deviceID = TrcUtil.bytesToInt(data[0]);
+        readerId = addReader(instanceName, READ_START, READ_LENGTH);
     }   //FtcAdaFruitColorSensor
 
     /**
@@ -136,10 +137,11 @@ public class FtcAdaFruitColorSensor extends FtcI2cDevice implements TrcI2cDevice
      *
      * @param instanceName specifies the instance name.
      * @param i2cAddress specifies the I2C address of the device.
+     * @param addressIs7Bit specifies true if the I2C address is a 7-bit address, false if it is 8-bit.
      */
-    public FtcAdaFruitColorSensor(String instanceName, int i2cAddress)
+    public FtcAdaFruitColorSensor(String instanceName, int i2cAddress, boolean addressIs7Bit)
     {
-        this(FtcOpMode.getInstance().hardwareMap, instanceName, i2cAddress);
+        this(FtcOpMode.getInstance().hardwareMap, instanceName, i2cAddress, addressIs7Bit);
     }   //FtcAdaFruitColorSensor
 
     /**
@@ -149,7 +151,7 @@ public class FtcAdaFruitColorSensor extends FtcI2cDevice implements TrcI2cDevice
      */
     public FtcAdaFruitColorSensor(String instanceName)
     {
-        this(instanceName, DEF_I2CADDRESS);
+        this(instanceName, DEF_I2CADDRESS, false);
     }   //FtcAdaFruitColorSensor
 
     /**
@@ -159,7 +161,7 @@ public class FtcAdaFruitColorSensor extends FtcI2cDevice implements TrcI2cDevice
      */
     public void setSensorEnabled(boolean enabled)
     {
-        sendByteCommand(REG_ENABLE, enabled? (byte)(ENABLE_PON | ENABLE_AEN): 0);
+        sendByteCommand(REG_ENABLE, enabled? (byte)(ENABLE_PON | ENABLE_AEN): 0, false);
     }   //setSensorEnabled
 
     /**
@@ -169,7 +171,7 @@ public class FtcAdaFruitColorSensor extends FtcI2cDevice implements TrcI2cDevice
      */
     public void setATime(byte aTime)
     {
-        sendByteCommand(REG_ATIME, aTime);
+        sendByteCommand(REG_ATIME, aTime, false);
     }   //setATime
 
     /**
@@ -179,7 +181,7 @@ public class FtcAdaFruitColorSensor extends FtcI2cDevice implements TrcI2cDevice
      */
     public void setWTime(byte wTime)
     {
-        sendByteCommand(REG_WTIME, wTime);
+        sendByteCommand(REG_WTIME, wTime, false);
     }   //setWTime
 
     /**
@@ -189,7 +191,7 @@ public class FtcAdaFruitColorSensor extends FtcI2cDevice implements TrcI2cDevice
      */
     public void setClearInterruptLowThreshold(short threshold)
     {
-        sendWordCommand(REG_AILTL, threshold);
+        sendWordCommand(REG_AILTL, threshold, false);
     }   //setClearInterruptLowThreshold
 
     /**
@@ -199,7 +201,7 @@ public class FtcAdaFruitColorSensor extends FtcI2cDevice implements TrcI2cDevice
      */
     public void setClearInterruptHighThreshold(short threshold)
     {
-        sendWordCommand(REG_AIHTL, threshold);
+        sendWordCommand(REG_AIHTL, threshold, false);
     }   //setClearInterruptHighThreshold
 
     /**
@@ -209,7 +211,7 @@ public class FtcAdaFruitColorSensor extends FtcI2cDevice implements TrcI2cDevice
      */
     public void setAGain(byte aGain)
     {
-        sendByteCommand(REG_CONTROL, aGain);
+        sendByteCommand(REG_CONTROL, aGain, false);
     }   //setAGain
 
     /**
@@ -229,6 +231,38 @@ public class FtcAdaFruitColorSensor extends FtcI2cDevice implements TrcI2cDevice
      */
     public int getStatus()
     {
+        double loopStartTime = FtcOpMode.getLoopStartTime();
+        //
+        // We only update the cache if we are in a different time slice loop as before.
+        //
+        if (loopStartTime > cacheTimestamp)
+        {
+            byte[] regData = getData(readerId);
+
+            deviceStatus = TrcUtil.bytesToInt(regData[REG_STATUS - READ_START]);
+            if ((deviceStatus & STATUS_AVALID) != 0)
+            {
+                double timestamp = getDataTimestamp(readerId);
+
+                clearValue.timestamp = timestamp;
+                clearValue.value = TrcUtil.bytesToInt(
+                        regData[REG_CDATAL - READ_START], regData[REG_CDATAH - READ_START]);
+
+                redValue.timestamp = timestamp;
+                redValue.value = TrcUtil.bytesToInt(
+                        regData[REG_RDATAL - READ_START], regData[REG_RDATAH - READ_START]);
+
+                greenValue.timestamp = timestamp;
+                greenValue.value = TrcUtil.bytesToInt(
+                        regData[REG_GDATAL - READ_START], regData[REG_GDATAH - READ_START]);
+
+                blueValue.timestamp = timestamp;
+                blueValue.value = TrcUtil.bytesToInt(
+                        regData[REG_BDATAL - READ_START], regData[REG_BDATAH - READ_START]);
+            }
+            cacheTimestamp = loopStartTime;
+        }
+
         return deviceStatus;
     }   //getStatus
 
@@ -240,8 +274,8 @@ public class FtcAdaFruitColorSensor extends FtcI2cDevice implements TrcI2cDevice
     public TrcSensor.SensorData getClearValue()
     {
         final String funcName = "getClearValue";
-        TrcSensor.SensorData data =
-                new TrcSensor.SensorData(clearValue.timestamp, clearValue.value);
+        getStatus();
+        TrcSensor.SensorData data = new TrcSensor.SensorData(clearValue.timestamp, clearValue.value);
 
         if (debugEnabled)
         {
@@ -261,8 +295,8 @@ public class FtcAdaFruitColorSensor extends FtcI2cDevice implements TrcI2cDevice
     public TrcSensor.SensorData getRedValue()
     {
         final String funcName = "getRedValue";
-        TrcSensor.SensorData data =
-                new TrcSensor.SensorData(redValue.timestamp, redValue.value);
+        getStatus();
+        TrcSensor.SensorData data = new TrcSensor.SensorData(redValue.timestamp, redValue.value);
 
         if (debugEnabled)
         {
@@ -282,8 +316,8 @@ public class FtcAdaFruitColorSensor extends FtcI2cDevice implements TrcI2cDevice
     public TrcSensor.SensorData getGreenValue()
     {
         final String funcName = "getGreenValue";
-        TrcSensor.SensorData data =
-                new TrcSensor.SensorData(greenValue.timestamp, greenValue.value);
+        getStatus();
+        TrcSensor.SensorData data = new TrcSensor.SensorData(greenValue.timestamp, greenValue.value);
 
         if (debugEnabled)
         {
@@ -303,8 +337,8 @@ public class FtcAdaFruitColorSensor extends FtcI2cDevice implements TrcI2cDevice
     public TrcSensor.SensorData getBlueValue()
     {
         final String funcName = "getBlueValue";
-        TrcSensor.SensorData data =
-                new TrcSensor.SensorData(blueValue.timestamp, blueValue.value);
+        getStatus();
+        TrcSensor.SensorData data = new TrcSensor.SensorData(blueValue.timestamp, blueValue.value);
 
         if (debugEnabled)
         {
@@ -315,92 +349,6 @@ public class FtcAdaFruitColorSensor extends FtcI2cDevice implements TrcI2cDevice
 
         return data;
     } //getBlueValue
-
-    //
-    // Implements TrcI2cDevice.CompletionHandler interface.
-    //
-
-    /**
-     * This method is called to notify the completion of the read operation.
-     *
-     * @param regAddress specifies the starting register address.
-     * @param length specifies the number of bytes read.
-     * @param timestamp specified the timestamp of the data retrieved.
-     * @param data specifies the data byte array.
-     * @param timedout specifies true if the operation was timed out, false otherwise.
-     * @return true to repeat the operation, false otherwise.
-     */
-    @Override
-    public boolean readCompletion(
-            int regAddress, int length, double timestamp, byte[] data, boolean timedout)
-    {
-        final String funcName = "readCompletion";
-        boolean repeat = false;
-
-        if (regAddress == REG_ID && length == 1)
-        {
-            if (!timedout)
-            {
-                deviceID = TrcUtil.bytesToInt(data[0]);
-            }
-            else
-            {
-                repeat = true;
-            }
-        }
-        else if (regAddress == READ_START && length == READ_LENGTH)
-        {
-            if (!timedout)
-            {
-                //
-                // Read these repeatedly.
-                //
-                deviceStatus = TrcUtil.bytesToInt(data[REG_STATUS - READ_START]);
-                if ((deviceStatus & STATUS_AVALID) != 0)
-                {
-                    clearValue.timestamp = timestamp;
-                    clearValue.value = TrcUtil.bytesToInt(data[REG_CDATAL - READ_START],
-                                                          data[REG_CDATAH - READ_START]);
-                    redValue.timestamp = timestamp;
-                    redValue.value = TrcUtil.bytesToInt(data[REG_RDATAL - READ_START],
-                                                        data[REG_RDATAH - READ_START]);
-                    greenValue.timestamp = timestamp;
-                    greenValue.value = TrcUtil.bytesToInt(data[REG_GDATAL - READ_START],
-                                                          data[REG_GDATAH - READ_START]);
-                    blueValue.timestamp = timestamp;
-                    blueValue.value = TrcUtil.bytesToInt(data[REG_BDATAL - READ_START],
-                                                         data[REG_BDATAH - READ_START]);
-                }
-            }
-            repeat = true;
-        }
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.CALLBK,
-                                "regAddr=%x,len=%d,timestamp=%.3f,timedout=%s" ,
-                                regAddress, length, timestamp, Boolean.toString(timedout));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.CALLBK,
-                               "=%s", Boolean.toString(repeat));
-            dbgTrace.traceInfo(funcName, "%s(addr=%x,len=%d,time=%.3f,size=%d,timedout=%s)=%s",
-                               funcName, regAddress, length, timestamp, data.length,
-                               Boolean.toString(timedout), Boolean.toString(repeat));
-        }
-
-        return repeat;
-    } //readCompletion
-
-    /**
-     * This method is called to notify the completion of the write operation.
-     *
-     * @param regAddress specifies the starting register address.
-     * @param length specifies the number of bytes read.
-     * @param timedout specifies true if the operation was timed out, false otherwise.
-     */
-    @Override
-    public void writeCompletion(int regAddress, int length, boolean timedout)
-    {
-    } //writeCompletion
 
     //
     // Implements TrcSensorDataSource interface.

@@ -25,18 +25,14 @@ package ftclib;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import trclib.TrcDbgTrace;
-import trclib.TrcI2cDevice;
 import trclib.TrcSensor;
 import trclib.TrcSensorDataSource;
 import trclib.TrcUtil;
 
 /**
  * This class implements the ZX Distance sensor extending FtcI2cDevice.
- * It provides the TrcI2cDevice.CompletionHandler interface to read the
- * received data.
  */
-public class FtcZXDistanceSensor extends FtcI2cDevice implements TrcI2cDevice.CompletionHandler,
-                                                                 TrcSensorDataSource
+public class FtcZXDistanceSensor extends FtcI2cDevice implements TrcSensorDataSource
 {
     private static final String moduleName = "FtcZXDistanceSensor";
     private static final boolean debugEnabled = false;
@@ -261,6 +257,15 @@ public class FtcZXDistanceSensor extends FtcI2cDevice implements TrcI2cDevice.Co
     //
     public static final int MODEL_VERSION           = 0x01;
 
+    private int statusReaderId = -1;
+    private int gestureReaderId = -1;
+    private int gspeedReaderId = -1;
+    private int xposReaderId = -1;
+    private int zposReaderId = -1;
+    private int lrngReaderId = -1;
+    private int rrngReaderId = -1;
+    private int regMapVersion = 0;
+    private int modelVersion = 0;
     private int deviceStatus = 0;
     private TrcSensor.SensorData gesture = new TrcSensor.SensorData(0.0, null);
     private TrcSensor.SensorData gestureSpeed = new TrcSensor.SensorData(0.0, null);
@@ -268,8 +273,7 @@ public class FtcZXDistanceSensor extends FtcI2cDevice implements TrcI2cDevice.Co
     private TrcSensor.SensorData zPos = new TrcSensor.SensorData(0.0, null);
     private TrcSensor.SensorData leftRangingData = new TrcSensor.SensorData(0.0, null);
     private TrcSensor.SensorData rightRangingData = new TrcSensor.SensorData(0.0, null);
-    private int regMapVersion = 0;
-    private int modelVersion = 0;
+    private double cacheTimestamp = 0.0;
 
     /**
      * Constructor: Creates an instance of the object.
@@ -277,10 +281,11 @@ public class FtcZXDistanceSensor extends FtcI2cDevice implements TrcI2cDevice.Co
      * @param hardwareMap specifies the global hardware map.
      * @param instanceName specifies the instance name.
      * @param i2cAddress specifies the I2C address of the device.
+     * @param addressIs7Bit specifies true if the I2C address is a 7-bit address, false if it is 8-bit.
      */
-    public FtcZXDistanceSensor(HardwareMap hardwareMap, String instanceName, int i2cAddress)
+    public FtcZXDistanceSensor(HardwareMap hardwareMap, String instanceName, int i2cAddress, boolean addressIs7Bit)
     {
-        super(hardwareMap, instanceName, i2cAddress);
+        super(hardwareMap, instanceName, i2cAddress, addressIs7Bit);
 
         if (debugEnabled)
         {
@@ -291,9 +296,21 @@ public class FtcZXDistanceSensor extends FtcI2cDevice implements TrcI2cDevice.Co
                     TrcDbgTrace.MsgLevel.INFO);
         }
 
-        read(REG_REGVER, 1, this);
-        read(REG_MODEL, 1, this);
-        read(REG_STATUS, 1, this);
+        byte[] data;
+
+        data = syncRead(REG_REGVER, 1);
+        regMapVersion = TrcUtil.bytesToInt(data[0]);
+
+        data = syncRead(REG_MODEL, 1);
+        modelVersion = TrcUtil.bytesToInt(data[0]);
+
+        statusReaderId = addReader(instanceName + "_status", REG_STATUS, 1);
+        gestureReaderId = addReader(instanceName + "_gesture", REG_STATUS, 1);
+        gspeedReaderId = addReader(instanceName + "_gspeed", REG_GSPEED, 1);
+        xposReaderId = addReader(instanceName + "_xpos", REG_XPOS, 1);
+        zposReaderId = addReader(instanceName + "_zpos", REG_ZPOS, 1);
+        lrngReaderId = addReader(instanceName + "_lrng", REG_LRNG, 1);
+        rrngReaderId = addReader(instanceName + "_rrng", REG_RRNG, 1);
     }   //FtcZXDistanceSensor
 
     /**
@@ -301,10 +318,11 @@ public class FtcZXDistanceSensor extends FtcI2cDevice implements TrcI2cDevice.Co
      *
      * @param instanceName specifies the instance name.
      * @param i2cAddress specifies the I2C address of the device.
+     * @param addressIs7Bit specifies true if the I2C address is a 7-bit address, false if it is 8-bit.
      */
-    public FtcZXDistanceSensor(String instanceName, int i2cAddress)
+    public FtcZXDistanceSensor(String instanceName, int i2cAddress, boolean addressIs7Bit)
     {
-        this(FtcOpMode.getInstance().hardwareMap, instanceName, i2cAddress);
+        this(FtcOpMode.getInstance().hardwareMap, instanceName, i2cAddress, addressIs7Bit);
     }   //FtcZXDistanceSensor
 
     /**
@@ -314,7 +332,7 @@ public class FtcZXDistanceSensor extends FtcI2cDevice implements TrcI2cDevice.Co
      */
     public FtcZXDistanceSensor(String instanceName)
     {
-        this(instanceName, DEF_I2CADDRESS);
+        this(instanceName, DEF_I2CADDRESS, false);
     }   //FtcZXDistanceSensor
 
     /**
@@ -325,11 +343,50 @@ public class FtcZXDistanceSensor extends FtcI2cDevice implements TrcI2cDevice.Co
     public int getStatus()
     {
         final String funcName = "getStatus";
+        double loopStartTime = FtcOpMode.getLoopStartTime();
 
-        if (debugEnabled)
+        if (loopStartTime > cacheTimestamp)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%x", deviceStatus);
+            byte[] data;
+
+            deviceStatus = TrcUtil.bytesToInt(getData(statusReaderId)[0]);
+            if ((deviceStatus & STATUS_GESTURES) != 0)
+            {
+                data = getData(gestureReaderId);
+                gesture.timestamp = getDataTimestamp(gestureReaderId);
+                gesture.value = Gesture.getGesture(TrcUtil.bytesToInt(data[0]));
+
+                data = getData(gspeedReaderId);
+                gestureSpeed.timestamp = getDataTimestamp(gspeedReaderId);
+                gestureSpeed.value = TrcUtil.bytesToInt(data[0]);
+            }
+
+            if ((deviceStatus & STATUS_DAV) != 0)
+            {
+                data = getData(xposReaderId);
+                xPos.timestamp = getDataTimestamp(xposReaderId);
+                xPos.value = TrcUtil.bytesToInt(data[0]);
+
+                data = getData(zposReaderId);
+                zPos.timestamp = getDataTimestamp(zposReaderId);
+                zPos.value = TrcUtil.bytesToInt(data[0]);
+
+                data = getData(lrngReaderId);
+                leftRangingData.timestamp = getDataTimestamp(lrngReaderId);
+                leftRangingData.value = TrcUtil.bytesToInt(data[0]);
+
+                data = getData(rrngReaderId);
+                rightRangingData.timestamp = getDataTimestamp(rrngReaderId);
+                rightRangingData.value = TrcUtil.bytesToInt(data[0]);
+            }
+
+            if (debugEnabled)
+            {
+                dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+                dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%x", deviceStatus);
+            }
+
+            cacheTimestamp = loopStartTime;
         }
 
         return deviceStatus;
@@ -343,6 +400,7 @@ public class FtcZXDistanceSensor extends FtcI2cDevice implements TrcI2cDevice.Co
     public TrcSensor.SensorData getGesture()
     {
         final String funcName = "getGesture";
+        getStatus();
         TrcSensor.SensorData data = new TrcSensor.SensorData(gesture.timestamp, gesture.value);
 
         if (debugEnabled)
@@ -364,8 +422,8 @@ public class FtcZXDistanceSensor extends FtcI2cDevice implements TrcI2cDevice.Co
     public TrcSensor.SensorData getGestureSpeed()
     {
         final String funcName = "getGestureSpeed";
-        TrcSensor.SensorData data =
-                new TrcSensor.SensorData(gestureSpeed.timestamp, gestureSpeed.value);
+        getStatus();
+        TrcSensor.SensorData data = new TrcSensor.SensorData(gestureSpeed.timestamp, gestureSpeed.value);
 
         if (debugEnabled)
         {
@@ -385,8 +443,8 @@ public class FtcZXDistanceSensor extends FtcI2cDevice implements TrcI2cDevice.Co
     public TrcSensor.SensorData getX()
     {
         final String funcName = "getX";
-        TrcSensor.SensorData data =
-                new TrcSensor.SensorData(xPos.timestamp, xPos.value);
+        getStatus();
+        TrcSensor.SensorData data = new TrcSensor.SensorData(xPos.timestamp, xPos.value);
 
         if (debugEnabled)
         {
@@ -406,8 +464,8 @@ public class FtcZXDistanceSensor extends FtcI2cDevice implements TrcI2cDevice.Co
     public TrcSensor.SensorData getZ()
     {
         final String funcName = "getZ";
-        TrcSensor.SensorData data =
-                new TrcSensor.SensorData(zPos.timestamp, zPos.value);
+        getStatus();
+        TrcSensor.SensorData data = new TrcSensor.SensorData(zPos.timestamp, zPos.value);
 
         if (debugEnabled)
         {
@@ -427,8 +485,8 @@ public class FtcZXDistanceSensor extends FtcI2cDevice implements TrcI2cDevice.Co
     public TrcSensor.SensorData getLeftRangingData()
     {
         final String funcName = "getLeftRangingData";
-        TrcSensor.SensorData data =
-                new TrcSensor.SensorData(leftRangingData.timestamp, leftRangingData.value);
+        getStatus();
+        TrcSensor.SensorData data = new TrcSensor.SensorData(leftRangingData.timestamp, leftRangingData.value);
 
         if (debugEnabled)
         {
@@ -448,8 +506,8 @@ public class FtcZXDistanceSensor extends FtcI2cDevice implements TrcI2cDevice.Co
     public TrcSensor.SensorData getRightRangingData()
     {
         final String funcName = "getRightRangingData";
-        TrcSensor.SensorData data =
-                new TrcSensor.SensorData(rightRangingData.timestamp, rightRangingData.value);
+        getStatus();
+        TrcSensor.SensorData data = new TrcSensor.SensorData(rightRangingData.timestamp, rightRangingData.value);
 
         if (debugEnabled)
         {
@@ -496,152 +554,6 @@ public class FtcZXDistanceSensor extends FtcI2cDevice implements TrcI2cDevice.Co
 
         return modelVersion;
     }   //getModelVersion
-
-    //
-    // Implements TrcI2cDevice.CompletionHandler interface.
-    //
-
-    /**
-     * This method is called to notify the completion of the read operation.
-     *
-     * @param regAddress specifies the starting register address.
-     * @param length specifies the number of bytes read.
-     * @param timestamp specified the timestamp of the data retrieved.
-     * @param data specifies the data byte array.
-     * @param timedout specifies true if the operation was timed out, false otherwise.
-     * @return true to repeat the operation, false otherwise.
-     */
-    @Override
-    public boolean readCompletion(
-            int regAddress, int length, double timestamp, byte[] data, boolean timedout)
-    {
-        final String funcName = "readCompletion";
-        boolean repeat = false;
-
-        switch (regAddress)
-        {
-            case REG_REGVER:
-                if (timedout)
-                {
-                    repeat = true;
-                }
-                else
-                {
-                    regMapVersion = TrcUtil.bytesToInt(data[0]);
-                }
-                break;
-
-            case REG_MODEL:
-                if (timedout)
-                {
-                    repeat = true;
-                }
-                else
-                {
-                    modelVersion = TrcUtil.bytesToInt(data[0]);
-                }
-                break;
-
-            case REG_STATUS:
-                if (!timedout)
-                {
-                    deviceStatus = TrcUtil.bytesToInt(data[0]);
-
-                    if ((deviceStatus & STATUS_GESTURES) != 0)
-                    {
-                        read(REG_GESTURE, 1, this);
-                        read(REG_GSPEED, 1, this);
-                    }
-
-                    if ((deviceStatus & STATUS_DAV) != 0)
-                    {
-                        read(REG_XPOS, 1, this);
-                        read(REG_ZPOS, 1, this);
-                        read(REG_LRNG, 1, this);
-                        read(REG_RRNG, 1, this);
-                    }
-                }
-                repeat = true;
-                break;
-
-            case REG_GESTURE:
-                if (!timedout)
-                {
-                    gesture.timestamp = timestamp;
-                    gesture.value = Gesture.getGesture(TrcUtil.bytesToInt(data[0]));
-                }
-                break;
-
-            case REG_GSPEED:
-                if (!timedout)
-                {
-                    gestureSpeed.timestamp = timestamp;
-                    gestureSpeed.value = TrcUtil.bytesToInt(data[0]);
-                }
-                break;
-
-            case REG_XPOS:
-                if (!timedout)
-                {
-                    xPos.timestamp = timestamp;
-                    xPos.value = TrcUtil.bytesToInt(data[0]);
-                }
-                break;
-
-            case REG_ZPOS:
-                if (!timedout)
-                {
-                    zPos.timestamp = timestamp;
-                    zPos.value = TrcUtil.bytesToInt(data[0]);
-                }
-                break;
-
-            case REG_LRNG:
-                if (!timedout)
-                {
-                    leftRangingData.timestamp = timestamp;
-                    leftRangingData.value = TrcUtil.bytesToInt(data[0]);
-                }
-                break;
-
-            case REG_RRNG:
-                if (!timedout)
-                {
-                    rightRangingData.timestamp = timestamp;
-                    rightRangingData.value = TrcUtil.bytesToInt(data[0]);
-                }
-                break;
-
-            default:
-                break;
-        }
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.CALLBK,
-                                "regAddr=%x,len=%d,timestamp=%.3f,timedout=%s",
-                                regAddress, length, timestamp, Boolean.toString(timedout));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.CALLBK,
-                               "=%s", Boolean.toString(repeat));
-            dbgTrace.traceInfo(funcName, "%s(regAddr=%x,len=%d,timestamp=%.3f,timedout=%s)=%s",
-                               funcName, regAddress, length, timestamp,
-                               Boolean.toString(timedout), Boolean.toString(repeat));
-        }
-
-        return repeat;
-    }   //readCompletion
-
-    /**
-     * This method is called to notify the completion of the write operation.
-     *
-     * @param regAddress specifies the starting register address.
-     * @param length specifies the number of bytes read.
-     * @param timedout specifies true if the operation was timed out, false otherwise.
-     */
-    @Override
-    public void writeCompletion(int regAddress, int length, boolean timedout)
-    {
-    }   //writeCompletion
 
     //
     // Implements TrcSensorDataSource interface.

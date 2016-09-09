@@ -25,17 +25,15 @@ package ftclib;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import trclib.TrcDbgTrace;
-import trclib.TrcI2cDevice;
 import trclib.TrcSensor;
 import trclib.TrcSensorDataSource;
 import trclib.TrcUtil;
 
 /**
- * This class implements the Modern Robotics Color Sensor extending FtcI2cDevice.
- * It provides the TrcI2cDevice.CompletionHandler interface to read the received data.
+ * This class implements the Modern Robotics Color Sensor extending FtcMRI2cDevice that implements
+ * the common features of all Modern Robotics I2C devices.
  */
-public class FtcMRI2cColorSensor extends FtcMRI2cDevice implements TrcI2cDevice.CompletionHandler,
-                                                                   TrcSensorDataSource
+public class FtcMRI2cColorSensor extends FtcMRI2cDevice implements TrcSensorDataSource
 {
     private static final String moduleName = "FtcMRI2cColorSensor";
     private static final boolean debugEnabled = false;
@@ -87,11 +85,7 @@ public class FtcMRI2cColorSensor extends FtcMRI2cDevice implements TrcI2cDevice.
     private static final byte COLORNUM_LIGHT_BLUE   = 15;
     private static final byte COLORNUM_WHITE        = 16;
 
-    private TrcSensor.SensorData colorNumber = new TrcSensor.SensorData(0.0, null);
-    private TrcSensor.SensorData redValue = new TrcSensor.SensorData(0.0, null);
-    private TrcSensor.SensorData greenValue = new TrcSensor.SensorData(0.0, null);
-    private TrcSensor.SensorData blueValue = new TrcSensor.SensorData(0.0, null);
-    private TrcSensor.SensorData whiteValue = new TrcSensor.SensorData(0.0, null);
+    private int readerId = -1;
 
     /**
      * Constructor: Creates an instance of the object.
@@ -99,10 +93,11 @@ public class FtcMRI2cColorSensor extends FtcMRI2cDevice implements TrcI2cDevice.
      * @param hardwareMap specifies the global hardware map.
      * @param instanceName specifies the instance name.
      * @param i2cAddress specifies the I2C address of the device.
+     * @param addressIs7Bit specifies true if the I2C address is a 7-bit address, false if it is 8-bit.
      */
-    public FtcMRI2cColorSensor(HardwareMap hardwareMap, String instanceName, int i2cAddress)
+    public FtcMRI2cColorSensor(HardwareMap hardwareMap, String instanceName, int i2cAddress, boolean addressIs7Bit)
     {
-        super(hardwareMap, instanceName, i2cAddress);
+        super(hardwareMap, instanceName, i2cAddress, addressIs7Bit);
 
         if (debugEnabled)
         {
@@ -113,7 +108,7 @@ public class FtcMRI2cColorSensor extends FtcMRI2cDevice implements TrcI2cDevice.
                     TrcDbgTrace.MsgLevel.INFO);
         }
 
-        read(READ_START, READ_LENGTH, this);
+        readerId = addReader(instanceName, READ_START, READ_LENGTH);
     }   //FtcMRI2cColorSensor
 
     /**
@@ -121,10 +116,11 @@ public class FtcMRI2cColorSensor extends FtcMRI2cDevice implements TrcI2cDevice.
      *
      * @param instanceName specifies the instance name.
      * @param i2cAddress specifies the I2C address of the device.
+     * @param addressIs7Bit specifies true if the I2C address is a 7-bit address, false if it is 8-bit.
      */
-    public FtcMRI2cColorSensor(String instanceName, int i2cAddress)
+    public FtcMRI2cColorSensor(String instanceName, int i2cAddress, boolean addressIs7Bit)
     {
-        this(FtcOpMode.getInstance().hardwareMap, instanceName, i2cAddress);
+        this(FtcOpMode.getInstance().hardwareMap, instanceName, i2cAddress, addressIs7Bit);
     }   //FtcMRI2cColorSensor
 
     /**
@@ -134,7 +130,7 @@ public class FtcMRI2cColorSensor extends FtcMRI2cDevice implements TrcI2cDevice.
      */
     public FtcMRI2cColorSensor(String instanceName)
     {
-        this(instanceName, DEF_I2CADDRESS);
+        this(instanceName, DEF_I2CADDRESS, false);
     }   //FtcMRI2cColorSensor
 
     /**
@@ -145,7 +141,7 @@ public class FtcMRI2cColorSensor extends FtcMRI2cDevice implements TrcI2cDevice.
      */
     public void setLEDEnabled(boolean enabled)
     {
-        sendByteCommand(REG_COMMAND, enabled? CMD_ENABLE_LED: CMD_DISABLE_LED);
+        sendByteCommand(REG_COMMAND, enabled? CMD_ENABLE_LED: CMD_DISABLE_LED, false);
     }   //setLEDEnabled
 
     /**
@@ -158,7 +154,7 @@ public class FtcMRI2cColorSensor extends FtcMRI2cDevice implements TrcI2cDevice.
      */
     public void set50HzMode()
     {
-        sendByteCommand(REG_COMMAND, CMD_SET_50HZ_MODE);
+        sendByteCommand(REG_COMMAND, CMD_SET_50HZ_MODE, false);
     }   //set50HzMode
 
     /**
@@ -171,7 +167,7 @@ public class FtcMRI2cColorSensor extends FtcMRI2cDevice implements TrcI2cDevice.
      */
     public void set60HzMode()
     {
-        sendByteCommand(REG_COMMAND, CMD_SET_60HZ_MODE);
+        sendByteCommand(REG_COMMAND, CMD_SET_60HZ_MODE, false);
     }   //set60HzMode
 
     /**
@@ -185,7 +181,7 @@ public class FtcMRI2cColorSensor extends FtcMRI2cDevice implements TrcI2cDevice.
      */
     public void calibrateBlackLevel()
     {
-        sendByteCommand(REG_COMMAND, CMD_CAL_BLACKLEVEL);
+        sendByteCommand(REG_COMMAND, CMD_CAL_BLACKLEVEL, false);
     }   //calibrateBlackLevel
 
     /**
@@ -199,7 +195,7 @@ public class FtcMRI2cColorSensor extends FtcMRI2cDevice implements TrcI2cDevice.
      */
     public void calibrateWhiteBalance()
     {
-        sendByteCommand(REG_COMMAND, CMD_CAL_WHITEBAL);
+        sendByteCommand(REG_COMMAND, CMD_CAL_WHITEBAL, false);
     }   //calibrateWhiteBalance
 
     /**
@@ -210,8 +206,9 @@ public class FtcMRI2cColorSensor extends FtcMRI2cDevice implements TrcI2cDevice.
     public TrcSensor.SensorData getColorNumber()
     {
         final String funcName = "getColorNumber";
-        TrcSensor.SensorData data =
-                new TrcSensor.SensorData(colorNumber.timestamp, colorNumber.value);
+        byte[] regData = getData(readerId);
+        TrcSensor.SensorData data = new TrcSensor.SensorData(
+                getDataTimestamp(readerId), TrcUtil.bytesToInt(regData[REG_COLOR_NUMBER - READ_START]));
 
         if (debugEnabled)
         {
@@ -231,8 +228,9 @@ public class FtcMRI2cColorSensor extends FtcMRI2cDevice implements TrcI2cDevice.
     public TrcSensor.SensorData getRedValue()
     {
         final String funcName = "getRedValue";
-        TrcSensor.SensorData data =
-                new TrcSensor.SensorData(redValue.timestamp, redValue.value);
+        byte[] regData = getData(readerId);
+        TrcSensor.SensorData data = new TrcSensor.SensorData(
+                getDataTimestamp(readerId), TrcUtil.bytesToInt(regData[REG_RED - READ_START]));
 
         if (debugEnabled)
         {
@@ -252,8 +250,9 @@ public class FtcMRI2cColorSensor extends FtcMRI2cDevice implements TrcI2cDevice.
     public TrcSensor.SensorData getGreenValue()
     {
         final String funcName = "getGreenValue";
-        TrcSensor.SensorData data =
-                new TrcSensor.SensorData(greenValue.timestamp, greenValue.value);
+        byte[] regData = getData(readerId);
+        TrcSensor.SensorData data = new TrcSensor.SensorData(
+                getDataTimestamp(readerId), TrcUtil.bytesToInt(regData[REG_GREEN - READ_START]));
 
         if (debugEnabled)
         {
@@ -273,8 +272,9 @@ public class FtcMRI2cColorSensor extends FtcMRI2cDevice implements TrcI2cDevice.
     public TrcSensor.SensorData getBlueValue()
     {
         final String funcName = "getBlueValue";
-        TrcSensor.SensorData data =
-                new TrcSensor.SensorData(blueValue.timestamp, blueValue.value);
+        byte[] regData = getData(readerId);
+        TrcSensor.SensorData data = new TrcSensor.SensorData(
+                getDataTimestamp(readerId), TrcUtil.bytesToInt(regData[REG_BLUE - READ_START]));
 
         if (debugEnabled)
         {
@@ -294,8 +294,9 @@ public class FtcMRI2cColorSensor extends FtcMRI2cDevice implements TrcI2cDevice.
     public TrcSensor.SensorData getWhiteValue()
     {
         final String funcName = "getWhiteValue";
-        TrcSensor.SensorData data =
-                new TrcSensor.SensorData(whiteValue.timestamp, whiteValue.value);
+        byte[] regData = getData(readerId);
+        TrcSensor.SensorData data = new TrcSensor.SensorData(
+                getDataTimestamp(readerId), TrcUtil.bytesToInt(regData[REG_WHITE - READ_START]));
 
         if (debugEnabled)
         {
@@ -306,83 +307,6 @@ public class FtcMRI2cColorSensor extends FtcMRI2cDevice implements TrcI2cDevice.
 
         return data;
     }   //getWhiteValue
-
-    //
-    // Implements TrcI2cDevice.CompletionHandler interface.
-    //
-
-    /**
-     * This method is called to notify the completion of the read operation.
-     *
-     * @param regAddress specifies the starting register address.
-     * @param length specifies the number of bytes read.
-     * @param timestamp specified the timestamp of the data retrieved.
-     * @param data specifies the data byte array.
-     * @param timedout specifies true if the operation was timed out, false otherwise.
-     * @return true to repeat the operation, false otherwise.
-     */
-    @Override
-    public boolean readCompletion(
-            int regAddress, int length, double timestamp, byte[] data, boolean timedout)
-    {
-        final String funcName = "readCompletion";
-        boolean repeat = false;
-
-        if (regAddress == READ_START && length == READ_LENGTH)
-        {
-            if (!timedout)
-            {
-                //
-                // Read these repeatedly.
-                //
-                colorNumber.timestamp = timestamp;
-                colorNumber.value = TrcUtil.bytesToInt(data[REG_COLOR_NUMBER - READ_START]);
-
-                redValue.timestamp = timestamp;
-                redValue.value = TrcUtil.bytesToInt(data[REG_RED - READ_START]);
-
-                greenValue.timestamp = timestamp;
-                greenValue.value = TrcUtil.bytesToInt(data[REG_GREEN - READ_START]);
-
-                blueValue.timestamp = timestamp;
-                blueValue.value = TrcUtil.bytesToInt(data[REG_BLUE - READ_START]);
-
-                whiteValue.timestamp = timestamp;
-                whiteValue.value = TrcUtil.bytesToInt(data[REG_WHITE - READ_START]);
-            }
-            repeat = true;
-        }
-        else
-        {
-            repeat = super.readCompletion(regAddress, length, timestamp, data, timedout);
-        }
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.CALLBK,
-                                "regAddr=%x,len=%d,timestamp=%.3f,timedout=%s",
-                                regAddress, length, timestamp, Boolean.toString(timedout));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.CALLBK,
-                               "=%s", Boolean.toString(repeat));
-            dbgTrace.traceInfo(funcName, "%s(addr=%x,len=%d,time=%.3f,size=%d,timedout=%s)=%s",
-                               funcName, regAddress, length, timestamp, data.length,
-                               Boolean.toString(timedout), Boolean.toString(repeat));
-        }
-
-        return repeat;
-    }   //readCompletion
-
-    /**
-     * This method is called to notify the completion of the write operation.
-     *
-     * @param regAddress specifies the starting register address.
-     * @param length specifies the number of bytes read.
-     * @param timedout specifies true if the operation was timed out, false otherwise.
-     */
-    @Override
-    public void writeCompletion(int regAddress, int length, boolean timedout)
-    {
-    }   //writeCompletion
 
     //
     // Implements TrcSensorDataSource interface.

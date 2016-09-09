@@ -48,12 +48,14 @@ public class FtcTestMRI2cGyro extends FtcOpMode
 
     @Override
     public void initRobot()
+
     {
         hardwareMap.logDevices();
         dashboard = getDashboard();
         FtcRobotControllerActivity activity = (FtcRobotControllerActivity)hardwareMap.appContext;
         dashboard.setTextView((TextView)activity.findViewById(R.id.textOpMode));
         gyro = new FtcMRI2cGyro("mrGyro");
+        gyro.calibrate();
     }   //initRobot
 
     //

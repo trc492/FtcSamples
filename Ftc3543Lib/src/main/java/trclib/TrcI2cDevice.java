@@ -200,7 +200,7 @@ public abstract class TrcI2cDevice implements TrcTaskMgr.Task
 
         this.instanceName = instanceName;
         portCommandSM = new TrcStateMachine(instanceName);
-    }   //FtcI2cDevice
+    }   //TrcI2cDevice
 
     /**
      * This method returns the instance name of the device.

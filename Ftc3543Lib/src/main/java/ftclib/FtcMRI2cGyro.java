@@ -25,18 +25,15 @@ package ftclib;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import trclib.TrcDbgTrace;
-import trclib.TrcI2cDevice;
 import trclib.TrcSensor;
 import trclib.TrcSensorDataSource;
 import trclib.TrcUtil;
 
 /**
- * This class implements the Modern Robotics Gyro extending FtcI2cDevice.
- * It provides the TrcI2cDevice.CompletionHandler interface to read the
- * received data.
+ * This class implements the Modern Robotics Gyro extending FtcMRI2cDevice that implements
+ * the common features of all Modern Robotics I2C devices.
  */
-public class FtcMRI2cGyro extends FtcMRI2cDevice implements TrcI2cDevice.CompletionHandler,
-                                                            TrcSensorDataSource
+public class FtcMRI2cGyro extends FtcMRI2cDevice implements TrcSensorDataSource
 {
     private static final String moduleName = "FtcMRI2cGyro";
     private static final boolean debugEnabled = false;
@@ -71,13 +68,7 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice implements TrcI2cDevice.Complet
     private static final byte CMD_RESET_Z_INTEGRATOR= 0x52;
     private static final byte CMD_WRITE_EEPROM_DATA = 0x57;
 
-    private TrcSensor.SensorData heading = new TrcSensor.SensorData(0.0, null);
-    private TrcSensor.SensorData integratedZ = new TrcSensor.SensorData(0.0, null);
-    private TrcSensor.SensorData rawX = new TrcSensor.SensorData(0.0, null);
-    private TrcSensor.SensorData rawY = new TrcSensor.SensorData(0.0, null);
-    private TrcSensor.SensorData rawZ = new TrcSensor.SensorData(0.0, null);
-    private TrcSensor.SensorData zOffset = new TrcSensor.SensorData(0.0, null);
-    private TrcSensor.SensorData zScaling = new TrcSensor.SensorData(0.0, null);
+    private int readerId = -1;
     private boolean calibrating = false;
 
     /**
@@ -86,10 +77,11 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice implements TrcI2cDevice.Complet
      * @param hardwareMap specifies the global hardware map.
      * @param instanceName specifies the instance name.
      * @param i2cAddress specifies the I2C address of the device.
+     * @param addressIs7Bit specifies true if the I2C address is a 7-bit address, false if it is 8-bit.
      */
-    public FtcMRI2cGyro(HardwareMap hardwareMap, String instanceName, int i2cAddress)
+    public FtcMRI2cGyro(HardwareMap hardwareMap, String instanceName, int i2cAddress, boolean addressIs7Bit)
     {
-        super(hardwareMap, instanceName, i2cAddress);
+        super(hardwareMap, instanceName, i2cAddress, addressIs7Bit);
 
         if (debugEnabled)
         {
@@ -101,7 +93,7 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice implements TrcI2cDevice.Complet
         }
 
         resetZIntegrator();
-        read(READ_START, READ_LENGTH, this);
+        readerId = addReader(instanceName, READ_START, READ_LENGTH);
     }   //FtcMRI2cGyro
 
     /**
@@ -109,10 +101,11 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice implements TrcI2cDevice.Complet
      *
      * @param instanceName specifies the instance name.
      * @param i2cAddress specifies the I2C address of the device.
+     * @param addressIs7Bit specifies true if the I2C address is a 7-bit address, false if it is 8-bit.
      */
-    public FtcMRI2cGyro(String instanceName, int i2cAddress)
+    public FtcMRI2cGyro(String instanceName, int i2cAddress, boolean addressIs7Bit)
     {
-        this(FtcOpMode.getInstance().hardwareMap, instanceName, i2cAddress);
+        this(FtcOpMode.getInstance().hardwareMap, instanceName, i2cAddress, addressIs7Bit);
     }   //FtcMRI2cGyro
 
     /**
@@ -122,7 +115,7 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice implements TrcI2cDevice.Complet
      */
     public FtcMRI2cGyro(String instanceName)
     {
-        this(instanceName, DEF_I2CADDRESS);
+        this(instanceName, DEF_I2CADDRESS, false);
     }   //FtcMRI2cGyro
 
     /**
@@ -133,7 +126,7 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice implements TrcI2cDevice.Complet
     {
         final String funcName = "calibrate";
 
-        sendByteCommand(REG_COMMAND, CMD_RESET_OFFSET_CAL);
+        sendByteCommand(REG_COMMAND, CMD_RESET_OFFSET_CAL, false);
         calibrating = true;
 
         if (debugEnabled)
@@ -169,7 +162,7 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice implements TrcI2cDevice.Complet
     {
         final String funcName = "resetZIntegrator";
 
-        sendByteCommand(REG_COMMAND, CMD_RESET_Z_INTEGRATOR);
+        sendByteCommand(REG_COMMAND, CMD_RESET_Z_INTEGRATOR, false);
 
         if (debugEnabled)
         {
@@ -186,8 +179,13 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice implements TrcI2cDevice.Complet
     public TrcSensor.SensorData getHeading()
     {
         final String funcName = "getHeading";
-        TrcSensor.SensorData data =
-                new TrcSensor.SensorData(heading.timestamp, heading.value);
+        byte[] regData = getData(readerId);
+        int value = TrcUtil.bytesToInt(regData[REG_HEADING_LSB - READ_START], regData[REG_HEADING_MSB - READ_START]);
+        //
+        // MR gyro heading is decreasing when turning clockwise. This is opposite to convention.
+        // So we are reversing it.
+        //
+        TrcSensor.SensorData data = new TrcSensor.SensorData(getDataTimestamp(readerId), (360 - value)%360);
 
         if (debugEnabled)
         {
@@ -207,8 +205,14 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice implements TrcI2cDevice.Complet
     public TrcSensor.SensorData getIntegratedZ()
     {
         final String funcName = "getIntegratedZ";
-        TrcSensor.SensorData data =
-                new TrcSensor.SensorData(integratedZ.timestamp, integratedZ.value);
+        byte[] regData = getData(readerId);
+        //
+        // MR gyro IntegratedZ is decreasing when turning clockwise. This is opposite to convention.
+        // So we are reversing it.
+        //
+        short value = TrcUtil.bytesToShort(regData[REG_INTEGRATED_Z_LSB - READ_START],
+                                           regData[REG_INTEGRATED_Z_MSB - READ_START]);
+        TrcSensor.SensorData data = new TrcSensor.SensorData(getDataTimestamp(readerId), -value);
 
         if (debugEnabled)
         {
@@ -228,8 +232,10 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice implements TrcI2cDevice.Complet
     public TrcSensor.SensorData getRawX()
     {
         final String funcName = "getRawX";
-        TrcSensor.SensorData data =
-                new TrcSensor.SensorData(rawX.timestamp, rawX.value);
+        byte[] regData = getData(readerId);
+        TrcSensor.SensorData data = new TrcSensor.SensorData(
+                getDataTimestamp(readerId),
+                -TrcUtil.bytesToInt(regData[REG_RAW_X_LSB - READ_START], regData[REG_RAW_X_MSB - READ_START]));
 
         if (debugEnabled)
         {
@@ -249,8 +255,11 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice implements TrcI2cDevice.Complet
     public TrcSensor.SensorData getRawY()
     {
         final String funcName = "getRawY";
-        TrcSensor.SensorData data =
-                new TrcSensor.SensorData(rawY.timestamp, rawY.value);
+        byte[] regData = getData(readerId);
+        TrcSensor.SensorData data = new TrcSensor.SensorData(
+                getDataTimestamp(readerId),
+                -TrcUtil.bytesToInt(regData[REG_RAW_Y_LSB - READ_START],
+                                    regData[REG_RAW_Y_MSB - READ_START]));
 
         if (debugEnabled)
         {
@@ -270,8 +279,11 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice implements TrcI2cDevice.Complet
     public TrcSensor.SensorData getRawZ()
     {
         final String funcName = "getRawZ";
-        TrcSensor.SensorData data =
-                new TrcSensor.SensorData(rawZ.timestamp, rawZ.value);
+        byte[] regData = getData(readerId);
+        TrcSensor.SensorData data = new TrcSensor.SensorData(
+                getDataTimestamp(readerId),
+                -TrcUtil.bytesToInt(regData[REG_RAW_Z_LSB - READ_START],
+                                    regData[REG_RAW_Z_MSB - READ_START]));
 
         if (debugEnabled)
         {
@@ -291,8 +303,11 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice implements TrcI2cDevice.Complet
     public TrcSensor.SensorData getZOffset()
     {
         final String funcName = "getZOffset";
-        TrcSensor.SensorData data =
-                new TrcSensor.SensorData(zOffset.timestamp, zOffset.value);
+        byte[] regData = getData(readerId);
+        TrcSensor.SensorData data = new TrcSensor.SensorData(
+                getDataTimestamp(readerId),
+                TrcUtil.bytesToInt(regData[REG_Z_OFFSET_LSB - READ_START],
+                                   regData[REG_Z_OFFSET_MSB - READ_START]));
 
         if (debugEnabled)
         {
@@ -312,8 +327,11 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice implements TrcI2cDevice.Complet
     public TrcSensor.SensorData getZScaling()
     {
         final String funcName = "getZScaling";
-        TrcSensor.SensorData data =
-                new TrcSensor.SensorData(zScaling.timestamp, zScaling.value);
+        byte[] regData = getData(readerId);
+        TrcSensor.SensorData data = new TrcSensor.SensorData(
+                getDataTimestamp(readerId),
+                TrcUtil.bytesToInt(regData[REG_Z_SCALING_LSB - READ_START],
+                                   regData[REG_Z_SCALING_MSB - READ_START]));
 
         if (debugEnabled)
         {
@@ -324,124 +342,6 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice implements TrcI2cDevice.Complet
 
         return data;
     }   //getZScaling
-
-    //
-    // Implements TrcI2cDevice.CompletionHandler interface.
-    //
-
-    /**
-     * This method is called to notify the completion of the read operation.
-     *
-     * @param regAddress specifies the starting register address.
-     * @param length specifies the number of bytes read.
-     * @param timestamp specified the timestamp of the data retrieved.
-     * @param data specifies the data byte array.
-     * @param timedout specifies true if the operation was timed out, false otherwise.
-     * @return true to repeat the operation, false otherwise.
-     */
-    @Override
-    public boolean readCompletion(
-            int regAddress, int length, double timestamp, byte[] data, boolean timedout)
-    {
-        final String funcName = "readCompletion";
-        boolean repeat = false;
-
-        if (regAddress == READ_START && length == READ_LENGTH)
-        {
-            if (!timedout)
-            {
-                //
-                // Read these repeatedly.
-                //
-                int value = TrcUtil.bytesToInt(data[REG_HEADING_LSB - READ_START]);
-                heading.timestamp = timestamp;
-                heading.value = (360 - value)%360;
-
-                integratedZ.timestamp = timestamp;
-                integratedZ.value =
-                        -TrcUtil.bytesToInt(data[REG_INTEGRATED_Z_LSB - READ_START],
-                                            data[REG_INTEGRATED_Z_MSB - READ_START]);
-
-                rawX.timestamp = timestamp;
-                rawX.value =
-                        -TrcUtil.bytesToInt(data[REG_RAW_X_LSB - READ_START],
-                                            data[REG_RAW_X_MSB - READ_START]);
-
-                rawY.timestamp = timestamp;
-                rawY.value =
-                        -TrcUtil.bytesToInt(data[REG_RAW_Y_LSB - READ_START],
-                                            data[REG_RAW_Y_MSB - READ_START]);
-
-                rawZ.timestamp = timestamp;
-                rawZ.value =
-                        -TrcUtil.bytesToInt(data[REG_RAW_Z_LSB - READ_START],
-                                            data[REG_RAW_Z_MSB - READ_START]);
-
-                zOffset.timestamp = timestamp;
-                zOffset.value =
-                        TrcUtil.bytesToInt(data[REG_Z_OFFSET_LSB - READ_START],
-                                           data[REG_Z_OFFSET_MSB - READ_START]);
-
-                zScaling.timestamp = timestamp;
-                zScaling.value =
-                        TrcUtil.bytesToInt(data[REG_Z_SCALING_LSB - READ_START],
-                                           data[REG_Z_SCALING_MSB - READ_START]);
-            }
-            repeat = true;
-        }
-        else
-        {
-            repeat = super.readCompletion(regAddress, length, timestamp, data, timedout);
-        }
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.CALLBK,
-                                "regAddr=%x,len=%d,timestamp=%.3f,timedout=%s",
-                                regAddress, length, timestamp, Boolean.toString(timedout));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.CALLBK,
-                               "=%s", Boolean.toString(repeat));
-            dbgTrace.traceInfo(funcName, "%s(addr=%x,len=%d,time=%.3f,size=%d,timedout=%s)=%s",
-                               funcName, regAddress, length, timestamp, data.length,
-                               Boolean.toString(timedout), Boolean.toString(repeat));
-        }
-
-        return repeat;
-    }   //readCompletion
-
-    /**
-     * This method is called to notify the completion of the write operation.
-     *
-     * @param regAddress specifies the starting register address.
-     * @param length specifies the number of bytes read.
-     * @param timedout specifies true if the operation was timed out, false otherwise.
-     */
-    @Override
-    public void writeCompletion(int regAddress, int length, boolean timedout)
-    {
-        final String funcName = "writeCompletion";
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.CALLBK,
-                                "regAddr=%x,len=%d,timedout=%s",
-                                regAddress, length, Boolean.toString(timedout));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.CALLBK);
-            dbgTrace.traceInfo(funcName, "%s(addr=%x,len=%d,timedout=%s)",
-                               funcName, regAddress, length, Boolean.toString(timedout));
-        }
-
-        if (regAddress == REG_COMMAND && length == 1)
-        {
-            if (calibrating)
-            {
-                //
-                // This was the calibrate command, mark it done.
-                //
-                calibrating = false;
-            }
-        }
-    }   //writeCompletion
 
     //
     // Implements TrcSensorDataSource interface.

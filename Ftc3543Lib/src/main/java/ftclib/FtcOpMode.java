@@ -57,8 +57,9 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
     private final static long LOOP_PERIOD = 20;
     private TrcRobot.RunMode runMode = TrcRobot.RunMode.INVALID_MODE;
     private static FtcOpMode instance = null;
-    private static double startTime = 0.0;
-    private static double elapsedTime = 0.0;
+    private static double opModeStartTime = 0.0;
+    private static double opModeElapsedTime = 0.0;
+    private static double loopStartTime = 0.0;
 
     /**
      * Constructor: Creates an instance of the object. It calls the constructor
@@ -149,12 +150,23 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
      * waitForStart() has returned (i.e. The "Play" button is pressed
      * on the Driver Station.
      *
-     * @return OpMode start elapsed time in seconds.
+     * @return OpMode elapsed time in seconds.
      */
-    public static double getElapsedTime()
+    public static double getOpModeElapsedTime()
     {
-        elapsedTime = HalUtil.getCurrentTime() - startTime;
-        return elapsedTime;
+        opModeElapsedTime = HalUtil.getCurrentTime() - opModeStartTime;
+        return opModeElapsedTime;
+    }   //getElapsedTime
+
+    /**
+     * This method returns the start time of the time slice loop. This is useful for the caller to determine
+     * if it is in the same time slice as a previous operation for optimization purposes.
+     *
+     * @return time slice loop start time.
+     */
+    public static double getLoopStartTime()
+    {
+        return loopStartTime;
     }   //getElapsedTime
 
     //
@@ -239,7 +251,7 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
             dbgTrace.traceInfo(funcName, "Waiting to start ...");
         }
         waitForStart();
-        startTime = HalUtil.getCurrentTime();
+        opModeStartTime = HalUtil.getCurrentTime();
 
         //
         // Prepare for starting the run mode.
@@ -261,7 +273,8 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
         {
             while (opModeIsActive())
             {
-                elapsedTime = HalUtil.getCurrentTime() - startTime;
+                loopStartTime = HalUtil.getCurrentTime();
+                opModeElapsedTime = loopStartTime - opModeStartTime;
 
                 if (debugEnabled)
                 {
@@ -273,7 +286,7 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
                 {
                     dbgTrace.traceInfo(funcName, "Runing runContinuous ...");
                 }
-                runContinuous(elapsedTime);
+                runContinuous(opModeElapsedTime);
 
                 if (debugEnabled)
                 {
@@ -283,7 +296,7 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
 
                 if (HalUtil.getCurrentTimeMillis() >= nextPeriodTime)
                 {
-                    dashboard.displayPrintf(0, "%s: %.3f", opModeName, elapsedTime);
+                    dashboard.displayPrintf(0, "%s: %.3f", opModeName, opModeElapsedTime);
                     nextPeriodTime += LOOP_PERIOD;
 
                     if (debugEnabled)
@@ -296,7 +309,7 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
                     {
                         dbgTrace.traceInfo(funcName, "Runing runPeriodic ...");
                     }
-                    runPeriodic(elapsedTime);
+                    runPeriodic(opModeElapsedTime);
 
                     if (debugEnabled)
                     {

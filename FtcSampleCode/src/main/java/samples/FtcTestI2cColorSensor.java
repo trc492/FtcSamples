@@ -59,7 +59,7 @@ public class FtcTestI2cColorSensor extends FtcOpMode
         dashboard.setTextView((TextView)activity.findViewById(R.id.textOpMode));
 
 //        i2cColorSensor = new FtcMRI2cColorSensor("i2cColorSensor");
-        i2cColorSensor = new FtcMRI2cColorSensor("i2cColorSensor", ALTERNATE_I2CADDRESS);
+        i2cColorSensor = new FtcMRI2cColorSensor("i2cColorSensor", ALTERNATE_I2CADDRESS, false);
 //        i2cColorSensor.setLEDEnabled(false);
         colorSensor = hardwareMap.colorSensor.get("colorSensor");
     }   //initRobot
