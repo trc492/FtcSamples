@@ -50,7 +50,6 @@ public class FtcDcMotor implements HalMotorController
     private DcMotor motor;
     private int zeroEncoderValue;
     private int positionSensorSign = 1;
-    private boolean brakeModeEnabled = true;
 
     /**
      * Constructor: Create an instance of the object.
@@ -208,7 +207,7 @@ public class FtcDcMotor implements HalMotorController
     public boolean isLowerLimitSwitchActive()
     {
         final String funcName = "isLowerLimitSwitchActive";
-        boolean isActive = lowerLimitSwitch != null? lowerLimitSwitch.isActive(): false;
+        boolean isActive = lowerLimitSwitch != null && lowerLimitSwitch.isActive();
 
         if (debugEnabled)
         {
@@ -228,7 +227,7 @@ public class FtcDcMotor implements HalMotorController
     public boolean isUpperLimitSwitchActive()
     {
         final String funcName = "isUpperLimitSwitchActive";
-        boolean isActive = upperLimitSwitch != null? upperLimitSwitch.isActive(): false;
+        boolean isActive = upperLimitSwitch != null && upperLimitSwitch.isActive();
 
         if (debugEnabled)
         {
@@ -286,7 +285,7 @@ public class FtcDcMotor implements HalMotorController
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        this.brakeModeEnabled = enabled;
+        motor.setZeroPowerBehavior(enabled? DcMotor.ZeroPowerBehavior.BRAKE: DcMotor.ZeroPowerBehavior.FLOAT);
     }   //setBrakeModeEnabled
 
     /**
@@ -334,14 +333,7 @@ public class FtcDcMotor implements HalMotorController
             power = 0.0;
         }
 
-        if (power != 0.0 || brakeModeEnabled)
-        {
-            motor.setPower(power);
-        }
-        else
-        {
-            motor.setPowerFloat();
-        }
+        motor.setPower(power);
     }   //setPower
 
     /**

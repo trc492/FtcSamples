@@ -38,6 +38,7 @@ import ftclib.FtcDcMotor;
 import ftclib.FtcGamepad;
 import ftclib.FtcMRGyro;
 import ftclib.FtcOpMode;
+import ftclib.FtcSongXml;
 import hallib.HalDashboard;
 import trclib.TrcBooleanState;
 import trclib.TrcDriveBase;
@@ -56,8 +57,7 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.Button
     private static final double HIGH_BEEP = 880.0;      // in Hz
     private static final double BEEP_DURATION = 0.2;    // in seconds
     private static final double BAR_DURATION = 1.920;   // in seconds
-    private static final String SONG_NAME = "LesMiserables";
-    private static final int SONG_RESOURCE = R.raw.lesmiserables;
+    private static final int SONG_RESOURCE = R.raw.songcollection;
 
     private static final boolean LEFTWHEEL_INVERTED = false;
     private static final boolean RIGHTWHEEL_INVERTED = true;
@@ -71,11 +71,11 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.Button
     // Sound devices.
     private FtcAndroidTone androidTone = null;
     private FtcAnalogOutTone analogTone = null;
+    private TrcSong[] collection = null;
+    private int songIndex = -1;
     private TrcSongPlayer songPlayer = null;
-    private TrcBooleanState songToggle = new TrcBooleanState("SongToggle", false);
     private TrcBooleanState envelopeToggle = new TrcBooleanState("EnvelopeToggle", true);
     private TrcBooleanState analogToneToggle = new TrcBooleanState("AnalogToneToggle", false);
-    private TrcSong lesMiserables = null;
     // Drive Base.
     private FtcDcMotor lfMotor;
     private FtcDcMotor rfMotor;
@@ -115,8 +115,18 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.Button
         androidTone.setSoundEnvelope(ATTACK, DECAY, SUSTAIN, RELEASE);
         androidTone.setSoundEnvelopeEnabled(envelopeToggle.getState());
         analogTone = new FtcAnalogOutTone("AnalogTone");
-        InputStream input = activity.getResources().openRawResource(SONG_RESOURCE);
-        lesMiserables = new TrcSong(SONG_NAME, input);
+        InputStream songStream = activity.getResources().openRawResource(SONG_RESOURCE);
+        try
+        {
+            FtcSongXml songXml = new FtcSongXml("Songs", songStream);
+            collection = songXml.getCollection();
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+        songIndex = -1;
+
         //
         // DriveBase subsystem.
         //
@@ -152,27 +162,23 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.Button
      * This method is called to start/stop the song. It takes care of keeping track of the song state and
      * will do the right thing if it is a start or a resume of the song.
      *
+     * @param index specifies the index of the song to start or stop.
      * @param start specifies true to start the song, false to stop.
      */
-    private void startSong(boolean start)
+    private void startSong(int index, boolean start)
     {
         if (start)
         {
             if (songPlayer == null)
             {
                 //
-                // This is the first time we start the song. So create the song player and start the song.
+                // This is the first time we start the song. So create the song player and associate it with the
+                // appropriate tone generator.
                 //
-                songPlayer = new TrcSongPlayer("SongPlayer", analogToneToggle.getState()? analogTone: androidTone);
-                songPlayer.playSong(lesMiserables, BAR_DURATION, true);
+                songPlayer = new TrcSongPlayer("SongPlayer", analogToneToggle.getState() ? analogTone : androidTone);
             }
-            else
-            {
-                //
-                // The song player already exists, it is actually a resume.
-                //
-                songPlayer.resume();
-            }
+            songPlayer.playSong(collection[index], BAR_DURATION, true, false);
+            songIndex = index;
         }
         else if (songPlayer != null)
         {
@@ -180,6 +186,7 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.Button
             // Pause the song.
             //
             songPlayer.pause();
+            songIndex = -1;
         }
     }   //startSong
 
@@ -260,14 +267,63 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.Button
         {
             switch (button)
             {
-                case FtcGamepad.GAMEPAD_A:
-                    //
-                    // Press this button to start/stop the song.
-                    //
+                case FtcGamepad.GAMEPAD_DPAD_UP:
                     if (pressed)
                     {
-                        startSong(songToggle.toggleState());
+                        if (songIndex == 0)
+                        {
+                            //
+                            // This song was playing, stop it.
+                            //
+                            startSong(0, false);
+                        }
+                        else if (songIndex == 1)
+                        {
+                            //
+                            // The other song was playing, stop that and start this one.
+                            //
+                            startSong(1, false);
+                            startSong(0, true);
+                        }
+                        else
+                        {
+                            //
+                            // No song was playing, statt this one.
+                            //
+                            startSong(0, true);
+                        }
                     }
+                    break;
+
+                case FtcGamepad.GAMEPAD_DPAD_DOWN:
+                    if (pressed)
+                    {
+                        if (songIndex == 1)
+                        {
+                            //
+                            // This song was playing, stop it.
+                            //
+                            startSong(1, false);
+                        }
+                        else if (songIndex == 0)
+                        {
+                            //
+                            // The other song was playing, stop that and start this one.
+                            //
+                            startSong(0, false);
+                            startSong(1, true);
+                        }
+                        else
+                        {
+                            //
+                            // No song was playing, statt this one.
+                            //
+                            startSong(1, true);
+                        }
+                    }
+                    break;
+
+                case FtcGamepad.GAMEPAD_A:
                     break;
 
                 case FtcGamepad.GAMEPAD_Y:
@@ -281,12 +337,16 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.Button
                         // Since we changed the tone device, we need to destroy the old song player and
                         // create a new one with a different tone device.
                         //
+                        int lastSongIndex = songIndex;
                         if (songPlayer != null)
                         {
                             songPlayer.stop();
                             songPlayer = null;
                         }
-                        startSong(songToggle.getState());
+                        if (lastSongIndex != -1)
+                        {
+                            startSong(lastSongIndex, true);
+                        }
                     }
                     break;
 

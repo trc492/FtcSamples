@@ -34,13 +34,10 @@ public class TrcSongPlayer implements TrcTaskMgr.Task
 
     private String instanceName;
     private TrcTone tone;
-    private double barDuration = 0.0;
     private TrcSong song = null;
+    private double barDuration = 0.0;
     private boolean repeat = false;
     private TrcEvent event = null;
-    private String[] notes = null;
-    private int noteIndex = 0;
-    private double volume = 1.0;
 
     /**
      * Constructor: Create and initialize an instance of the object.
@@ -75,7 +72,6 @@ public class TrcSongPlayer implements TrcTaskMgr.Task
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC, "enabled=%s", Boolean.toString(enabled));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC);
         }
 
         TrcTaskMgr taskMgr = TrcTaskMgr.getInstance();
@@ -89,6 +85,11 @@ public class TrcSongPlayer implements TrcTaskMgr.Task
             taskMgr.unregisterTask(this, TrcTaskMgr.TaskType.STOP_TASK);
             taskMgr.unregisterTask(this, TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
         }
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC);
+        }
     }   //setTaskEnabled
 
     /**
@@ -101,11 +102,15 @@ public class TrcSongPlayer implements TrcTaskMgr.Task
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
         tone.stop();
         setTaskEnabled(false);
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
     }   //stop
 
     /**
@@ -134,42 +139,52 @@ public class TrcSongPlayer implements TrcTaskMgr.Task
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
         if (song != null)
         {
             song.rewind();
-            notes = null;
-            noteIndex = 0;
+        }
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
     }   //rewind
 
     /**
-     * This method plays the specified song.
+     * This method plays the specified song. This method is made private because the parameters repeat and event
+     * can only have one or the other but not both. If the song is repeating, it will not fire an event.
      *
      * @param song specifies the song to be played.
      * @param barDuration specifies the bar duration in seconds.
      * @param repeat specifies true to play the song repeatedly, false otherwise.
+     * @param pause specifies true to pause the song, false to start it immediately.
      * @param event specifies the event to be notified on song completion.
      */
-    private void playSong(TrcSong song, double barDuration, boolean repeat, TrcEvent event)
+    private void playSongWorker(TrcSong song, double barDuration, boolean repeat, boolean pause, TrcEvent event)
     {
-        final String funcName = "playSong";
+        final String funcName = "playSongWorker";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
+                    "song=%s,barDur=%.2f,repeat=%s,pause=%s,event=%s",
+                    song.toString(), barDuration, Boolean.toString(repeat), Boolean.toString(pause),
+                    event == null? "null": event.toString());
         }
 
         this.song = song;
         this.barDuration = barDuration;
         this.repeat = repeat;
         this.event = repeat? null: event;
-        rewind();
-        setTaskEnabled(true);
-    }   //playSong
+        setTaskEnabled(!pause);
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+    }   //playSongWorker
 
     /**
      * This method plays the specified song.
@@ -177,10 +192,11 @@ public class TrcSongPlayer implements TrcTaskMgr.Task
      * @param song specifies the song to be played.
      * @param barDuration specifies the bar duration in seconds.
      * @param repeat specifies true to play the song repeatedly, false otherwise.
+     * @param pause specifies true to pause the song, false to start it immediately.
      */
-    public void playSong(TrcSong song, double barDuration, boolean repeat)
+    public void playSong(TrcSong song, double barDuration, boolean repeat, boolean pause)
     {
-        playSong(song, barDuration, repeat, null);
+        playSongWorker(song, barDuration, repeat, pause, null);
     }   //playSong
 
     /**
@@ -188,11 +204,12 @@ public class TrcSongPlayer implements TrcTaskMgr.Task
      *
      * @param song specifies the song to be played.
      * @param barDuration specifies the bar duration in seconds.
+     * @param pause specifies true to pause the song, false to start it immediately.
      * @param event specifies the event to be notified on song completion.
      */
-    public void playSong(TrcSong song, double barDuration, TrcEvent event)
+    public void playSong(TrcSong song, double barDuration, boolean pause, TrcEvent event)
     {
-        playSong(song, barDuration, false, event);
+        playSongWorker(song, barDuration, false, pause, event);
     }   //playSong
 
     /**
@@ -203,7 +220,7 @@ public class TrcSongPlayer implements TrcTaskMgr.Task
      */
     public void playSong(TrcSong song, double barDuration)
     {
-        playSong(song, barDuration, false, null);
+        playSongWorker(song, barDuration, false, false, null);
     }   //playSong
 
     /**
@@ -218,15 +235,16 @@ public class TrcSongPlayer implements TrcTaskMgr.Task
      *              <noteType> - note type (1: whole, 2: half, 4: quarter, ...)
      *              +          - add half time
      * @param barDuration Specifies the bar duration in seconds.
+     * @param volume specifies the volume of the note.
      */
-    private void playNote(String note, double barDuration)
+    private void playNote(String note, double barDuration, double volume)
     {
         final String funcName = "playNote";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "note=%s,barDur=%.3f", note, barDuration);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
+                    "note=%s,barDur=%.3f,vol=%.1f", note, barDuration, volume);
         }
 
         int dotIndex = note.indexOf('.');
@@ -240,6 +258,11 @@ public class TrcSongPlayer implements TrcTaskMgr.Task
         else
         {
             throw new IllegalArgumentException("Missing note duration <" + note + ">.");
+        }
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
     }   //playNote
 
@@ -259,6 +282,11 @@ public class TrcSongPlayer implements TrcTaskMgr.Task
     {
         final String funcName = "parseFrequency";
         double freq;
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC, "note=%s", note);
+        }
 
         if (note.charAt(0) >= 'A' && note.charAt(0) <= 'G')
         {
@@ -332,7 +360,6 @@ public class TrcSongPlayer implements TrcTaskMgr.Task
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC, "note=%s", note);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC, "=%f", freq);
         }
 
@@ -355,6 +382,11 @@ public class TrcSongPlayer implements TrcTaskMgr.Task
         final String funcName = "parseDuration";
         double noteLen = 0.0;
         int dotIndex;
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC, "note=%s", note);
+        }
 
         while ((dotIndex = note.indexOf('.')) != -1)
         {
@@ -383,7 +415,6 @@ public class TrcSongPlayer implements TrcTaskMgr.Task
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC, "note=%s", note);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC, "=%f", noteLen);
         }
 
@@ -400,29 +431,33 @@ public class TrcSongPlayer implements TrcTaskMgr.Task
     {
         final String funcName = "parseDynamicsVolume";
         final String[] dynamics = {"ppp", "pp", "p", "mp", "mf", "f", "ff", "fff"};
-        double volume = -1.0;
+        double vol = -1.0;
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC, "notation=%s", notation);
+        }
 
         for (int i = 0; i < dynamics.length; i++)
         {
             if (notation.equals(dynamics[i]))
             {
-                volume = (i + 3)*0.1;
+                vol = (i + 3)*0.1;
                 break;
             }
         }
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC, "notation=%s", notation);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC, "=%f", volume);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC, "=%f", vol);
         }
 
-        return volume;
+        return vol;
     }   //parseDynamicsVolume
 
     /**
      * This method checks if the notation is a dynamics. If so, parses it and performs the appropriate action.
-      *
+     *
      * @param notation specifies the notation string.
      * @return true if the notation is a dynamics, false otherwise.
      */
@@ -430,6 +465,11 @@ public class TrcSongPlayer implements TrcTaskMgr.Task
     {
         final String funcName = "parseDynamics";
         boolean isDynamics = false;
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC, "notation=%s", notation);
+        }
 
         if (notation.charAt(0) == '<')
         {
@@ -449,14 +489,13 @@ public class TrcSongPlayer implements TrcTaskMgr.Task
             //
             if (vol != -1.0)
             {
-                volume = vol;
+                song.setCurrentVolume(vol);
                 isDynamics = true;
             }
         }
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC, "notation=%s", notation);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC, "=%s", Boolean.toString(isDynamics));
         }
 
@@ -553,66 +592,46 @@ public class TrcSongPlayer implements TrcTaskMgr.Task
         //
         if (!tone.isPlaying())
         {
-            if (notes == null)
+            while (true)
             {
-                //
-                // Either we just started a song or we just finished a section or we have finished the song.
-                //
-                String section = song.getNextSection();
-                if (section != null)
+                String note = song.getNextNote();
+
+                if (note == null && repeat)
                 {
                     //
-                    // There is a next section, parse the next section.
-                    //
-                    notes = section.split(",");
-                    noteIndex = 0;
-                }
-                else if (repeat)
-                {
-                    //
-                    // Resets the song to the beginning.
+                    // There is no more note in the song. If we are in repeat mode, rewind the song
+                    // and play it again.
                     //
                     song.rewind();
-                    section = song.getNextSection();
-                    notes = section.split(",");
-                    noteIndex = 0;
+                    note = song.getNextNote();
                 }
-                else
+
+                if (note == null)
                 {
                     //
-                    // There is no more section. The song is done.
+                    // The song has ended, let's signal it and quit.
                     //
                     setTaskEnabled(false);
                     if (event != null)
                     {
                         event.set(true);
                     }
+                    break;
                 }
-            }
-
-            if (notes != null)
-            {
-                while (noteIndex < notes.length && notes[noteIndex].charAt(0) == '@')
-                {
-                    performNotation(notes[noteIndex].substring(1));
-                    noteIndex++;
-                }
-
-                if (noteIndex < notes.length)
+                else if (note.charAt(0) == '#')
                 {
                     //
-                    // There is a next note, play it.
+                    // The note is a notation, perform the action and loop back to process the next one.
                     //
-                    playNote(notes[noteIndex], barDuration);
-                    noteIndex++;
-                    if (noteIndex >= notes.length)
-                    {
-                        //
-                        // The section is done, null the notes array so we will parse the
-                        // next section next time around.
-                        //
-                        notes = null;
-                    }
+                    performNotation(note.substring(1));
+                }
+                else
+                {
+                    //
+                    // This is a playable note, play it and exit the loop.
+                    //
+                    playNote(note, barDuration, song.getCurrentVolume());
+                    break;
                 }
             }
         }

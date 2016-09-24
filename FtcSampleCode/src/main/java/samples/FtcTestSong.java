@@ -56,65 +56,64 @@ public class FtcTestSong extends FtcOpMode
     //
     private static final String[] starWarsSections =
     {
-            // section 0
-            "G4.12,G4.12,G4.12,"
+            // section 1
+            "1:G4.12,G4.12,G4.12,"
                     + "C5.2,G5.2,"
                     + "F5.12,E5.12,D5.12,C6.2,G5.4,"
                     + "F5.12,E5.12,D5.12,C6.2,G5.4,"
                     + "F5.12,E5.12,F5.12,D5.2,G4.8,G4.8,"
                     + "C5.2,G5.2",
-            // section 1
-            "F5.12,E5.12,D5.12,C6.2,G5.4,"
+            // section 2
+            "2:F5.12,E5.12,D5.12,C6.2,G5.4,"
                     + "F5.12,E5.12,D5.12,C6.2,G5.4,"
                     + "F5.12,E5.12,F5.12,D5.2,G4.8,G4.8,"
                     + "A4.4+,A4.8,F5.8,E5.8,D5.8,C5.8,"
                     + "C5.12,D5.12,E5.12,D5.4,B4.4,G4.8,G4.8,"
                     + "A4.4+,A4.8,F5.8,E5.8,D5.8,C5.8,"
                     + "G5.4,D5.2,G4.8,G4.8",
-            // section 2
-            "A4.4+,A4.8,F5.8,E5.8,D5.8,C5.8,"
+            // section 3
+            "3:A4.4+,A4.8,F5.8,E5.8,D5.8,C5.8,"
                     + "C5.12,D5.12,E5.12,D5.4,B4.4,G5.8,G5.8,"
                     + "C6.8,Bb5.8,Ab5.8,G5.8,F5.8,Eb5.8,D5.8,C5.8,"
                     + "G5.2+"
     };
+    private static final String starWarsSequence = "1,2,3";
     private static final String[] lesMiserablesSections =
     {
-            // section 0
-            "A4.8+,G4.16,"
+            // section 1
+            "1:A4.8+,G4.16,"
                     + "F4.8+,G4.16,A4.8+,Bb4.16,C5.4,A4.12,G4.12,F4.12,"
                     + "E4.8+,D4.16,E4.8+,F4.16,C4.4,D4.12,C4.12,Bb3.12,"
                     + "A3.8+,C4.16,F4.8+,A4.16,G4.8+,F#4.16,G4.8+,D4.16,"
                     + "F4.8+,E4.16,E4.8+,F4.16,G4.4,A4.8+,G4.16",
-            // section 1
-            "F4.8+,G4.16,A4.8+,Bb4.16,C5.4,A4.12,G4.12,F4.12,"
+            // section 2
+            "2:F4.8+,G4.16,A4.8+,Bb4.16,C5.4,A4.12,G4.12,F4.12,"
                     + "E4.8+,D4.16,E4.8+,F4.16,C4.4,D4.12,C4.12,Bb3.12,"
                     + "A3.8+,C4.16,F4.8+,A4.16,G4.12,F#4.12,G4.12,Bb4.8+,E4.16,"
                     + "F4.4,R.2,E4.8+,E4.16",
-            // section 2
-            "A4.8+,G#4.16,A4.8+,B4.16,C5.8+,B4.16,A4.8+,C5.16,"
+            // section 3
+            "3:A4.8+,G#4.16,A4.8+,B4.16,C5.8+,B4.16,A4.8+,C5.16,"
                     + "B4.8+,A4.16,G4.8+,A4.16,B4.4,R.12,B4.12,C5.12,"
                     + "D5.8+,C5.16,B4.8+,C5.16,D5.8+,C5.16,B4.8+,D5.16,"
                     + "C5.8+,B4.16,A4.8+,B4.16,C5.4,R.8+,A4.16",
-            // section 3
-            "C5.12,B4.12,A4.12,C5.12,B4.12,A4.12,C5.12,B4.12,A4.12,C5.12,B4.12,C5.12,"
+            // section 4
+            "4:C5.12,B4.12,A4.12,C5.12,B4.12,A4.12,C5.12,B4.12,A4.12,C5.12,B4.12,C5.12,"
                     + "D5.2,R.4,E5.8+,D5.16,"
                     + "C5.8+,D5.16,E5.8+,F5.16,G5.4,E5.12,D5.12,C5.12,"
                     + "B4.8+,A4.16,B4.8+,C5.16,G4.4,A4.12,G4.12,F4.12",
-            // section 4
-            "E4.8+,G4.16,C5.8+,E5.16,D5.8+,C#5.16,D5.8+,A4.16,"
+            // section 5
+            "5:E4.8+,G4.16,C5.8+,E5.16,D5.8+,C#5.16,D5.8+,A4.16,"
                     + "C5.8+,B4.16,B4.8+,C5.16,D5.4,E5.8+,D5.16,"
                     + "C5.8+,D5.16,E5.8+,F5.16,G5.4,E5.12,D5.12,C5.12,"
                     + "B4.8+,A4.16,B4.8+,C5.16,G4.4,A4.12,G4.12,F4.12",
-            // section 5
-            "E4.8+,G4.16,C5.8+,E5.16,D5.12,C#5.12,D5.12,F5.8+,B4.16,"
-                    + "C5.4,R.2,E4.8+,E4.16",
             // section 6
-            "E4.8+,G4.16,C5.8+,E5.16,D5.12,C#5.12,D5.12,F5.8+,B4.16,"
+            "6:E4.8+,G4.16,C5.8+,E5.16,D5.12,C#5.12,D5.12,F5.8+,B4.16,"
+                    + "C5.4,R.2,E4.8+,E4.16",
+            // section 7
+            "7:E4.8+,G4.16,C5.8+,E5.16,D5.12,C#5.12,D5.12,F5.8+,B4.16,"
                     + "C5.4,R.2.4"
     };
-    private static final int[] lesMiserablesSequences = {0, 1, 2, 3, 4, 5, 2, 3, 4, 6};
-    private TrcSong starWars = new TrcSong("StarWars", starWarsSections);
-    private TrcSong lesMiserables = new TrcSong("LesMiserables", lesMiserablesSections, lesMiserablesSequences);
+    private static final String lesMiserablesSequence = "1,2,3,4,5,6,3,4,5,7";
 
     private enum State
     {
@@ -125,6 +124,8 @@ public class FtcTestSong extends FtcOpMode
 
     private HalDashboard dashboard;
     private FtcAndroidTone androidTone;
+    private TrcSong starWars = new TrcSong("StarWars", starWarsSections, starWarsSequence);
+    private TrcSong lesMiserables = new TrcSong("LesMiserables", lesMiserablesSections, lesMiserablesSequence);
     private TrcSongPlayer songPlayer;
     private TrcStateMachine sm;
     private TrcEvent event = null;
@@ -138,6 +139,7 @@ public class FtcTestSong extends FtcOpMode
     {
         hardwareMap.logDevices();
         dashboard = getDashboard();
+
         androidTone = new FtcAndroidTone("AndroidTone", WAVE_FORM, SAMPLE_RATE);
         androidTone.setSoundEnvelope(ATTACK, DECAY, SUSTAIN, RELEASE);
         androidTone.setSoundEnvelopeEnabled(true);
@@ -176,13 +178,13 @@ public class FtcTestSong extends FtcOpMode
             switch (state)
             {
                 case PLAY_STARWARS:
-                    songPlayer.playSong(starWars, BAR_DURATION, event);
+                    songPlayer.playSong(starWars, BAR_DURATION, false, event);
                     sm.addEvent(event);
                     sm.waitForEvents(State.PLAY_LESMISERABLES);
                     break;
 
                 case PLAY_LESMISERABLES:
-                    songPlayer.playSong(lesMiserables, BAR_DURATION, event);
+                    songPlayer.playSong(lesMiserables, BAR_DURATION, false, event);
                     sm.addEvent(event);
                     sm.waitForEvents(State.DONE);
                     break;

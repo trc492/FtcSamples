@@ -22,14 +22,12 @@
 
 package trclib;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Scanner;
 
 /**
- * This class implements a notated song in formatted strings.
+ * This class implements a song object that contains a song name, an array list of notated sections
+ * and a sequencing array specifying the order of the sections. It also keeps track of the next note
+ * position of the song and provides a getNextNote() method to retrieve the next note to play.
  */
 public class TrcSong
 {
@@ -38,221 +36,372 @@ public class TrcSong
     private TrcDbgTrace dbgTrace = null;
 
     /**
-     * This enum class lists all the song parser state.
+     * This class implements a notated section that contains a section name, an array of notes and
+     * keeps track of the next note of the section and provides a getNextNote() method to retrieve
+     * the next note to play.
      */
-    private enum ParseState
+    private class Section
     {
-        //
-        // The parser is not in any valid state.
-        //
-        None,
-        //
-        // The parser is parsing a song section.
-        //
-        Section,
-        //
-        // The parser is parsing the sequences of the song.
-        //
-        Song
-    }   //enum ParseState
+        private final String name;
+        private final String[] notes;
+        private int noteIndex;
 
-    private static final String sectionTag = "section";
-    private static final String songTag = "song";
+        /**
+         * Constructor: Create an instance of the object.
+         *
+         * @param name specifies the name of the section.
+         * @param section specifies the string that contains all the notated notes in the section.
+         */
+        public Section(String name, String section)
+        {
+            this.name = name;
+            this.notes = section.split("[, \t\n]");
+            noteIndex = 0;
+        }   //Section
 
-    private String[] songSections = null;
-    private int[] sectionSequences = null;
+        /**
+         * This method returns the name of the section.
+         *
+         * @return section name.
+         */
+        public String getName()
+        {
+            final String funcName = "section.getName";
+
+            if (debugEnabled)
+            {
+                dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+                dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", name);
+            }
+
+            return name;
+        }   //getName
+
+        /**
+         * This method determines if there is a next note in the section.
+         *
+         * @return true if there is a next note, false otherwise.
+         */
+        public boolean hasNextNote()
+        {
+            final String funcName = "section.hasNextNote";
+            boolean hasNote = noteIndex < notes.length;
+
+            if (debugEnabled)
+            {
+                dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+                dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", Boolean.toString(hasNote));
+            }
+
+            return hasNote;
+        }   //hasNextNote
+
+        /**
+         * This method returns the next note in the section.
+         *
+         * @return next note to play or null if no more note.
+         */
+        public String getNextNote()
+        {
+            final String funcName = "section.getNextNote";
+            String note = null;
+
+            if (debugEnabled)
+            {
+                dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+            }
+
+            //
+            // Make sure it is not an empty string. If it is, skip it and get the next note.
+            //
+            while (noteIndex < notes.length && notes[noteIndex].length() == 0)
+            {
+                noteIndex++;
+            }
+
+            if (noteIndex < notes.length)
+            {
+                note = notes[noteIndex++];
+            }
+
+            if (debugEnabled)
+            {
+                dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", note == null? "null": note);
+            }
+
+            return note;
+        }   //getNextNote
+
+        /**
+         * This method rewinds the note pointer back to the beginning of the section.
+         */
+        public void rewind()
+        {
+            final String funcName = "section.rewind";
+
+            if (debugEnabled)
+            {
+                dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+                dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+            }
+
+            noteIndex = 0;
+        }   //rewind
+
+    }   //class Section
+
+    private final String songName;
+    private double startVolume = 1.0;
+    private ArrayList<Section> sections = new ArrayList<>();
+    private String[] sequence = null;
     private int sequenceIndex = 0;
+    private Section currSection = null;
+    private double currVolume = startVolume;
 
     /**
-     * Constructor: Create an instance of this object.
+     * Constructor: Create an instance of the object.
      *
-     * @param instanceName specifies the instance name.
-     * @param input specifies the input stream from which the notated song is read.
+     * @param name specifies the name of the song.
+     * @param startVolume specifies the starting volume.
      */
-    public TrcSong(String instanceName, InputStream input)
+    public TrcSong(String name, double startVolume)
     {
         if (debugEnabled)
         {
             dbgTrace = new TrcDbgTrace(
-                    moduleName + "." + instanceName,
+                    moduleName + "." + name,
                     false,
                     TrcDbgTrace.TraceLevel.API,
                     TrcDbgTrace.MsgLevel.INFO);
         }
 
-        ParseState parseState = ParseState.None;
-        Scanner inFile = new Scanner(input);
-        ArrayList<String> sectionNames = new ArrayList<>();
-        ArrayList<String> sections = new ArrayList<>();
-        ArrayList<String> sequences = new ArrayList<>();
-        String sectionName = null;
-        String songSection = null;
-
-        while (inFile.hasNextLine())
-        {
-            String line = inFile.nextLine().trim();
-            //
-            // Skip any blank lines.
-            //
-            if (line.length() == 0) continue;
-            //
-            // Parse a tag.
-            //
-            if (line.charAt(0) == '<' && line.charAt(line.length() - 1) == '>')
-            {
-                String tag = line.substring(1, line.length() - 1).trim();
-
-                if (parseState == ParseState.None && tag.startsWith(sectionTag + "="))
-                {
-                    //
-                    // Beginning of a song section.
-                    //
-                    sectionName = tag.substring(sectionTag.length() + 1);
-                    songSection = "";
-                    parseState = ParseState.Section;
-                }
-                else if (parseState == ParseState.Section && tag.equals("/" + sectionTag))
-                {
-                    //
-                    // End of a song section.
-                    //
-                    sectionNames.add(sectionName);
-                    sections.add(songSection);
-                    parseState = ParseState.None;
-                }
-                else if (parseState == ParseState.None && tag.startsWith(songTag))
-                {
-                    //
-                    // Beginning of the song sequence.
-                    //
-                    parseState = ParseState.Song;
-                }
-                else if (parseState == ParseState.Song && tag.equals("/" + songTag))
-                {
-                    //
-                    // End of the song sequence.
-                    //
-                    parseState = ParseState.None;
-                }
-            }
-            else if (parseState == ParseState.Section)
-            {
-                songSection += line;
-            }
-            else if (parseState == ParseState.Song)
-            {
-                sequences.add(line);
-            }
-            else
-            {
-                throw new RuntimeException("Invalid data <" + line + ">");
-            }
-        }
-        inFile.close();
-        //
-        // Build the song sections array.
-        //
-        songSections = new String[sections.size()];
-        for (int i = 0; i < songSections.length; i++)
-        {
-            songSections[i] = sections.get(i);
-        }
-        //
-        // Build the section sequences array.
-        //
-        sectionSequences = new int[sequences.size()];
-        for (int i = 0; i < sectionSequences.length; i++)
-        {
-            sectionSequences[i] = findSection(sectionNames, sequences.get(i));
-            if (sectionSequences[i] == -1)
-            {
-                throw new RuntimeException("Section name " + sequences.get(i) + " not found.");
-            }
-        }
+        this.songName = name;
+        this.startVolume = startVolume;
     }   //TrcSong
 
     /**
-     * Constructor: Create an instance of this object.
+     * Constructor: Create an instance of the object.
      *
-     * @param fileName specifies the file name from which the notated song is read.
-     * @throws FileNotFoundException if the specified file name is not found.
+     * @param name specifies the name of the song.
      */
-    public TrcSong(String fileName) throws FileNotFoundException
+    public TrcSong(String name)
     {
-        this(fileName, new FileInputStream(fileName));
+        this(name, 1.0);
     }   //TrcSong
 
     /**
-     * Constructor: Create an instance of this object.
+     * Constructor: Create an instance of the object.
      *
-     * @param instanceName specifies the instance name.
-     * @param songSections specifies the song sections array.
-     * @param sectionSequences specifies the section sequences array.
+     * @param name specifies the name of the song.
+     * @param startVolume specifies the starting volume.
+     * @param sections specifies an array of notated song sections.
+     * @param sequence specifies the song sequence array.
      */
-    public TrcSong(String instanceName, String[] songSections, int[]sectionSequences)
+    public TrcSong(String name, double startVolume, String[] sections, String sequence)
     {
+        this(name, startVolume);
+
+        for (int i = 0; i < sections.length; i++)
+        {
+            String[] pair = sections[i].split(":");
+
+            if (pair.length != 2)
+            {
+                throw new IllegalArgumentException("Illegal section format, must be <Name>:<NoteList>.");
+            }
+
+            addSection(pair[0], pair[1]);
+        }
+
+        setSequence(sequence);
+    }   //TrcSong
+
+    /**
+     * Constructor: Create an instance of the object.
+     *
+     * @param name specifies the name of the song.
+     * @param sections specifies an array of notated song sections.
+     * @param sequence specifies the song sequence array.
+     */
+    public TrcSong(String name, String[] sections, String sequence)
+    {
+        this(name, 1.0, sections, sequence);
+    }   //TrcSong
+
+    /**
+     * This method returns the song name.
+     *
+     * @return instance name.
+     */
+    public String toString()
+    {
+        return songName;
+    }   //toString
+
+    /**
+     * This method adds a notated section to the song.
+     *
+     * @param name specifies the section name.
+     * @param section specifies the string that contains notated notes of the section.
+     */
+    public void addSection(String name, String section)
+    {
+        final String funcName = "addSection";
+
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(
-                    moduleName + "." + instanceName,
-                    false,
-                    TrcDbgTrace.TraceLevel.API,
-                    TrcDbgTrace.MsgLevel.INFO);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "name=%s,section=<%s>", name, section);
         }
 
-        if (sectionSequences == null)
+        sections.add(new Section(name, section));
+
+        if (debugEnabled)
         {
-            sectionSequences = new int[songSections.length];
-            for (int i = 0; i < sectionSequences.length; i++)
-            {
-                sectionSequences[i] = i;
-            }
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
-
-        this.songSections = songSections;
-        this.sectionSequences = sectionSequences;
-    }   //TrcSong
+    }   //addSection
 
     /**
-     * Constructor: Create an instance of this object.
+     * This method sets the sequencing of the song.
      *
-     * @param instanceName specifies the instance name.
-     * @param songSections specifies the song sections array.
+     * @param sequence specifies the string that contains the sequence of section names.
      */
-    public TrcSong(String instanceName, String[] songSections)
+    public void setSequence(String sequence)
     {
-        this(instanceName, songSections, null);
-    }   //TrcSong
+        final String funcName = "setSequence";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "sequence=%s", sequence);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+
+        this.sequence = sequence.split("[, \t\n]");
+        sequenceIndex = 0;
+    }   //setSequence
 
     /**
-     * This method returns the next song section to be played.
+     * This method retrieves the next note of the song to be played.
      *
-     * @return the next song section, null if no more sections.
+     * @return next notated note or null if no more note.
      */
-    public String getNextSection()
+    public String getNextNote()
     {
-        final String funcName = "getNextSection";
-        String section = null;
-        int sectionIndex = -1;
-
-        if (sequenceIndex < sectionSequences.length)
-        {
-            sectionIndex = sectionSequences[sequenceIndex];
-            section = songSections[sectionIndex];
-            sequenceIndex++;
-        }
+        final String funcName = "getNextNote";
+        String note = null;
 
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%d", sectionIndex);
         }
 
-        return section;
-    }   //getNextSection
+        //
+        // Either we just started the song or the current section has no more note.
+        //
+        while (currSection == null || !currSection.hasNextNote())
+        {
+            //
+            // Get the next section name from the sequence array skipping blank section names if any.
+            //
+            while (sequenceIndex < sequence.length && sequence[sequenceIndex].length() == 0)
+            {
+                sequenceIndex++;
+            }
+
+            if (sequenceIndex < sequence.length)
+            {
+                //
+                // Find the section object with the given name.
+                //
+                String sectionName = sequence[sequenceIndex++];
+                currSection = findSection(sectionName);
+                if (currSection != null)
+                {
+                    currSection.rewind();
+                }
+                else
+                {
+                    throw new IllegalStateException("Section " + sectionName + " not found.");
+                }
+            }
+            else
+            {
+                //
+                // We ran out of sections.
+                //
+                break;
+            }
+        }
+
+        if (currSection != null)
+        {
+            note = currSection.getNextNote();
+        }
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", note == null? "null": note);
+        }
+
+        return note;
+    }   //getNextNote
 
     /**
-     * This method resets the song back to the beginning.
+     * This method returns the current volume of the song.
+     *
+     * @return current volume of the song.
+     */
+    public double getCurrentVolume()
+    {
+        final String funcName = "getCurrentVolume";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%.1f", currVolume);
+        }
+
+        return currVolume;
+    }   //getCurrentVolume
+
+    /**
+     * This method sets the current volume of the song.
+     *
+     * @vol specifies the current volume of the song.
+     */
+    public void setCurrentVolume(double vol)
+    {
+        final String funcName = "setCurrentVolume";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "vol=%f", vol);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+
+        currVolume = vol;
+    }   //setCurrentVolume
+
+    /**
+     * This method sets the start volume of the song.
+     *
+     * @vol specifies the start volume of the song.
+     */
+    public void setStartVolume(double vol)
+    {
+        final String funcName = "setStartVolume";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "vol=%f", vol);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+
+        startVolume = vol;
+    }   //setStartVolume
+
+    /**
+     * This method rewinds the note pointer back to the beginning of the song.
      */
     public void rewind()
     {
@@ -265,36 +414,42 @@ public class TrcSong
         }
 
         sequenceIndex = 0;
+        currSection = null;
+        currVolume = startVolume;
     }   //rewind
 
     /**
-     * This method looks up the section name and returns its section index.
+     * This method finds the section with the specified section name.
      *
-     * @param sectionNames specifies the section names array.
-     * @param sectionName specifies the section name to look up.
-     * @return the section index of the specified name.
+     * @param sectionName specifies the section name to look for.
+     * @return section object associated with the specified name.
      */
-    private int findSection(ArrayList<String> sectionNames, String sectionName)
+    private Section findSection(String sectionName)
     {
         final String funcName = "findSection";
-        int index = -1;
+        Section section = null;
 
-        for (int i = 0; i < sectionNames.size(); i++)
+        if (debugEnabled)
         {
-            if (sectionName.equals(sectionNames.get(i)))
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC, "name=%s", sectionName);
+        }
+
+        for (Section s: sections)
+        {
+            if (sectionName.equals(s.getName()))
             {
-                index = i;
+                section = s;
                 break;
             }
         }
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC, "section=%s", sectionName);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC, "=%d", index);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC, "=%s",
+                    section == null? "null": section.getName());
         }
 
-        return index;
+        return section;
     }   //findSection
 
-}   //class TrcSong
+}   //TrcSong

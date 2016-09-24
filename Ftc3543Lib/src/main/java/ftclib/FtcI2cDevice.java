@@ -114,6 +114,7 @@ public class FtcI2cDevice
         // I2C address has changed, discard the old sync device and create a new one with updated address.
         //
         syncDevice = new I2cDeviceSynchImpl(device, i2cAddr, false);
+//        syncDevice.engage();
         //
         // Recreate all readers with the new I2C address if any.
         //
