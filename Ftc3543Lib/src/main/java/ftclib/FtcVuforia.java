@@ -33,7 +33,9 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package ftclib;
 
+import com.vuforia.HINT;
 import com.vuforia.Trackable;
+import com.vuforia.Vuforia;
 
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
 import org.firstinspires.ftc.robotcore.external.matrices.OpenGLMatrix;
@@ -57,12 +59,14 @@ public class FtcVuforia
     private OpenGLMatrix phoneLocationOnRobot = null;
 
     public FtcVuforia(
-            String licenseKey, int cameraViewId, VuforiaLocalizer.CameraDirection cameraDir, String trackablesFile)
+            String licenseKey, int cameraViewId, VuforiaLocalizer.CameraDirection cameraDir,
+            String trackablesFile, int numTargets)
     {
         vuforiaParams = new VuforiaLocalizer.Parameters(cameraViewId);
         vuforiaParams.vuforiaLicenseKey = licenseKey;
         vuforiaParams.cameraDirection = cameraDir;
         vuforia = ClassFactory.createVuforiaLocalizer(vuforiaParams);
+        Vuforia.setHint(HINT.HINT_MAX_SIMULTANEOUS_IMAGE_TARGETS, numTargets);
         trackables = vuforia.loadTrackablesFromAsset(trackablesFile);
     }   //FtcVuforia
 
@@ -85,22 +89,31 @@ public class FtcVuforia
 
     public void addTarget(int index, String name, OpenGLMatrix locationOnField)
     {
-        if (phoneLocationOnRobot == null)
-        {
-            throw new NullPointerException("Phone location is unknown.");
-        }
-
         VuforiaTrackable target = trackables.get(index);
         target.setName(name);
-        target.setLocation(locationOnField);
-        ((VuforiaTrackableDefaultListener)target.getListener()).setPhoneInformation(
-                phoneLocationOnRobot, vuforiaParams.cameraDirection);
+
+        if (locationOnField != null)
+        {
+            target.setLocation(locationOnField);
+        }
+
+        if (phoneLocationOnRobot != null)
+        {
+            ((VuforiaTrackableDefaultListener) target.getListener()).setPhoneInformation(
+                    phoneLocationOnRobot, vuforiaParams.cameraDirection);
+        }
+
         allTargets.add(target);
     }   //addTarget
 
-    public ArrayList<VuforiaTrackable> getTargets()
+    public void addTarget(int index, String name)
     {
-        return allTargets;
+        addTarget(index, name, null);
+    }   //addTarget
+
+    public VuforiaTrackable[] getTargets()
+    {
+        return allTargets.toArray(new VuforiaTrackable[allTargets.size()]);
     }   //getTargets
 
 }   //class FtcVuforia

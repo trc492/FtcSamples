@@ -40,6 +40,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
 import org.firstinspires.ftc.robotcontroller.internal.FtcRobotControllerActivity;
 import org.firstinspires.ftc.robotcore.external.matrices.OpenGLMatrix;
+import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
@@ -48,28 +49,35 @@ import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackable;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackableDefaultListener;
 
-import java.util.ArrayList;
-
 import FtcSampleCode.R;
 import ftclib.FtcOpMode;
 import ftclib.FtcVuforia;
 import hallib.HalDashboard;
 
-@Autonomous(name="Test: Vuforia Navigation", group="Ftc3543Sample")
-@Disabled
+@Autonomous(name="Test: Vuforia Targets Tracking", group="Ftc3543Sample")
+//@Disabled
 public class FtcTestVuforia extends FtcOpMode
 {
     private final float MM_PER_INCH = 25.4f;
     private final float ROBOT_WIDTH = 18*MM_PER_INCH;               // in mm
     private final float FTC_FIELD_WIDTH = (12*12 - 2)*MM_PER_INCH;  // in mm
-
-    private final String vuforiaLicenseKey = "ATsODcD/////AAAAAVw2lR...d45oGpdljdOh5LuFB9nDNfckoxb8COxKSFX";
-    private final int cameraViewId = R.id.cameraMonitorViewId;
-    private final VuforiaLocalizer.CameraDirection cameraDir = VuforiaLocalizer.CameraDirection.FRONT;
-    private final String trackablesFile = "StonesAndChips";//"FTC_2016-17";
+    private final float TARGET_HEIGHT = 160.0f;                     // in mm
+    //
+    // If you copy our code, please register your own account and generate your own license key at this site:
+    // https://developer.vuforia.com/license-manager
+    //
+    private final String VUFORIA_LICENSE_KEY =
+            "AdCwzDH/////AAAAGeDkDS3ukU9+lIXc19LMh+cKk29caNhOl8UqmZOymRGwVwT1ZN8uaPdE3Q+zceDu9AKNsqL9qLblSFV" +
+            "/x8Y3jfOZdjMFs0CQSQOEyWv3xfJsdSmevXDQDQr+4KI31HY2YSf/KB/kyxfuRMk4Pi+vWS+oLl65o7sWPiyFgzoM74ENyb" +
+            "j4FgteD/2b6B+UFuwkHWKBNpp18wrpkaiFfr/FCbRFcdWP5mrjlEZM6eOj171dybw97HPeZbGihnnxOeeUv075O7P167AVq" +
+            "aiPy2eRK7OCubR32KXOqQKoyF6AXp+qu2cOTApXS5dqOOseEm+HE4eMF0S2Pld3i5AWBIR+JlPXDuc9LwoH2Q8iDwUK1+4g";
+    private final int CAMERAVIEW_ID = R.id.cameraMonitorViewId;
+    private final VuforiaLocalizer.CameraDirection CAMERA_DIR = VuforiaLocalizer.CameraDirection.BACK;
+    private final String TRACKABLES_FILE = "FTC_2016-17";
 
     private HalDashboard dashboard;
     private FtcVuforia vuforia;
+    private VuforiaTrackable[] targets;
 
     //
     // Implements FtcOpMode abstract method.
@@ -83,25 +91,49 @@ public class FtcTestVuforia extends FtcOpMode
         FtcRobotControllerActivity activity = (FtcRobotControllerActivity)hardwareMap.appContext;
         dashboard.setTextView((TextView)activity.findViewById(R.id.textOpMode));
 
-        vuforia = new FtcVuforia(vuforiaLicenseKey, cameraViewId, cameraDir, trackablesFile);
-
+        vuforia = new FtcVuforia(VUFORIA_LICENSE_KEY, CAMERAVIEW_ID, CAMERA_DIR, TRACKABLES_FILE, 4);
+        //
+        // Camera location:
+        //
         OpenGLMatrix phoneLocationOnRobot =
                 OpenGLMatrix.translation(ROBOT_WIDTH/2, 0, 0)
                             .multiplied(Orientation.getRotationMatrix(
                                     AxesReference.EXTRINSIC, AxesOrder.YZY, AngleUnit.DEGREES, -90, 0, 0));
         vuforia.setPhoneLocationOnRobot(phoneLocationOnRobot);
-
-        OpenGLMatrix stonesLocationOnField =
-                OpenGLMatrix.translation(-FTC_FIELD_WIDTH/2, 0, 0)
+        //
+        // Red Alliance Beacon 1:
+        //
+        OpenGLMatrix wheelsLocationOnField =
+                OpenGLMatrix.translation(-FTC_FIELD_WIDTH/2, -12*MM_PER_INCH, TARGET_HEIGHT)
                             .multiplied(Orientation.getRotationMatrix(
                                     AxesReference.EXTRINSIC, AxesOrder.XZX, AngleUnit.DEGREES, 90, 90, 0));
-        vuforia.addTarget(0, "stones", stonesLocationOnField);
-
-        OpenGLMatrix chipsLocationOnField =
-                OpenGLMatrix.translation(0, FTC_FIELD_WIDTH/2, 0)
+        vuforia.addTarget(0, "wheels", wheelsLocationOnField);
+        //
+        // Red Alliance Beacon 2:
+        //
+        OpenGLMatrix toolsLocationOnField =
+                OpenGLMatrix.translation(-FTC_FIELD_WIDTH/2, 30*MM_PER_INCH, TARGET_HEIGHT)
                             .multiplied(Orientation.getRotationMatrix(
-                                    AxesReference.EXTRINSIC, AxesOrder.XZX, AngleUnit.DEGREES, 90, 0, 0));
-        vuforia.addTarget(1, "chips", chipsLocationOnField);
+                                    AxesReference.EXTRINSIC, AxesOrder.XZX, AngleUnit.DEGREES, 90, 90, 0));
+        vuforia.addTarget(1, "tools", toolsLocationOnField);
+        //
+        // Blue Alliance Beacon 1:
+        //
+        OpenGLMatrix legosLocationOnField =
+                OpenGLMatrix.translation(12*MM_PER_INCH, FTC_FIELD_WIDTH/2, TARGET_HEIGHT)
+                        .multiplied(Orientation.getRotationMatrix(
+                                AxesReference.EXTRINSIC, AxesOrder.XZX, AngleUnit.DEGREES, 90, 0, 0));
+        vuforia.addTarget(2, "legos", legosLocationOnField);
+        //
+        // Blue Alliance Beacon 2:
+        //
+        OpenGLMatrix gearsLocationOnField =
+                OpenGLMatrix.translation(-30*MM_PER_INCH, FTC_FIELD_WIDTH/2, TARGET_HEIGHT)
+                        .multiplied(Orientation.getRotationMatrix(
+                                AxesReference.EXTRINSIC, AxesOrder.XZX, AngleUnit.DEGREES, 90, 0, 0));
+        vuforia.addTarget(3, "gears", gearsLocationOnField);
+
+        targets = vuforia.getTargets();
     }   //initRobot
 
     //
@@ -124,20 +156,19 @@ public class FtcTestVuforia extends FtcOpMode
     @Override
     public void runPeriodic(double elapsedTime)
     {
-        final int LABEL_WIDTH = 100;
-        ArrayList<VuforiaTrackable> targets = vuforia.getTargets();
-
-        for (int i = 0; i < targets.size(); i++)
+        for (int i = 0; i < targets.length; i++)
         {
-            VuforiaTrackable target = targets.get(i);
-            VuforiaTrackableDefaultListener listener = (VuforiaTrackableDefaultListener)(target.getListener());
-            OpenGLMatrix locationTransform = listener.getUpdatedRobotLocation();
+            VuforiaTrackableDefaultListener listener =
+                    (VuforiaTrackableDefaultListener)(targets[i].getListener());
+            OpenGLMatrix pose = listener.getPose();
 
             dashboard.displayPrintf(
-                    i + 1, LABEL_WIDTH, target.getName(),
-                    "visible=%s, pos=%s",
-                    Boolean.toString(listener.isVisible()),
-                    locationTransform == null? "unknown": locationTransform.formatAsTransform());
+                    i*2 + 1, "%s: %s", targets[i].getName(), listener.isVisible()? "Found": "NotFound");
+            if (pose != null)
+            {
+                VectorF translation = pose.getTranslation();
+                dashboard.displayPrintf(i*2 + 2, "%s", translation);
+            }
         }
     }   //runPeriodic
 
