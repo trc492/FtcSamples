@@ -34,62 +34,76 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package ftclib;
 
 import com.vuforia.HINT;
-import com.vuforia.Trackable;
 import com.vuforia.Vuforia;
 
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
 import org.firstinspires.ftc.robotcore.external.matrices.OpenGLMatrix;
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
-import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
-import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackable;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackableDefaultListener;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackables;
 
-import java.util.ArrayList;
-
+/**
+ * This class makes using Vuforia a little easier by minimizing the number of calls to it. It only exposes the
+ * minimum things you need to set for the FTC competition. If you want to do more complex stuff, you may want
+ * to not use this and call Vuforia directly so you can customize other stuff.
+ */
 public class FtcVuforia
 {
-    private VuforiaLocalizer.Parameters vuforiaParams;
-    private VuforiaLocalizer vuforia;
-    private VuforiaTrackables trackables;
-    private ArrayList<VuforiaTrackable> allTargets = new ArrayList<>();
-    private OpenGLMatrix phoneLocationOnRobot = null;
+    private VuforiaLocalizer.Parameters params;
+    private VuforiaLocalizer localizer;
+    private VuforiaTrackables targetList;
 
+    /**
+     * Constructor: Create an instance of this object. It initializes Vuforia with the specified target images and
+     * other parameters.
+     *
+     * @param licenseKey specifies the Vuforia license key.
+     * @param cameraViewId specifies the camera view ID on the activity.
+     * @param cameraDir specifies which camera to use (front or back).
+     * @param trackablesFile specifies the XML file that contains the target info.
+     * @param numTargets specifies the number of simultaneous trackable targets.
+     */
     public FtcVuforia(
             String licenseKey, int cameraViewId, VuforiaLocalizer.CameraDirection cameraDir,
             String trackablesFile, int numTargets)
     {
-        vuforiaParams = new VuforiaLocalizer.Parameters(cameraViewId);
-        vuforiaParams.vuforiaLicenseKey = licenseKey;
-        vuforiaParams.cameraDirection = cameraDir;
-        vuforia = ClassFactory.createVuforiaLocalizer(vuforiaParams);
+        params = new VuforiaLocalizer.Parameters(cameraViewId);
+        params.vuforiaLicenseKey = licenseKey;
+        params.cameraDirection = cameraDir;
+        localizer = ClassFactory.createVuforiaLocalizer(params);
         Vuforia.setHint(HINT.HINT_MAX_SIMULTANEOUS_IMAGE_TARGETS, numTargets);
-        trackables = vuforia.loadTrackablesFromAsset(trackablesFile);
+        targetList = localizer.loadTrackablesFromAsset(trackablesFile);
     }   //FtcVuforia
 
-    public void setEnabled(boolean enabled)
+    /**
+     * This method enables/disables target tracking.
+     *
+     * @param enabled specifies true to enable target tracking, false otherwise.
+     */
+    public void setTrackingEnabled(boolean enabled)
     {
         if (enabled)
         {
-            trackables.activate();
+            targetList.activate();
         }
         else
         {
-            trackables.deactivate();
+            targetList.deactivate();
         }
-    }   //setEnable
+    }   //setTrackingEnabled
 
-    public void setPhoneLocationOnRobot(OpenGLMatrix phoneLocation)
+    /**
+     * This method sets the properties of the specified target.
+     *
+     * @param index specifies the target index in the XML file.
+     * @param name specifies the target name.
+     * @param locationOnField specifies the target location on the field, can be null if no robot tracking.
+     * @param phoneLocationOnRobot specifies the phone location on the robot, can be null if no robot tracking.
+     */
+    public void setTarget(int index, String name, OpenGLMatrix locationOnField, OpenGLMatrix phoneLocationOnRobot)
     {
-        phoneLocationOnRobot = phoneLocation;
-    }   //setPhoneLocationOnRobot
-
-    public void addTarget(int index, String name, OpenGLMatrix locationOnField)
-    {
-        VuforiaTrackable target = trackables.get(index);
+        VuforiaTrackable target = targetList.get(index);
         target.setName(name);
 
         if (locationOnField != null)
@@ -100,20 +114,29 @@ public class FtcVuforia
         if (phoneLocationOnRobot != null)
         {
             ((VuforiaTrackableDefaultListener) target.getListener()).setPhoneInformation(
-                    phoneLocationOnRobot, vuforiaParams.cameraDirection);
+                    phoneLocationOnRobot, params.cameraDirection);
         }
+    }   //setTarget
 
-        allTargets.add(target);
-    }   //addTarget
-
-    public void addTarget(int index, String name)
+    /**
+     * This method sets the properties of the specified target.
+     *
+     * @param index specifies the target index in the XML file.
+     * @param name specifies the target name.
+     */
+    public void setTarget(int index, String name)
     {
-        addTarget(index, name, null);
-    }   //addTarget
+        setTarget(index, name, null, null);
+    }   //setTarget
 
-    public VuforiaTrackable[] getTargets()
+    /**
+     * This method returns the list of trackable targets.
+     *
+     * @return list of trackable targets.
+     */
+    public VuforiaTrackables getTargets()
     {
-        return allTargets.toArray(new VuforiaTrackable[allTargets.size()]);
+        return targetList;
     }   //getTargets
 
 }   //class FtcVuforia
