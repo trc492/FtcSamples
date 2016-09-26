@@ -38,6 +38,10 @@ import com.vuforia.Vuforia;
 
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
 import org.firstinspires.ftc.robotcore.external.matrices.OpenGLMatrix;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
+import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackable;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackableDefaultListener;
@@ -50,8 +54,42 @@ import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackables;
  */
 public class FtcVuforia
 {
+    /**
+     * This class contains information required to make a trackable target. It has two constructors.
+     * One with all the rotation/translation info for tracking the robot location on the field. If
+     * you don't need to track the robot's location, then you can use the constructor with only the
+     * target name.
+     */
+    public static class Target
+    {
+        public final String name;
+        public final float rotateX;
+        public final float rotateY;
+        public final float rotateZ;
+        public final float translateX;
+        public final float translateY;
+        public final float translateZ;
+
+        public Target(
+                final String name, final float rotateX, final float rotateY, final float rotateZ,
+                final float translateX, final float translateY, final float translateZ)
+        {
+            this.name = name;
+            this.rotateX = rotateX;
+            this.rotateY = rotateY;
+            this.rotateZ = rotateZ;
+            this.translateX = translateX;
+            this.translateY = translateY;
+            this.translateZ = translateZ;
+        }   //Target
+
+        public Target(final String name)
+        {
+            this(name, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+        }   //Target
+    }   //class Target
+
     private VuforiaLocalizer.Parameters params;
-    private VuforiaLocalizer localizer;
     private VuforiaTrackables targetList;
 
     /**
@@ -71,7 +109,7 @@ public class FtcVuforia
         params = new VuforiaLocalizer.Parameters(cameraViewId);
         params.vuforiaLicenseKey = licenseKey;
         params.cameraDirection = cameraDir;
-        localizer = ClassFactory.createVuforiaLocalizer(params);
+        VuforiaLocalizer localizer = ClassFactory.createVuforiaLocalizer(params);
         Vuforia.setHint(HINT.HINT_MAX_SIMULTANEOUS_IMAGE_TARGETS, numTargets);
         targetList = localizer.loadTrackablesFromAsset(trackablesFile);
     }   //FtcVuforia
@@ -101,7 +139,7 @@ public class FtcVuforia
      * @param locationOnField specifies the target location on the field, can be null if no robot tracking.
      * @param phoneLocationOnRobot specifies the phone location on the robot, can be null if no robot tracking.
      */
-    public void setTarget(int index, String name, OpenGLMatrix locationOnField, OpenGLMatrix phoneLocationOnRobot)
+    public void setTargetInfo(int index, String name, OpenGLMatrix locationOnField, OpenGLMatrix phoneLocationOnRobot)
     {
         VuforiaTrackable target = targetList.get(index);
         target.setName(name);
@@ -116,7 +154,7 @@ public class FtcVuforia
             ((VuforiaTrackableDefaultListener) target.getListener()).setPhoneInformation(
                     phoneLocationOnRobot, params.cameraDirection);
         }
-    }   //setTarget
+    }   //setTargetInfo
 
     /**
      * This method sets the properties of the specified target.
@@ -124,19 +162,135 @@ public class FtcVuforia
      * @param index specifies the target index in the XML file.
      * @param name specifies the target name.
      */
-    public void setTarget(int index, String name)
+    public void setTargetInfo(int index, String name)
     {
-        setTarget(index, name, null, null);
-    }   //setTarget
+        setTargetInfo(index, name, null, null);
+    }   //setTargetInfo
+
+    /**
+     * This method sets tracking info for the targets described in the given target array.
+     *
+     * @param targets specifies the array of targets to set tracking info.
+     * @param phoneLocationOnRobot specifies the location marix of the phone on the robot.
+     */
+    public void setTargets(Target[] targets, OpenGLMatrix phoneLocationOnRobot)
+    {
+        for (int i = 0; i < targets.length; i++)
+        {
+            OpenGLMatrix targetLocationOnField =
+                    phoneLocationOnRobot == null?
+                            null:
+                            locationMatrix(
+                                    targets[i].rotateX, targets[i].rotateY, targets[i].rotateZ,
+                                    targets[i].translateX, targets[i].translateY, targets[i].translateZ);
+            setTargetInfo(i, targets[i].name, targetLocationOnField, phoneLocationOnRobot);
+        }
+    }   //setTargets
+
+    /**
+     * This method creates a location matrix that can be used to relocate an object to its final location
+     * by rotating and translating the object from the origin of the field. It is doing the operation in
+     * the order of the parameters. In other words, it will first rotate the object on the X-axis, then
+     * rotate on the Y-axis, then rotate on the Z-axis, then translate on the X-axis, then translate on
+     * the Y-axis and finally translate on the Z-axis.
+     *
+     * @param rotateX specifies rotation on the X-axis.
+     * @param rotateY specifies rotation on the Y-axis.
+     * @param rotateZ specifies rotation on the Z-axis.
+     * @param translateX specifies translation on the X-axis.
+     * @param translateY specifies translation on the Y-axis.
+     * @param translateZ specifies translation on the Z-axis.
+     * @return returns the location matrix.
+     */
+    public OpenGLMatrix locationMatrix(
+            float rotateX, float rotateY, float rotateZ, float translateX, float translateY, float translateZ)
+    {
+        return OpenGLMatrix.translation(translateX, translateY, translateZ)
+                .multiplied(Orientation.getRotationMatrix(
+                        AxesReference.EXTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES, rotateX, rotateY, rotateZ));
+    }   //locationMatrix
 
     /**
      * This method returns the list of trackable targets.
      *
      * @return list of trackable targets.
      */
-    public VuforiaTrackables getTargets()
+    public VuforiaTrackables getTargetList()
     {
         return targetList;
-    }   //getTargets
+    }   //getTargetList
+
+    /**
+     * This method returns the target object with the specified index in the target list.
+     *
+     * @param index specifies the target index in the list.
+     * @return target.
+     */
+    public VuforiaTrackable getTarget(int index)
+    {
+        return targetList.get(index);
+    }   //getTarget
+
+    /**
+     * This method returns the target object with the specified target name.
+     *
+     * @param name specifies the name of the target.
+     * @return target.
+     */
+    public VuforiaTrackable getTarget(String name)
+    {
+        VuforiaTrackable target = null;
+
+        for (int i = 0; i < targetList.size(); i++)
+        {
+            target = targetList.get(i);
+            if (name.equals(target.getName()))
+            {
+                break;
+            }
+            else
+            {
+                target = null;
+            }
+        }
+
+        return target;
+    }   //getTarget
+
+    /**
+     * This method determines if the target is visible.
+     *
+     * @param target specifies the target object.
+     * @return true if the target is in view, false otherwise.
+     */
+    public boolean isTargetVisible(VuforiaTrackable target)
+    {
+        VuforiaTrackableDefaultListener listener = (VuforiaTrackableDefaultListener)target.getListener();
+        return listener.isVisible();
+    }   //isTargetVisible
+
+    /**
+     * This method returns the position matrix of the specified target.
+     *
+     * @param target specifies the target to get the position matrix.
+     * @return position matrix of the specified target.
+     */
+    public OpenGLMatrix getTargetPose(VuforiaTrackable target)
+    {
+        VuforiaTrackableDefaultListener listener = (VuforiaTrackableDefaultListener)target.getListener();
+        return listener.getPose();
+    }   //getTargetPose
+
+    /**
+     * This method determines the robot location by the given target.
+     *
+     * @param target specifies the target to be used to determine robot location.
+     * @return robot location matrix.
+     */
+    public OpenGLMatrix getRobotLocation(VuforiaTrackable target)
+    {
+        VuforiaTrackableDefaultListener listener = (VuforiaTrackableDefaultListener)target.getListener();
+        return listener.getRobotLocation();
+    }   //getRobotLocation
 
 }   //class FtcVuforia

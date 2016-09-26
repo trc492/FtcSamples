@@ -41,14 +41,8 @@ import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import org.firstinspires.ftc.robotcontroller.internal.FtcRobotControllerActivity;
 import org.firstinspires.ftc.robotcore.external.matrices.OpenGLMatrix;
 import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
-import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
-import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackable;
-import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackableDefaultListener;
-import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackables;
 
 import FtcSampleCode.R;
 import ftclib.FtcOpMode;
@@ -65,7 +59,7 @@ public class FtcTestVuforia extends FtcOpMode
     private final float FTC_FIELD_WIDTH = (12*12 - 2)*MM_PER_INCH;  // in mm
     private final float TARGET_HEIGHT = 160.0f;                     // in mm
     //
-    // If you copy our code, please register your own account and generate your own license key at this site:
+    // If you copy our code, please register your own account and generate your own free license key at this site:
     // https://developer.vuforia.com/license-manager
     //
     private final String VUFORIA_LICENSE_KEY =
@@ -76,10 +70,32 @@ public class FtcTestVuforia extends FtcOpMode
     private final int CAMERAVIEW_ID = R.id.cameraMonitorViewId;
     private final VuforiaLocalizer.CameraDirection CAMERA_DIR = VuforiaLocalizer.CameraDirection.BACK;
     private final String TRACKABLES_FILE = "FTC_2016-17";
+    //
+    // Note that the order of the targets must match the order in the FTC_2016-17.xml file.
+    //
+    private FtcVuforia.Target[] targets =
+    {
+            //
+            // Blue alliance beacon 1.
+            //
+            new FtcVuforia.Target("wheels", 90.0f, 0.0f, 0.0f, 12.0f*MM_PER_INCH, FTC_FIELD_WIDTH/2.0f, TARGET_HEIGHT),
+            //
+            // Red alliance beacon 2.
+            //
+            new FtcVuforia.Target("tools", 90.0f, 0.0f, 90.0f, -FTC_FIELD_WIDTH/2.0f, 30.0f*MM_PER_INCH, TARGET_HEIGHT),
+            //
+            // Blue alliance beacon 2 location.
+            //
+            new FtcVuforia.Target("legos", 90.0f, 0.0f, 0.0f, -30.0f*MM_PER_INCH, FTC_FIELD_WIDTH/2.0f, TARGET_HEIGHT),
+            //
+            // Red alliance beacon 1 location.
+            //
+            new FtcVuforia.Target("gears", 90.0f, 0.0f, 90.0f, -FTC_FIELD_WIDTH/2.0f, -12.0f*MM_PER_INCH, TARGET_HEIGHT)
+    };
 
     private HalDashboard dashboard;
     private FtcVuforia vuforia;
-    private VuforiaTrackables targets;
+    private OpenGLMatrix lastKnownRobotLocation = null;
 
     //
     // Implements FtcOpMode abstract method.
@@ -93,59 +109,14 @@ public class FtcTestVuforia extends FtcOpMode
         FtcRobotControllerActivity activity = (FtcRobotControllerActivity)hardwareMap.appContext;
         dashboard.setTextView((TextView)activity.findViewById(R.id.textOpMode));
 
-        OpenGLMatrix phoneLocationOnRobot = null;
-        OpenGLMatrix wheelsLocationOnField = null;
-        OpenGLMatrix toolsLocationOnField = null;
-        OpenGLMatrix legosLocationOnField = null;
-        OpenGLMatrix gearsLocationOnField = null;
+        vuforia = new FtcVuforia(VUFORIA_LICENSE_KEY, CAMERAVIEW_ID, CAMERA_DIR, TRACKABLES_FILE, targets.length);
+        //
+        // Phone location: Mounted center on the front of the robot with the back camera facing outward.
+        //
+        OpenGLMatrix phoneLocationOnRobot =
+                trackRobotLocation? vuforia.locationMatrix(90.0f, 0.0f, 0.0f, 0.0f, ROBOT_WIDTH/2.0f, 0.0f): null;
 
-        vuforia = new FtcVuforia(VUFORIA_LICENSE_KEY, CAMERAVIEW_ID, CAMERA_DIR, TRACKABLES_FILE, 4);
-
-        if (trackRobotLocation)
-        {
-            //
-            // Phone location: Mounted center on the front of the robot with the back camera facing outward.
-            //
-            phoneLocationOnRobot =
-                    OpenGLMatrix.translation(0, ROBOT_WIDTH / 2, 0)
-                            .multiplied(Orientation.getRotationMatrix(
-                                    AxesReference.EXTRINSIC, AxesOrder.XZX, AngleUnit.DEGREES, 90, 0, 0));
-            //
-            // Red alliance beacon 1 location.
-            //
-            gearsLocationOnField =
-                    OpenGLMatrix.translation(-FTC_FIELD_WIDTH / 2, -12 * MM_PER_INCH, TARGET_HEIGHT)
-                            .multiplied(Orientation.getRotationMatrix(
-                                    AxesReference.EXTRINSIC, AxesOrder.XZX, AngleUnit.DEGREES, 90, 90, 0));
-            //
-            // Red alliance beacon 2 location.
-            //
-            toolsLocationOnField =
-                    OpenGLMatrix.translation(-FTC_FIELD_WIDTH / 2, 30 * MM_PER_INCH, TARGET_HEIGHT)
-                            .multiplied(Orientation.getRotationMatrix(
-                                    AxesReference.EXTRINSIC, AxesOrder.XZX, AngleUnit.DEGREES, 90, 90, 0));
-            //
-            // Blue alliance beacon 1 location.
-            //
-            wheelsLocationOnField =
-                    OpenGLMatrix.translation(12 * MM_PER_INCH, FTC_FIELD_WIDTH / 2, TARGET_HEIGHT)
-                            .multiplied(Orientation.getRotationMatrix(
-                                    AxesReference.EXTRINSIC, AxesOrder.XZX, AngleUnit.DEGREES, 90, 0, 0));
-            //
-            // Blue alliance beacon 2 location.
-            //
-            legosLocationOnField =
-                    OpenGLMatrix.translation(-30 * MM_PER_INCH, FTC_FIELD_WIDTH / 2, TARGET_HEIGHT)
-                            .multiplied(Orientation.getRotationMatrix(
-                                    AxesReference.EXTRINSIC, AxesOrder.XZX, AngleUnit.DEGREES, 90, 0, 0));
-        }
-
-        vuforia.setTarget(0, "wheels", wheelsLocationOnField, phoneLocationOnRobot);
-        vuforia.setTarget(1, "tools", toolsLocationOnField, phoneLocationOnRobot);
-        vuforia.setTarget(2, "legos", legosLocationOnField, phoneLocationOnRobot);
-        vuforia.setTarget(3, "gears", gearsLocationOnField, phoneLocationOnRobot);
-
-        targets = vuforia.getTargets();
+        vuforia.setTargets(targets, phoneLocationOnRobot);
     }   //initRobot
 
     //
@@ -170,14 +141,14 @@ public class FtcTestVuforia extends FtcOpMode
     {
         final int LABEL_WIDTH = 100;
 
-        for (int i = 0; i < targets.size(); i++)
+        for (int i = 0; i < targets.length; i++)
         {
-            VuforiaTrackable target = targets.get(i);
-            VuforiaTrackableDefaultListener listener = (VuforiaTrackableDefaultListener)target.getListener();
-            OpenGLMatrix pose = listener.getPose();
-
+            VuforiaTrackable target = vuforia.getTarget(i);
             dashboard.displayPrintf(
-                    i*2 + 1, LABEL_WIDTH, target.getName() + ": ", "%s", listener.isVisible()? "Found": "NotFound");
+                    i*2 + 1, LABEL_WIDTH, target.getName() + ": ",
+                    "%s", vuforia.isTargetVisible(target)? "Visible": "NotVisible");
+
+            OpenGLMatrix pose = vuforia.getTargetPose(target);
             if (pose != null)
             {
                 VectorF translation = pose.getTranslation();
@@ -187,6 +158,18 @@ public class FtcTestVuforia extends FtcOpMode
                         translation.get(1)/MM_PER_INCH,
                         -translation.get(2)/MM_PER_INCH);
             }
+
+            OpenGLMatrix robotLocation = vuforia.getRobotLocation(target);
+            if (robotLocation != null)
+            {
+                lastKnownRobotLocation = robotLocation;
+            }
+        }
+
+        dashboard.displayPrintf(9, "Robot Location");
+        if (lastKnownRobotLocation != null)
+        {
+            dashboard.displayPrintf(10, lastKnownRobotLocation.formatAsTransform());
         }
     }   //runPeriodic
 
