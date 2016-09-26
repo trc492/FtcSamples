@@ -104,16 +104,16 @@ public class FtcTestVuforia extends FtcOpMode
         if (trackRobotLocation)
         {
             //
-            // Camera location.
+            // Phone location: Mounted center on the front of the robot with the back camera facing outward.
             //
             phoneLocationOnRobot =
-                    OpenGLMatrix.translation(ROBOT_WIDTH / 2, 0, 0)
+                    OpenGLMatrix.translation(0, ROBOT_WIDTH / 2, 0)
                             .multiplied(Orientation.getRotationMatrix(
-                                    AxesReference.EXTRINSIC, AxesOrder.YZY, AngleUnit.DEGREES, -90, 0, 0));
+                                    AxesReference.EXTRINSIC, AxesOrder.XZX, AngleUnit.DEGREES, 90, 0, 0));
             //
             // Red alliance beacon 1 location.
             //
-            wheelsLocationOnField =
+            gearsLocationOnField =
                     OpenGLMatrix.translation(-FTC_FIELD_WIDTH / 2, -12 * MM_PER_INCH, TARGET_HEIGHT)
                             .multiplied(Orientation.getRotationMatrix(
                                     AxesReference.EXTRINSIC, AxesOrder.XZX, AngleUnit.DEGREES, 90, 90, 0));
@@ -127,14 +127,14 @@ public class FtcTestVuforia extends FtcOpMode
             //
             // Blue alliance beacon 1 location.
             //
-            legosLocationOnField =
+            wheelsLocationOnField =
                     OpenGLMatrix.translation(12 * MM_PER_INCH, FTC_FIELD_WIDTH / 2, TARGET_HEIGHT)
                             .multiplied(Orientation.getRotationMatrix(
                                     AxesReference.EXTRINSIC, AxesOrder.XZX, AngleUnit.DEGREES, 90, 0, 0));
             //
             // Blue alliance beacon 2 location.
             //
-            gearsLocationOnField =
+            legosLocationOnField =
                     OpenGLMatrix.translation(-30 * MM_PER_INCH, FTC_FIELD_WIDTH / 2, TARGET_HEIGHT)
                             .multiplied(Orientation.getRotationMatrix(
                                     AxesReference.EXTRINSIC, AxesOrder.XZX, AngleUnit.DEGREES, 90, 0, 0));
