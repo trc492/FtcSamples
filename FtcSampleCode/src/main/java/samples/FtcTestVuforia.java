@@ -23,6 +23,7 @@
 
 package samples;
 
+import android.speech.tts.TextToSpeech;
 import android.widget.TextView;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
@@ -34,6 +35,8 @@ import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackable;
 
+import java.util.Locale;
+
 import FtcSampleCode.R;
 import ftclib.FtcOpMode;
 import ftclib.FtcVuforia;
@@ -43,7 +46,7 @@ import hallib.HalDashboard;
 //@Disabled
 public class FtcTestVuforia extends FtcOpMode
 {
-    private final boolean trackRobotLocation = false;
+    private final boolean trackRobotLocation = true;
     private final float MM_PER_INCH = 25.4f;
     private final float ROBOT_WIDTH = 18*MM_PER_INCH;               // in mm
     private final float FTC_FIELD_WIDTH = (12*12 - 2)*MM_PER_INCH;  // in mm
@@ -86,6 +89,8 @@ public class FtcTestVuforia extends FtcOpMode
     private HalDashboard dashboard;
     private FtcVuforia vuforia;
     private OpenGLMatrix lastKnownRobotLocation = null;
+    private TextToSpeech textToSpeech = null;
+    private boolean[] targetsFound = null;
 
     //
     // Implements FtcOpMode abstract method.
@@ -107,6 +112,27 @@ public class FtcTestVuforia extends FtcOpMode
                 trackRobotLocation? vuforia.locationMatrix(90.0f, 0.0f, 0.0f, 0.0f, ROBOT_WIDTH/2.0f, 0.0f): null;
 
         vuforia.setTargets(targets, phoneLocationOnRobot);
+        //
+        // Text To Speech.
+        //
+        textToSpeech = new TextToSpeech(
+                hardwareMap.appContext,
+                new TextToSpeech.OnInitListener()
+                {
+                    @Override
+                    public void onInit(int status)
+                    {
+                        if (status != TextToSpeech.ERROR)
+                        {
+                            textToSpeech.setLanguage(Locale.US);
+                        }
+                    }
+                });
+        targetsFound = new boolean[targets.length];
+        for (int i = 0; i < targetsFound.length; i++)
+        {
+            targetsFound[i] = false;
+        }
     }   //initRobot
 
     //
@@ -124,6 +150,11 @@ public class FtcTestVuforia extends FtcOpMode
     public void stopMode()
     {
         vuforia.setTrackingEnabled(false);
+        if (textToSpeech != null)
+        {
+            textToSpeech.stop();
+            textToSpeech.shutdown();
+        }
     }   //stopMode
 
     @Override
@@ -134,9 +165,16 @@ public class FtcTestVuforia extends FtcOpMode
         for (int i = 0; i < targets.length; i++)
         {
             VuforiaTrackable target = vuforia.getTarget(i);
+            boolean visible = vuforia.isTargetVisible(target);
+            if (visible != targetsFound[i])
+            {
+                targetsFound[i] = visible;
+                String sentence = String.format(
+                        "Target %s is %s.", target.getName(), visible? "visible": "not visible");
+                textToSpeech.speak(sentence, TextToSpeech.QUEUE_FLUSH, null);
+            }
             dashboard.displayPrintf(
-                    i*2 + 1, LABEL_WIDTH, target.getName() + ": ",
-                    "%s", vuforia.isTargetVisible(target)? "Visible": "NotVisible");
+                    i*2 + 1, LABEL_WIDTH, target.getName() + ": ", "%s", visible? "Visible": "NotVisiable");
 
             OpenGLMatrix pose = vuforia.getTargetPose(target);
             if (pose != null)

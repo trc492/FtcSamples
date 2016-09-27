@@ -22,14 +22,19 @@
 
 package samples;
 
+import android.speech.tts.TextToSpeech;
 import android.widget.TextView;
 
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.robotcontroller.internal.FtcRobotControllerActivity;
+import org.firstinspires.ftc.robotcore.external.matrices.OpenGLMatrix;
+import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
+import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
+import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackable;
 
 import java.io.InputStream;
+import java.util.Locale;
 
 import FtcSampleCode.R;
 import ftclib.FtcAnalogOutTone;
@@ -39,15 +44,19 @@ import ftclib.FtcGamepad;
 import ftclib.FtcMRGyro;
 import ftclib.FtcOpMode;
 import ftclib.FtcSongXml;
+import ftclib.FtcVuforia;
 import hallib.HalDashboard;
 import trclib.TrcBooleanState;
 import trclib.TrcDriveBase;
+import trclib.TrcPidController;
+import trclib.TrcPidDrive;
 import trclib.TrcSong;
 import trclib.TrcSongPlayer;
 
 @TeleOp(name="TeleOp: Wild Thumper", group="Ftc3543Sample")
 //@Disabled
-public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.ButtonHandler
+public class FtcTeleOpWildThumper extends FtcOpMode
+        implements FtcGamepad.ButtonHandler, TrcPidController.PidInput, TextToSpeech.OnInitListener
 {
     private static final double ATTACK = 0.0;           // in seconds
     private static final double DECAY = 0.0;            // in seconds
@@ -61,8 +70,60 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.Button
 
     private static final boolean LEFTWHEEL_INVERTED = false;
     private static final boolean RIGHTWHEEL_INVERTED = true;
-    private static final double DRIVE_SCALE = 0.3;
-    private static final boolean MOTORS_6V = false;     // true if robot has 6V motors instead of 12V.
+    private static final boolean BRAKE_MODE_ON = true;
+    public static final double VISIONDRIVE_KP           = 0.03;
+    public static final double VISIONDRIVE_KI           = 0.0;
+    public static final double VISIONDRIVE_KD           = 0.0;
+    public static final double VISIONDRIVE_KF           = 0.0;
+    public static final double VISIONDRIVE_TOLERANCE    = 2.0;
+    public static final double VISIONDRIVE_SETTLING     = 0.2;
+
+    public static final double VISIONTURN_KP            = 0.05;
+    public static final double VISIONTURN_KI            = 0.0;
+    public static final double VISIONTURN_KD            = 0.0;
+    public static final double VISIONTURN_KF            = 0.0;
+    public static final double VISIONTURN_TOLERANCE     = 2.0;
+    public static final double VISIONTURN_SETTLING      = 0.2;
+
+    private final boolean trackRobotLocation = false;
+    private final float MM_PER_INCH = 25.4f;
+    private final float ROBOT_WIDTH = 18*MM_PER_INCH;               // in mm
+    private final float FTC_FIELD_WIDTH = (12*12 - 2)*MM_PER_INCH;  // in mm
+    private final float TARGET_HEIGHT = 160.0f;                     // in mm
+    //
+    // If you copy our code, please register your own account and generate your own free license key at this site:
+    // https://developer.vuforia.com/license-manager
+    //
+    private final String VUFORIA_LICENSE_KEY =
+            "AdCwzDH/////AAAAGeDkDS3ukU9+lIXc19LMh+cKk29caNhOl8UqmZOymRGwVwT1ZN8uaPdE3Q+zceDu9AKNsqL9qLblSFV" +
+                    "/x8Y3jfOZdjMFs0CQSQOEyWv3xfJsdSmevXDQDQr+4KI31HY2YSf/KB/kyxfuRMk4Pi+vWS+oLl65o7sWPiyFgzoM74ENyb" +
+                    "j4FgteD/2b6B+UFuwkHWKBNpp18wrpkaiFfr/FCbRFcdWP5mrjlEZM6eOj171dybw97HPeZbGihnnxOeeUv075O7P167AVq" +
+                    "aiPy2eRK7OCubR32KXOqQKoyF6AXp+qu2cOTApXS5dqOOseEm+HE4eMF0S2Pld3i5AWBIR+JlPXDuc9LwoH2Q8iDwUK1+4g";
+    private final int CAMERAVIEW_ID = R.id.cameraMonitorViewId;
+    private final VuforiaLocalizer.CameraDirection CAMERA_DIR = VuforiaLocalizer.CameraDirection.BACK;
+    private final String TRACKABLES_FILE = "FTC_2016-17";
+    //
+    // Note that the order of the targets must match the order in the FTC_2016-17.xml file.
+    //
+    private FtcVuforia.Target[] targets =
+    {
+            //
+            // Blue alliance beacon 1.
+            //
+            new FtcVuforia.Target("wheels", 90.0f, 0.0f, 0.0f, 12.0f*MM_PER_INCH, FTC_FIELD_WIDTH/2.0f, TARGET_HEIGHT),
+            //
+            // Red alliance beacon 2.
+            //
+            new FtcVuforia.Target("tools", 90.0f, 0.0f, 90.0f, -FTC_FIELD_WIDTH/2.0f, 30.0f*MM_PER_INCH, TARGET_HEIGHT),
+            //
+            // Blue alliance beacon 2 location.
+            //
+            new FtcVuforia.Target("legos", 90.0f, 0.0f, 0.0f, -30.0f*MM_PER_INCH, FTC_FIELD_WIDTH/2.0f, TARGET_HEIGHT),
+            //
+            // Red alliance beacon 1 location.
+            //
+            new FtcVuforia.Target("gears", 90.0f, 0.0f, 90.0f, -FTC_FIELD_WIDTH/2.0f, -12.0f*MM_PER_INCH, TARGET_HEIGHT)
+    };
 
     private HalDashboard dashboard;
     // Input and sensors.
@@ -76,6 +137,15 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.Button
     private TrcSongPlayer songPlayer = null;
     private TrcBooleanState envelopeToggle = new TrcBooleanState("EnvelopeToggle", true);
     private TrcBooleanState analogToneToggle = new TrcBooleanState("AnalogToneToggle", false);
+    // Vision targeting.
+    private FtcVuforia vuforia;
+    private OpenGLMatrix lastKnownRobotLocation = null;
+    private int targetIndex = 0;
+    private float lastTargetX = 0.0f;
+    private float lastTargetZ = 0.0f;
+    // Text To Speech.
+    private TextToSpeech textToSpeech = null;
+    private boolean[] targetsFound = null;
     // Drive Base.
     private FtcDcMotor lfMotor;
     private FtcDcMotor rfMotor;
@@ -84,8 +154,9 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.Button
     private FtcDcMotor lrMotor;
     private FtcDcMotor rrMotor;
     private TrcDriveBase driveBase;
-    private boolean brakeModeOn;
-    private boolean fullPowerEnabled = false;
+    private TrcPidController visionDrivePidCtrl;
+    private TrcPidController visionTurnPidCtrl;
+    private TrcPidDrive visionPidDrive;
 
     //
     // Implements FtcOpMode abstract methods.
@@ -126,7 +197,38 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.Button
             e.printStackTrace();
         }
         songIndex = -1;
+        //
+        // Vision targeting.
+        //
+        vuforia = new FtcVuforia(VUFORIA_LICENSE_KEY, CAMERAVIEW_ID, CAMERA_DIR, TRACKABLES_FILE, targets.length);
+        //
+        // Phone location: Mounted center on the front of the robot with the back camera facing outward.
+        //
+        OpenGLMatrix phoneLocationOnRobot =
+                trackRobotLocation? vuforia.locationMatrix(90.0f, 0.0f, 0.0f, 0.0f, ROBOT_WIDTH/2.0f, 0.0f): null;
 
+        vuforia.setTargets(targets, phoneLocationOnRobot);
+        //
+        // Text To Speech.
+        //
+        textToSpeech = new TextToSpeech(
+                hardwareMap.appContext,
+                new TextToSpeech.OnInitListener()
+                {
+                    @Override
+                    public void onInit(int status)
+                    {
+                        if (status != TextToSpeech.ERROR)
+                        {
+                            textToSpeech.setLanguage(Locale.US);
+                        }
+                    }
+                });
+        targetsFound = new boolean[targets.length];
+        for (int i = 0; i < targetsFound.length; i++)
+        {
+            targetsFound[i] = false;
+        }
         //
         // DriveBase subsystem.
         //
@@ -147,15 +249,31 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.Button
         // 6V motors are too fast when driven with 12V so we need to use coast mode or the Thumper will tip forward
         // when stopping.
         //
-        brakeModeOn = !MOTORS_6V;
-        lfMotor.setBrakeModeEnabled(brakeModeOn);
-        rfMotor.setBrakeModeEnabled(brakeModeOn);
-        lmMotor.setBrakeModeEnabled(brakeModeOn);
-        rmMotor.setBrakeModeEnabled(brakeModeOn);
-        lrMotor.setBrakeModeEnabled(brakeModeOn);
-        rrMotor.setBrakeModeEnabled(brakeModeOn);
+        lfMotor.setBrakeModeEnabled(BRAKE_MODE_ON);
+        rfMotor.setBrakeModeEnabled(BRAKE_MODE_ON);
+        lmMotor.setBrakeModeEnabled(BRAKE_MODE_ON);
+        rmMotor.setBrakeModeEnabled(BRAKE_MODE_ON);
+        lrMotor.setBrakeModeEnabled(BRAKE_MODE_ON);
+        rrMotor.setBrakeModeEnabled(BRAKE_MODE_ON);
 
         driveBase = new TrcDriveBase(lfMotor, lmMotor, lrMotor, rfMotor, rmMotor, rrMotor);
+        //
+        // PID Drive.
+        //
+        visionDrivePidCtrl = new TrcPidController(
+                "visionDrivePidCtrl",
+                VISIONDRIVE_KP, VISIONDRIVE_KI,
+                VISIONDRIVE_KD, VISIONDRIVE_KF,
+                VISIONDRIVE_TOLERANCE, VISIONDRIVE_SETTLING,
+                this);
+        visionTurnPidCtrl = new TrcPidController(
+                "visionTurnPidCtrl",
+                VISIONTURN_KP, VISIONTURN_KI,
+                VISIONTURN_KD, VISIONTURN_KF,
+                VISIONTURN_TOLERANCE, VISIONTURN_SETTLING,
+                this);
+        visionPidDrive = new TrcPidDrive(
+                "visionPidDrive", driveBase, null, visionDrivePidCtrl, visionTurnPidCtrl);
     }   //initRobot
 
     /**
@@ -198,6 +316,7 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.Button
     public void startMode()
     {
         dashboard.clearDisplay();
+        vuforia.setTrackingEnabled(true);
         driveBase.resetPosition();
         //
         // There is an issue with the gamepad objects that may not be valid
@@ -210,12 +329,19 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.Button
     @Override
     public void stopMode()
     {
+        vuforia.setTrackingEnabled(false);
         //
         // If there is a SongPlayer, stop it.
         //
         if (songPlayer != null)
         {
             songPlayer.stop();
+        }
+
+        if (textToSpeech != null)
+        {
+            textToSpeech.stop();
+            textToSpeech.shutdown();
         }
     }   //stopMode
 
@@ -234,26 +360,57 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.Button
         //
         double left = gamepad.getLeftStickY(true);
         double right = gamepad.getRightStickY(true);
-        if (MOTORS_6V)
-        {
-            if (!fullPowerEnabled && left*right > 0.0)
-            {
-                left *= DRIVE_SCALE;
-                right *= DRIVE_SCALE;
-            }
-        }
-        driveBase.tankDrive(left, right);
 
         final int DISPLAY_WIDTH = 444;
         final int LABEL_WIDTH = DISPLAY_WIDTH/2;
-        dashboard.displayCenterPrintf(1, DISPLAY_WIDTH, "WildThumper");
-        dashboard.displayPrintf(2, LABEL_WIDTH, "left power = ", "%.2f", left);
-        dashboard.displayPrintf(3, LABEL_WIDTH, "right power = ", "%.2f", right);
-        dashboard.displayPrintf(4, LABEL_WIDTH, "Gyro heading = ", "%.2f", gyro.getZHeading().value);
-        dashboard.displayPrintf(5, LABEL_WIDTH, "Full Power = ", "%s", Boolean.toString(fullPowerEnabled));
-        dashboard.displayPrintf(6, LABEL_WIDTH, "SoundEnvelope = ", "%s", envelopeToggle.getState()? "ON": "OFF");
-        dashboard.displayPrintf(7, LABEL_WIDTH, "Tone device = ", "%s",
+        dashboard.displayPrintf(1, LABEL_WIDTH, "Power (L/R) = ", "%.2f/%.2f", left, right);
+        dashboard.displayPrintf(2, LABEL_WIDTH, "Gyro heading = ", "%.2f", gyro.getZHeading().value);
+        dashboard.displayPrintf(3, LABEL_WIDTH, "SoundEnvelope = ", "%s", envelopeToggle.getState()? "ON": "OFF");
+        dashboard.displayPrintf(4, LABEL_WIDTH, "Tone device = ", "%s",
                                 analogToneToggle.getState()? "AnalogOut": "Android");
+
+        for (int i = 0; i < targets.length; i++)
+        {
+            VuforiaTrackable target = vuforia.getTarget(i);
+            boolean isVisible = vuforia.isTargetVisible(target);
+            String visible = isVisible? "Visible": "NotVisible";
+            if (i == targetIndex)
+            {
+                visible = "<" + visible + ">";
+            }
+            if (isVisible != targetsFound[i])
+            {
+                targetsFound[i] = isVisible;
+                String sentence = String.format(
+                        "Target %s is %s.", target.getName(), isVisible? "visible": "not visible");
+                textToSpeech.speak(sentence, TextToSpeech.QUEUE_FLUSH, null);
+            }
+            dashboard.displayPrintf(
+                    i*2 + 5, LABEL_WIDTH, target.getName() + ": ", "%s", visible);
+
+            OpenGLMatrix pose = vuforia.getTargetPose(target);
+            if (pose != null)
+            {
+                VectorF translation = pose.getTranslation();
+                dashboard.displayPrintf(
+                        i*2 + 6, LABEL_WIDTH, "x,y,z in. = ", "%6.2f,%6.2f,%6.2f",
+                        translation.get(0)/MM_PER_INCH,
+                        translation.get(1)/MM_PER_INCH,
+                        -translation.get(2)/MM_PER_INCH);
+            }
+
+            OpenGLMatrix robotLocation = vuforia.getRobotLocation(target);
+            if (robotLocation != null)
+            {
+                lastKnownRobotLocation = robotLocation;
+            }
+        }
+
+        dashboard.displayPrintf(13, "Robot Location");
+        if (lastKnownRobotLocation != null)
+        {
+            dashboard.displayPrintf(14, lastKnownRobotLocation.formatAsTransform());
+        }
     }   //runPeriodic
 
     //
@@ -270,56 +427,28 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.Button
                 case FtcGamepad.GAMEPAD_DPAD_UP:
                     if (pressed)
                     {
-                        if (songIndex == 0)
-                        {
-                            //
-                            // This song was playing, stop it.
-                            //
-                            startSong(0, false);
-                        }
-                        else if (songIndex == 1)
-                        {
-                            //
-                            // The other song was playing, stop that and start this one.
-                            //
-                            startSong(1, false);
-                            startSong(0, true);
-                        }
-                        else
-                        {
-                            //
-                            // No song was playing, statt this one.
-                            //
-                            startSong(0, true);
-                        }
+                        targetIndex = 0;
+                    }
+                    break;
+
+                case FtcGamepad.GAMEPAD_DPAD_RIGHT:
+                    if (pressed)
+                    {
+                        targetIndex = 1;
                     }
                     break;
 
                 case FtcGamepad.GAMEPAD_DPAD_DOWN:
                     if (pressed)
                     {
-                        if (songIndex == 1)
-                        {
-                            //
-                            // This song was playing, stop it.
-                            //
-                            startSong(1, false);
-                        }
-                        else if (songIndex == 0)
-                        {
-                            //
-                            // The other song was playing, stop that and start this one.
-                            //
-                            startSong(0, false);
-                            startSong(1, true);
-                        }
-                        else
-                        {
-                            //
-                            // No song was playing, statt this one.
-                            //
-                            startSong(1, true);
-                        }
+                        targetIndex = 2;
+                    }
+                    break;
+
+                case FtcGamepad.GAMEPAD_DPAD_LEFT:
+                    if (pressed)
+                    {
+                        targetIndex = 3;
                     }
                     break;
 
@@ -389,13 +518,104 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.Button
                     break;
 
                 case FtcGamepad.GAMEPAD_LBUMPER:
-                    //
-                    // Press and hold this button for full power driving.
-                    //
-                    fullPowerEnabled = pressed;
+                    if (pressed)
+                    {
+                        if (songIndex == 0)
+                        {
+                            //
+                            // This song was playing, stop it.
+                            //
+                            startSong(0, false);
+                        }
+                        else if (songIndex == 1)
+                        {
+                            //
+                            // The other song was playing, stop that and start this one.
+                            //
+                            startSong(1, false);
+                            startSong(0, true);
+                        }
+                        else
+                        {
+                            //
+                            // No song was playing, statt this one.
+                            //
+                            startSong(0, true);
+                        }
+                    }
+                    break;
+
+                case FtcGamepad.GAMEPAD_RBUMPER:
+                    if (pressed)
+                    {
+                        if (songIndex == 1)
+                        {
+                            //
+                            // This song was playing, stop it.
+                            //
+                            startSong(1, false);
+                        }
+                        else if (songIndex == 0)
+                        {
+                            //
+                            // The other song was playing, stop that and start this one.
+                            //
+                            startSong(0, false);
+                            startSong(1, true);
+                        }
+                        else
+                        {
+                            //
+                            // No song was playing, statt this one.
+                            //
+                            startSong(1, true);
+                        }
+                    }
                     break;
             }
         }
     }   //gamepadButtonEvent
+
+    //
+    // Implements TrcPidController.PidInput
+    //
+
+    @Override
+    public double getInput(TrcPidController pidCtrl)
+    {
+        double input = 0.0;
+
+        VuforiaTrackable target = vuforia.getTarget(targetIndex);
+        OpenGLMatrix pose = vuforia.getTargetPose(target);
+        if (pose != null)
+        {
+            VectorF translation = pose.getTranslation();
+            lastTargetX = translation.get(0)/MM_PER_INCH;
+            lastTargetZ = -translation.get(2)/MM_PER_INCH;
+        }
+
+        if (pidCtrl == visionDrivePidCtrl)
+        {
+            input = lastTargetZ;
+        }
+        else if (pidCtrl == visionTurnPidCtrl)
+        {
+            input = Math.toDegrees(Math.atan2(lastTargetX, lastTargetZ));
+        }
+
+        return input;
+    }   //getInput
+
+    //
+    // Implements TextToSpeech.OnInitListener interface.
+    //
+
+    public void onInit(int status)
+    {
+        if (status != TextToSpeech.ERROR)
+        {
+            textToSpeech.setLanguage(Locale.US);
+        }
+    }   //onInit
 
 }   //class FtcTeleOpWildThumper
