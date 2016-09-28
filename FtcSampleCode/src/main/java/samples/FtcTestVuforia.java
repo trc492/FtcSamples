@@ -85,6 +85,7 @@ public class FtcTestVuforia extends FtcOpMode
             //
             new FtcVuforia.Target("gears", 90.0f, 0.0f, 90.0f, -FTC_FIELD_WIDTH/2.0f, -12.0f*MM_PER_INCH, TARGET_HEIGHT)
     };
+    private final boolean speechEnabled = true;
 
     private HalDashboard dashboard;
     private FtcVuforia vuforia;
@@ -115,23 +116,26 @@ public class FtcTestVuforia extends FtcOpMode
         //
         // Text To Speech.
         //
-        textToSpeech = new TextToSpeech(
-                hardwareMap.appContext,
-                new TextToSpeech.OnInitListener()
-                {
-                    @Override
-                    public void onInit(int status)
-                    {
-                        if (status != TextToSpeech.ERROR)
-                        {
-                            textToSpeech.setLanguage(Locale.US);
-                        }
-                    }
-                });
-        targetsFound = new boolean[targets.length];
-        for (int i = 0; i < targetsFound.length; i++)
+        if (speechEnabled)
         {
-            targetsFound[i] = false;
+            textToSpeech = new TextToSpeech(
+                    hardwareMap.appContext,
+                    new TextToSpeech.OnInitListener()
+                    {
+                        @Override
+                        public void onInit(int status)
+                        {
+                            if (status != TextToSpeech.ERROR)
+                            {
+                                textToSpeech.setLanguage(Locale.US);
+                            }
+                        }
+                    });
+            targetsFound = new boolean[targets.length];
+            for (int i = 0; i < targetsFound.length; i++)
+            {
+                targetsFound[i] = false;
+            }
         }
     }   //initRobot
 
@@ -166,12 +170,15 @@ public class FtcTestVuforia extends FtcOpMode
         {
             VuforiaTrackable target = vuforia.getTarget(i);
             boolean visible = vuforia.isTargetVisible(target);
-            if (visible != targetsFound[i])
+            if (speechEnabled)
             {
-                targetsFound[i] = visible;
-                String sentence = String.format(
-                        "Target %s is %s.", target.getName(), visible? "visible": "not visible");
-                textToSpeech.speak(sentence, TextToSpeech.QUEUE_FLUSH, null);
+                if (visible != targetsFound[i])
+                {
+                    targetsFound[i] = visible;
+                    String sentence = String.format(
+                            "%s is %s.", target.getName(), visible ? "in view" : "out of view");
+                    textToSpeech.speak(sentence, TextToSpeech.QUEUE_FLUSH, null);
+                }
             }
             dashboard.displayPrintf(
                     i*2 + 1, LABEL_WIDTH, target.getName() + ": ", "%s", visible? "Visible": "NotVisiable");
