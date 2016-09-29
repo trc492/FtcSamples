@@ -25,6 +25,7 @@ package samples;
 import android.speech.tts.TextToSpeech;
 import android.widget.TextView;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.robotcontroller.internal.FtcRobotControllerActivity;
@@ -55,8 +56,7 @@ import trclib.TrcSongPlayer;
 
 @TeleOp(name="TeleOp: Wild Thumper", group="Ftc3543Sample")
 //@Disabled
-public class FtcTeleOpWildThumper extends FtcOpMode
-        implements FtcGamepad.ButtonHandler, TrcPidController.PidInput, TextToSpeech.OnInitListener
+public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.ButtonHandler, TrcPidController.PidInput
 {
     private static final double ATTACK = 0.0;           // in seconds
     private static final double DECAY = 0.0;            // in seconds
@@ -68,6 +68,7 @@ public class FtcTeleOpWildThumper extends FtcOpMode
     private static final double BAR_DURATION = 1.920;   // in seconds
     private static final int SONG_RESOURCE = R.raw.songcollection;
 
+    private static final boolean SIX_WHEELS = false;
     private static final boolean LEFTWHEEL_INVERTED = false;
     private static final boolean RIGHTWHEEL_INVERTED = true;
     private static final boolean BRAKE_MODE_ON = true;
@@ -85,7 +86,6 @@ public class FtcTeleOpWildThumper extends FtcOpMode
     public static final double VISIONTURN_TOLERANCE     = 2.0;
     public static final double VISIONTURN_SETTLING      = 0.2;
 
-    private final boolean trackRobotLocation = false;
     private final float MM_PER_INCH = 25.4f;
     private final float ROBOT_WIDTH = 18*MM_PER_INCH;               // in mm
     private final float FTC_FIELD_WIDTH = (12*12 - 2)*MM_PER_INCH;  // in mm
@@ -124,6 +124,8 @@ public class FtcTeleOpWildThumper extends FtcOpMode
             //
             new FtcVuforia.Target("gears", 90.0f, 0.0f, 90.0f, -FTC_FIELD_WIDTH/2.0f, -12.0f*MM_PER_INCH, TARGET_HEIGHT)
     };
+    private final boolean TRACK_ROBOT_LOC = true;
+    private final boolean SPEECH_ENABLED = true;
 
     private HalDashboard dashboard;
     // Input and sensors.
@@ -157,6 +159,7 @@ public class FtcTeleOpWildThumper extends FtcOpMode
     private TrcPidController visionDrivePidCtrl;
     private TrcPidController visionTurnPidCtrl;
     private TrcPidDrive visionPidDrive;
+    private TrcBooleanState followTargetToggle = new TrcBooleanState("FollowTarget", false);
 
     //
     // Implements FtcOpMode abstract methods.
@@ -205,44 +208,53 @@ public class FtcTeleOpWildThumper extends FtcOpMode
         // Phone location: Mounted center on the front of the robot with the back camera facing outward.
         //
         OpenGLMatrix phoneLocationOnRobot =
-                trackRobotLocation? vuforia.locationMatrix(90.0f, 0.0f, 0.0f, 0.0f, ROBOT_WIDTH/2.0f, 0.0f): null;
+                TRACK_ROBOT_LOC? vuforia.locationMatrix(90.0f, 0.0f, 0.0f, 0.0f, ROBOT_WIDTH/2.0f, 0.0f): null;
 
         vuforia.setTargets(targets, phoneLocationOnRobot);
         //
         // Text To Speech.
         //
-        textToSpeech = new TextToSpeech(
-                hardwareMap.appContext,
-                new TextToSpeech.OnInitListener()
-                {
-                    @Override
-                    public void onInit(int status)
-                    {
-                        if (status != TextToSpeech.ERROR)
-                        {
-                            textToSpeech.setLanguage(Locale.US);
-                        }
-                    }
-                });
-        targetsFound = new boolean[targets.length];
-        for (int i = 0; i < targetsFound.length; i++)
+        if (SPEECH_ENABLED)
         {
-            targetsFound[i] = false;
+            textToSpeech = new TextToSpeech(
+                    hardwareMap.appContext,
+                    new TextToSpeech.OnInitListener()
+                    {
+                        @Override
+                        public void onInit(int status)
+                        {
+                            if (status != TextToSpeech.ERROR)
+                            {
+                                textToSpeech.setLanguage(Locale.US);
+                            }
+                        }
+                    });
+            targetsFound = new boolean[targets.length];
+            for (int i = 0; i < targetsFound.length; i++)
+            {
+                targetsFound[i] = false;
+            }
         }
         //
         // DriveBase subsystem.
         //
         lfMotor = new FtcDcMotor("lfWheel");
         rfMotor = new FtcDcMotor("rfWheel");
-        lmMotor = new FtcDcMotor("lmWheel");
-        rmMotor = new FtcDcMotor("rmWheel");
+        if (SIX_WHEELS)
+        {
+            lmMotor = new FtcDcMotor("lmWheel");
+            rmMotor = new FtcDcMotor("rmWheel");
+        }
         lrMotor = new FtcDcMotor("lrWheel");
         rrMotor = new FtcDcMotor("rrWheel");
 
         lfMotor.setInverted(LEFTWHEEL_INVERTED);
         rfMotor.setInverted(RIGHTWHEEL_INVERTED);
-        lmMotor.setInverted(LEFTWHEEL_INVERTED);
-        rmMotor.setInverted(RIGHTWHEEL_INVERTED);
+        if (SIX_WHEELS)
+        {
+            lmMotor.setInverted(LEFTWHEEL_INVERTED);
+            rmMotor.setInverted(RIGHTWHEEL_INVERTED);
+        }
         lrMotor.setInverted(LEFTWHEEL_INVERTED);
         rrMotor.setInverted(RIGHTWHEEL_INVERTED);
         //
@@ -251,12 +263,22 @@ public class FtcTeleOpWildThumper extends FtcOpMode
         //
         lfMotor.setBrakeModeEnabled(BRAKE_MODE_ON);
         rfMotor.setBrakeModeEnabled(BRAKE_MODE_ON);
-        lmMotor.setBrakeModeEnabled(BRAKE_MODE_ON);
-        rmMotor.setBrakeModeEnabled(BRAKE_MODE_ON);
+        if (SIX_WHEELS)
+        {
+            lmMotor.setBrakeModeEnabled(BRAKE_MODE_ON);
+            rmMotor.setBrakeModeEnabled(BRAKE_MODE_ON);
+        }
         lrMotor.setBrakeModeEnabled(BRAKE_MODE_ON);
         rrMotor.setBrakeModeEnabled(BRAKE_MODE_ON);
 
-        driveBase = new TrcDriveBase(lfMotor, lmMotor, lrMotor, rfMotor, rmMotor, rrMotor);
+        if (SIX_WHEELS)
+        {
+            driveBase = new TrcDriveBase(lfMotor, lmMotor, lrMotor, rfMotor, rmMotor, rrMotor);
+        }
+        else
+        {
+            driveBase = new TrcDriveBase(lfMotor, lrMotor, rfMotor, rrMotor);
+        }
         //
         // PID Drive.
         //
@@ -348,52 +370,39 @@ public class FtcTeleOpWildThumper extends FtcOpMode
     @Override
     public void runPeriodic(double elapsedTime)
     {
-        //
-        // DriveBase subsystem:
-        // WildThumper has 6V motors. We are driving it with 12V and it seems fine.
-        // But it is running really fast, so we are multiplying the drive power with a
-        // scaling factor to slow it down. However, it has 6 high traction wheels and
-        // it has a hard time doing in-place turn or even pivot turn. So we will give
-        // it full power for turning and only slows down for driving forward and backward.
-        // However, if the fullPowerEnabled button is pressed and held down, we will give
-        // it full power regardless.
-        //
         double left = gamepad.getLeftStickY(true);
         double right = gamepad.getRightStickY(true);
 
-        final int DISPLAY_WIDTH = 444;
-        final int LABEL_WIDTH = DISPLAY_WIDTH/2;
-        dashboard.displayPrintf(1, LABEL_WIDTH, "Power (L/R) = ", "%.2f/%.2f", left, right);
-        dashboard.displayPrintf(2, LABEL_WIDTH, "Gyro heading = ", "%.2f", gyro.getZHeading().value);
+        final int LABEL_WIDTH = 100;
+        dashboard.displayPrintf(1, LABEL_WIDTH, "Power(L/R) = ", "%.2f/%.2f", left, right);
+        dashboard.displayPrintf(2, LABEL_WIDTH, "GyroHeading = ", "%.2f", gyro.getZHeading().value);
         dashboard.displayPrintf(3, LABEL_WIDTH, "SoundEnvelope = ", "%s", envelopeToggle.getState()? "ON": "OFF");
-        dashboard.displayPrintf(4, LABEL_WIDTH, "Tone device = ", "%s",
+        dashboard.displayPrintf(4, LABEL_WIDTH, "ToneDevice = ", "%s",
                                 analogToneToggle.getState()? "AnalogOut": "Android");
 
         for (int i = 0; i < targets.length; i++)
         {
             VuforiaTrackable target = vuforia.getTarget(i);
-            boolean isVisible = vuforia.isTargetVisible(target);
-            String visible = isVisible? "Visible": "NotVisible";
-            if (i == targetIndex)
-            {
-                visible = "<" + visible + ">";
-            }
-            if (isVisible != targetsFound[i])
-            {
-                targetsFound[i] = isVisible;
-                String sentence = String.format(
-                        "Target %s is %s.", target.getName(), isVisible? "visible": "not visible");
-                textToSpeech.speak(sentence, TextToSpeech.QUEUE_FLUSH, null);
-            }
-            dashboard.displayPrintf(
-                    i*2 + 5, LABEL_WIDTH, target.getName() + ": ", "%s", visible);
+            boolean visible = vuforia.isTargetVisible(target);
 
+            if (SPEECH_ENABLED)
+            {
+                if (visible != targetsFound[i])
+                {
+                    targetsFound[i] = visible;
+                    String sentence = String.format(
+                            "%s is %s.", target.getName(), visible? "in view": "out of view");
+                    textToSpeech.speak(sentence, TextToSpeech.QUEUE_FLUSH, null);
+                }
+            }
+
+            String label = String.format(i == targetIndex? "<%s> = ": "%s = ", target.getName());
             OpenGLMatrix pose = vuforia.getTargetPose(target);
             if (pose != null)
             {
                 VectorF translation = pose.getTranslation();
                 dashboard.displayPrintf(
-                        i*2 + 6, LABEL_WIDTH, "x,y,z in. = ", "%6.2f,%6.2f,%6.2f",
+                        i + 5, LABEL_WIDTH, label, "%6.2f,%6.2f,%6.2f",
                         translation.get(0)/MM_PER_INCH,
                         translation.get(1)/MM_PER_INCH,
                         -translation.get(2)/MM_PER_INCH);
@@ -406,10 +415,9 @@ public class FtcTeleOpWildThumper extends FtcOpMode
             }
         }
 
-        dashboard.displayPrintf(13, "Robot Location");
         if (lastKnownRobotLocation != null)
         {
-            dashboard.displayPrintf(14, lastKnownRobotLocation.formatAsTransform());
+            dashboard.displayPrintf(9, LABEL_WIDTH, "RobotLoc = ", lastKnownRobotLocation.formatAsTransform());
         }
     }   //runPeriodic
 
@@ -453,6 +461,18 @@ public class FtcTeleOpWildThumper extends FtcOpMode
                     break;
 
                 case FtcGamepad.GAMEPAD_A:
+                    if (pressed)
+                    {
+                        followTargetToggle.toggleState();
+                        if (followTargetToggle.getState())
+                        {
+                            visionPidDrive.setTarget(24.0, 0.0, true, null);
+                        }
+                        else
+                        {
+                            visionPidDrive.cancel();
+                        }
+                    }
                     break;
 
                 case FtcGamepad.GAMEPAD_Y:

@@ -26,8 +26,8 @@ package samples;
 import android.speech.tts.TextToSpeech;
 import android.widget.TextView;
 
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.robotcontroller.internal.FtcRobotControllerActivity;
 import org.firstinspires.ftc.robotcore.external.matrices.OpenGLMatrix;
@@ -42,11 +42,10 @@ import ftclib.FtcOpMode;
 import ftclib.FtcVuforia;
 import hallib.HalDashboard;
 
-@Autonomous(name="Test: Vuforia Targets Tracking", group="Ftc3543Sample")
+@TeleOp(name="Test: Vuforia Targets Tracking", group="Ftc3543Sample")
 //@Disabled
 public class FtcTestVuforia extends FtcOpMode
 {
-    private final boolean trackRobotLocation = true;
     private final float MM_PER_INCH = 25.4f;
     private final float ROBOT_WIDTH = 18*MM_PER_INCH;               // in mm
     private final float FTC_FIELD_WIDTH = (12*12 - 2)*MM_PER_INCH;  // in mm
@@ -85,7 +84,8 @@ public class FtcTestVuforia extends FtcOpMode
             //
             new FtcVuforia.Target("gears", 90.0f, 0.0f, 90.0f, -FTC_FIELD_WIDTH/2.0f, -12.0f*MM_PER_INCH, TARGET_HEIGHT)
     };
-    private final boolean speechEnabled = true;
+    private final boolean TRACK_ROBOT_LOC = true;
+    private final boolean SPEECH_ENABLED = true;
 
     private HalDashboard dashboard;
     private FtcVuforia vuforia;
@@ -110,13 +110,13 @@ public class FtcTestVuforia extends FtcOpMode
         // Phone location: Mounted center on the front of the robot with the back camera facing outward.
         //
         OpenGLMatrix phoneLocationOnRobot =
-                trackRobotLocation? vuforia.locationMatrix(90.0f, 0.0f, 0.0f, 0.0f, ROBOT_WIDTH/2.0f, 0.0f): null;
+                TRACK_ROBOT_LOC? vuforia.locationMatrix(90.0f, 0.0f, 0.0f, 0.0f, ROBOT_WIDTH/2.0f, 0.0f): null;
 
         vuforia.setTargets(targets, phoneLocationOnRobot);
         //
         // Text To Speech.
         //
-        if (speechEnabled)
+        if (SPEECH_ENABLED)
         {
             textToSpeech = new TextToSpeech(
                     hardwareMap.appContext,
@@ -164,31 +164,30 @@ public class FtcTestVuforia extends FtcOpMode
     @Override
     public void runPeriodic(double elapsedTime)
     {
-        final int LABEL_WIDTH = 100;
+        final int LABEL_WIDTH = 120;
 
         for (int i = 0; i < targets.length; i++)
         {
             VuforiaTrackable target = vuforia.getTarget(i);
             boolean visible = vuforia.isTargetVisible(target);
-            if (speechEnabled)
+
+            if (SPEECH_ENABLED)
             {
                 if (visible != targetsFound[i])
                 {
                     targetsFound[i] = visible;
                     String sentence = String.format(
-                            "%s is %s.", target.getName(), visible ? "in view" : "out of view");
+                            "%s is %s.", target.getName(), visible? "in view": "out of view");
                     textToSpeech.speak(sentence, TextToSpeech.QUEUE_FLUSH, null);
                 }
             }
-            dashboard.displayPrintf(
-                    i*2 + 1, LABEL_WIDTH, target.getName() + ": ", "%s", visible? "Visible": "NotVisiable");
 
             OpenGLMatrix pose = vuforia.getTargetPose(target);
             if (pose != null)
             {
                 VectorF translation = pose.getTranslation();
                 dashboard.displayPrintf(
-                        i*2 + 2, LABEL_WIDTH, "x,y,z in. = ", "%6.2f,%6.2f,%6.2f",
+                        i + 1, LABEL_WIDTH, target.getName() + " = ", "%6.2f,%6.2f,%6.2f",
                         translation.get(0)/MM_PER_INCH,
                         translation.get(1)/MM_PER_INCH,
                         -translation.get(2)/MM_PER_INCH);
@@ -201,10 +200,9 @@ public class FtcTestVuforia extends FtcOpMode
             }
         }
 
-        dashboard.displayPrintf(9, "Robot Location");
         if (lastKnownRobotLocation != null)
         {
-            dashboard.displayPrintf(10, lastKnownRobotLocation.formatAsTransform());
+            dashboard.displayPrintf(5, LABEL_WIDTH, "RobotLoc = ", lastKnownRobotLocation.formatAsTransform());
         }
     }   //runPeriodic
 
