@@ -24,8 +24,8 @@ package samples;
 
 import android.widget.TextView;
 
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.robotcontroller.internal.FtcRobotControllerActivity;
 
@@ -35,7 +35,7 @@ import ftclib.FtcZXDistanceSensor;
 import hallib.HalDashboard;
 import trclib.TrcSensor;
 
-@Autonomous(name="Test: ZX Distance Sensor", group="Ftc3543Sample")
+@TeleOp(name="Test: ZX Distance Sensor", group="Ftc3543Sample")
 //@Disabled
 public class FtcTestZXDistanceSensor extends FtcOpMode
 {

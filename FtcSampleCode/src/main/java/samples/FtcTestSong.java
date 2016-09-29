@@ -22,8 +22,8 @@
 
 package samples;
 
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import ftclib.FtcOpMode;
 import ftclib.FtcAndroidTone;
@@ -33,7 +33,7 @@ import trclib.TrcSong;
 import trclib.TrcSongPlayer;
 import trclib.TrcStateMachine;
 
-@Autonomous(name="Test: Android Song", group="Ftc3543Sample")
+@TeleOp(name="Test: Android Song", group="Ftc3543Sample")
 //@Disabled
 public class FtcTestSong extends FtcOpMode
 {

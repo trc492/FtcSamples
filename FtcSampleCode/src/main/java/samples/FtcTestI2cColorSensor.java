@@ -24,8 +24,8 @@ package samples;
 
 import android.widget.TextView;
 
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.ColorSensor;
 
 import org.firstinspires.ftc.robotcontroller.internal.FtcRobotControllerActivity;
@@ -36,7 +36,7 @@ import ftclib.FtcOpMode;
 import hallib.HalDashboard;
 import trclib.TrcSensor;
 
-@Autonomous(name="Test: I2C Color Sensor", group="Ftc3543Sample")
+@TeleOp(name="Test: I2C Color Sensor", group="Ftc3543Sample")
 //@Disabled
 public class FtcTestI2cColorSensor extends FtcOpMode
 {

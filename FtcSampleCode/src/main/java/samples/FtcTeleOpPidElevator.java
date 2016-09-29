@@ -28,7 +28,6 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import ftclib.FtcGamepad;
 import ftclib.FtcOpMode;
 import hallib.HalDashboard;
-import samples.Elevator;
 
 @TeleOp(name="TeleOp: PID Elevator", group="Ftc3543Sample")
 //@Disabled

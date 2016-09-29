@@ -26,8 +26,8 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.robotcontroller.internal.FtcRobotControllerActivity;
 import org.opencv.android.BaseLoaderCallback;
@@ -57,7 +57,7 @@ import trclib.TrcDbgTrace;
 /**
  * This class implements an OpenCV view for Face Detection.
  */
-@Autonomous(name="Test: OpenCV Face Detection", group="Ftc3543Sample")
+@TeleOp(name="Test: OpenCV Face Detection", group="Ftc3543Sample")
 //@Disabled
 public class FtcTestOpenCv extends FtcOpMode implements CameraBridgeViewBase.CvCameraViewListener2
 {

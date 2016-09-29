@@ -25,8 +25,8 @@ package samples;
 import android.hardware.SensorManager;
 import android.widget.TextView;
 
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.robotcontroller.internal.FtcRobotControllerActivity;
 
@@ -37,7 +37,7 @@ import hallib.HalDashboard;
 import trclib.TrcAccelerometer;
 import trclib.TrcIIRFilter;
 
-@Autonomous(name="Test: Android Accelerometer", group="Ftc3543Sample")
+@TeleOp(name="Test: Android Accelerometer", group="Ftc3543Sample")
 //@Disabled
 public class FtcTestAndroidAccel extends FtcOpMode
 {
