@@ -68,9 +68,8 @@ public class FtcTestAndroidSensors extends FtcOpMode
         //
         // Enumerates all Android sensors.
         //
-        Context context = FtcOpMode.getInstance().hardwareMap.appContext;
         SensorManager sensorManager =
-                (SensorManager)context.getSystemService(Context.SENSOR_SERVICE);
+                (SensorManager)activity.getSystemService(Context.SENSOR_SERVICE);
         List<Sensor> sensorList = sensorManager.getSensorList(Sensor.TYPE_ALL);
         dashboard.displayPrintf(0, "Android Sensors:");
         int lineNum = 1;
