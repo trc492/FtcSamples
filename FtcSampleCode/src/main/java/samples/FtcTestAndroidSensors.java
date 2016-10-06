@@ -211,7 +211,7 @@ public class FtcTestAndroidSensors extends FtcOpMode
     @Override
     public void runPeriodic(double elapsedTime)
     {
-        final int LABEL_WIDTH = 120;
+        final int LABEL_WIDTH = 160;
         if (accel != null)
         {
             dashboard.displayPrintf(1, LABEL_WIDTH, "Accel: ", "x=%.2f,y=%.2f,z=%.2f (m/s2)",
