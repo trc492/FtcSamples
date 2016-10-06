@@ -42,7 +42,7 @@ import ftclib.FtcOpMode;
 import ftclib.FtcVuforia;
 import hallib.HalDashboard;
 
-@TeleOp(name="Test: Vuforia Targets Tracking", group="Ftc3543Sample")
+@TeleOp(name="Test: Vuforia Targets Tracking", group="3543TestSamples")
 //@Disabled
 public class FtcTestVuforia extends FtcOpMode
 {

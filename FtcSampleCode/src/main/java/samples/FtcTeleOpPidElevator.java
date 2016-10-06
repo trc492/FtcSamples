@@ -29,7 +29,7 @@ import ftclib.FtcGamepad;
 import ftclib.FtcOpMode;
 import hallib.HalDashboard;
 
-@TeleOp(name="TeleOp: PID Elevator", group="Ftc3543Sample")
+@TeleOp(name="TeleOp: PID Elevator", group="3543TeleOpSamples")
 //@Disabled
 public class FtcTeleOpPidElevator extends FtcOpMode implements FtcGamepad.ButtonHandler
 {

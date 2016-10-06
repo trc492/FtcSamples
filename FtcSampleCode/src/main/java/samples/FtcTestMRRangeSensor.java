@@ -35,7 +35,7 @@ import ftclib.FtcOpMode;
 import hallib.HalDashboard;
 import trclib.TrcSensor;
 
-@TeleOp(name="Test: MR Range Sensor", group="Ftc3543Sample")
+@TeleOp(name="Test: MR Range Sensor", group="3543TestSamples")
 //@Disabled
 public class FtcTestMRRangeSensor extends FtcOpMode
 {

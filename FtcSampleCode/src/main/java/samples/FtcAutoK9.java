@@ -42,7 +42,7 @@ import trclib.TrcPidDrive;
 import trclib.TrcStateMachine;
 import trclib.TrcTimer;
 
-@Autonomous(name="Auto: K9Bot Various Autonomous", group="Ftc3543Sample")
+@Autonomous(name="Auto: K9Bot Various Autonomous", group="3543AutoSamples")
 //@Disabled
 public class FtcAutoK9 extends FtcOpMode implements TrcPidController.PidInput,
                                                     TrcAnalogTrigger.TriggerHandler,

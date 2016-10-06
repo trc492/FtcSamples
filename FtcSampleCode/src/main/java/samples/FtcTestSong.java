@@ -33,7 +33,7 @@ import trclib.TrcSong;
 import trclib.TrcSongPlayer;
 import trclib.TrcStateMachine;
 
-@TeleOp(name="Test: Android Song", group="Ftc3543Sample")
+@TeleOp(name="Test: Android Song", group="3543TestSamples")
 //@Disabled
 public class FtcTestSong extends FtcOpMode
 {

@@ -54,7 +54,7 @@ import trclib.TrcPidDrive;
 import trclib.TrcSong;
 import trclib.TrcSongPlayer;
 
-@TeleOp(name="TeleOp: Wild Thumper", group="Ftc3543Sample")
+@TeleOp(name="TeleOp: Wild Thumper", group="3543TeleOpSamples")
 //@Disabled
 public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.ButtonHandler, TrcPidController.PidInput
 {

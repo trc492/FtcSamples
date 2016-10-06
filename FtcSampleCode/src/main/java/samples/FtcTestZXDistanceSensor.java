@@ -35,7 +35,7 @@ import ftclib.FtcZXDistanceSensor;
 import hallib.HalDashboard;
 import trclib.TrcSensor;
 
-@TeleOp(name="Test: ZX Distance Sensor", group="Ftc3543Sample")
+@TeleOp(name="Test: ZX Distance Sensor", group="3543TestSamples")
 //@Disabled
 public class FtcTestZXDistanceSensor extends FtcOpMode
 {

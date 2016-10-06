@@ -37,7 +37,7 @@ import trclib.TrcPidController;
 import trclib.TrcPidDrive;
 import trclib.TrcStateMachine;
 
-@Autonomous(name="Auto: K9Bot PID Line Following", group="Ftc3543Sample")
+@Autonomous(name="Auto: K9Bot PID Line Following", group="3543AutoSamples")
 //@Disabled
 public class FtcAutoK9PidLineFollow extends FtcOpMode implements TrcPidController.PidInput,
                                                                  TrcAnalogTrigger.TriggerHandler

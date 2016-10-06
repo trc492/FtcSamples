@@ -35,7 +35,7 @@ import trclib.TrcPidController;
 import trclib.TrcPidDrive;
 import trclib.TrcStateMachine;
 
-@Autonomous(name="Auto: K9Bot PID Seek IR", group="Ftc3543Sample")
+@Autonomous(name="Auto: K9Bot PID Seek IR", group="3543AutoSamples")
 //@Disabled
 public class FtcAutoK9PidSeekIr extends FtcOpMode implements TrcPidController.PidInput
 {

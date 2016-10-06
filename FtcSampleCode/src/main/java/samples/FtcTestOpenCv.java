@@ -57,7 +57,7 @@ import trclib.TrcDbgTrace;
 /**
  * This class implements an OpenCV view for Face Detection.
  */
-@TeleOp(name="Test: OpenCV Face Detection", group="Ftc3543Sample")
+@TeleOp(name="Test: OpenCV Face Detection", group="3543TestSamples")
 //@Disabled
 public class FtcTestOpenCv extends FtcOpMode implements CameraBridgeViewBase.CvCameraViewListener2
 {

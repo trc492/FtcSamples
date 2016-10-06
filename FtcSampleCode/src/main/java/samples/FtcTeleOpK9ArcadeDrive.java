@@ -38,7 +38,7 @@ import hallib.HalDashboard;
 import trclib.TrcDriveBase;
 import trclib.TrcEnhancedServo;
 
-@TeleOp(name="TeleOp: K9Bot Arcade Drive", group="Ftc3543Sample")
+@TeleOp(name="TeleOp: K9Bot Arcade Drive", group="3543TeleOpSamples")
 //@Disabled
 public class FtcTeleOpK9ArcadeDrive extends FtcOpMode implements FtcGamepad.ButtonHandler
 {

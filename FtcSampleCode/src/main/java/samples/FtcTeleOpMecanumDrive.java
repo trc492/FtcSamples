@@ -37,7 +37,7 @@ import ftclib.FtcOpMode;
 import hallib.HalDashboard;
 import trclib.TrcDriveBase;
 
-@TeleOp(name="TeleOp: Mecanum Drive", group="Ftc3543Sample")
+@TeleOp(name="TeleOp: Mecanum Drive", group="3543TeleOpSamples")
 //@Disabled
 public class FtcTeleOpMecanumDrive extends FtcOpMode implements FtcGamepad.ButtonHandler
 {
