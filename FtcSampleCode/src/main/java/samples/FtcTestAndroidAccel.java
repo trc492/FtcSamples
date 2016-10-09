@@ -45,7 +45,7 @@ public class FtcTestAndroidAccel extends FtcOpMode
     private FtcAndroidAccel accel;
 
     //
-    // Implements FtcOpMode abstract method.
+    // Implements FtcOpMode abstract methods.
     //
 
     @Override

@@ -94,7 +94,7 @@ public class FtcAutoK9PidSeekIr extends FtcOpMode implements TrcPidController.Pi
     private TrcStateMachine sm;
 
     //
-    // Implements FtcOpMode abstract method.
+    // Implements FtcOpMode abstract methods.
     //
 
     @Override

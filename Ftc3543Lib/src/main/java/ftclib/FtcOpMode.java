@@ -176,11 +176,9 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
     /**
      * This method is called when our OpMode is loaded and the "Init" button
      * on the Driver Station is pressed.
-     *
-     * @throws InterruptedException
      */
     @Override
-    public void runOpMode() throws InterruptedException
+    public void runOpMode()
     {
         final String funcName = "runOpMode";
         TrcTaskMgr taskMgr = TrcTaskMgr.getInstance();
@@ -269,73 +267,66 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
         startMode();
 
         long nextPeriodTime = HalUtil.getCurrentTimeMillis();
-        try
+        while (opModeIsActive())
         {
-            while (opModeIsActive())
-            {
-                loopStartTime = HalUtil.getCurrentTime();
-                opModeElapsedTime = loopStartTime - opModeStartTime;
-
-                if (debugEnabled)
-                {
-                    dbgTrace.traceInfo(funcName, "Runing PreContinuous Tasks ...");
-                }
-                taskMgr.executeTaskType(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK, runMode);
-
-                if (debugEnabled)
-                {
-                    dbgTrace.traceInfo(funcName, "Runing runContinuous ...");
-                }
-                runContinuous(opModeElapsedTime);
-
-                if (debugEnabled)
-                {
-                    dbgTrace.traceInfo(funcName, "Runing PostContinuous Tasks ...");
-                }
-                taskMgr.executeTaskType(TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK, runMode);
-
-                if (HalUtil.getCurrentTimeMillis() >= nextPeriodTime)
-                {
-                    dashboard.displayPrintf(0, "%s: %.3f", opModeName, opModeElapsedTime);
-                    nextPeriodTime += LOOP_PERIOD;
-
-                    if (debugEnabled)
-                    {
-                        dbgTrace.traceInfo(funcName, "Runing PrePeriodic Tasks ...");
-                    }
-                    taskMgr.executeTaskType(TrcTaskMgr.TaskType.PREPERIODIC_TASK, runMode);
-
-                    if (debugEnabled)
-                    {
-                        dbgTrace.traceInfo(funcName, "Runing runPeriodic ...");
-                    }
-                    runPeriodic(opModeElapsedTime);
-
-                    if (debugEnabled)
-                    {
-                        dbgTrace.traceInfo(funcName, "Runing PostPeriodic Tasks ...");
-                    }
-
-                    taskMgr.executeTaskType(TrcTaskMgr.TaskType.POSTPERIODIC_TASK, runMode);
-                }
-                idle();
-            }
-        }
-        finally
-        {
-            if (debugEnabled)
-            {
-                dbgTrace.traceInfo(funcName, "Running stopMode ...");
-            }
-            stopMode();
+            loopStartTime = HalUtil.getCurrentTime();
+            opModeElapsedTime = loopStartTime - opModeStartTime;
 
             if (debugEnabled)
             {
-                dbgTrace.traceInfo(funcName, "Running Stop Mode Tasks ...");
+                dbgTrace.traceInfo(funcName, "Runing PreContinuous Tasks ...");
             }
-            taskMgr.executeTaskType(TrcTaskMgr.TaskType.STOP_TASK, runMode);
+            taskMgr.executeTaskType(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK, runMode);
+
+            if (debugEnabled)
+            {
+                dbgTrace.traceInfo(funcName, "Runing runContinuous ...");
+            }
+            runContinuous(opModeElapsedTime);
+
+            if (debugEnabled)
+            {
+                dbgTrace.traceInfo(funcName, "Runing PostContinuous Tasks ...");
+            }
+            taskMgr.executeTaskType(TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK, runMode);
+
+            if (HalUtil.getCurrentTimeMillis() >= nextPeriodTime)
+            {
+                dashboard.displayPrintf(0, "%s: %.3f", opModeName, opModeElapsedTime);
+                nextPeriodTime += LOOP_PERIOD;
+
+                if (debugEnabled)
+                {
+                    dbgTrace.traceInfo(funcName, "Runing PrePeriodic Tasks ...");
+                }
+                taskMgr.executeTaskType(TrcTaskMgr.TaskType.PREPERIODIC_TASK, runMode);
+
+                if (debugEnabled)
+                {
+                    dbgTrace.traceInfo(funcName, "Runing runPeriodic ...");
+                }
+                runPeriodic(opModeElapsedTime);
+
+                if (debugEnabled)
+                {
+                    dbgTrace.traceInfo(funcName, "Runing PostPeriodic Tasks ...");
+                }
+
+                taskMgr.executeTaskType(TrcTaskMgr.TaskType.POSTPERIODIC_TASK, runMode);
+            }
         }
 
+        if (debugEnabled)
+        {
+            dbgTrace.traceInfo(funcName, "Running stopMode ...");
+        }
+        stopMode();
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceInfo(funcName, "Running Stop Mode Tasks ...");
+        }
+        taskMgr.executeTaskType(TrcTaskMgr.TaskType.STOP_TASK, runMode);
     }   //runOpMode
 
     /**

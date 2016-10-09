@@ -52,7 +52,7 @@ public class FtcTeleOpMecanumDrive extends FtcOpMode implements FtcGamepad.Butto
     private boolean fixedOnTarget = false;
 
     //
-    // Implements FtcOpMode abstract method.
+    // Implements FtcOpMode abstract methods.
     //
 
     @Override

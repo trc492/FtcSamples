@@ -43,7 +43,7 @@ public class FtcTestAdaFruitColorSensor extends FtcOpMode
     private FtcAdaFruitColorSensor sensor;
 
     //
-    // Implements FtcOpMode abstract method.
+    // Implements FtcOpMode abstract methods.
     //
 
     @Override

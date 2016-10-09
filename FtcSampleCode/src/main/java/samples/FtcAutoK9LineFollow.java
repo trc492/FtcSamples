@@ -51,7 +51,7 @@ public class FtcAutoK9LineFollow extends FtcOpMode
     private TrcDriveBase driveBase;
 
     //
-    // Implements FtcOpMode abstract method.
+    // Implements FtcOpMode abstract methods.
     //
 
     @Override

@@ -160,7 +160,7 @@ public class FtcTestOpenCv extends FtcOpMode implements CameraBridgeViewBase.CvC
             };
 
     //
-    // Implements FtcOpMode abstract method.
+    // Implements FtcOpMode abstract methods.
     //
 
     @Override

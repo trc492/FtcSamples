@@ -43,7 +43,7 @@ public class FtcTestZXDistanceSensor extends FtcOpMode
     private FtcZXDistanceSensor sensor;
 
     //
-    // Implements FtcOpMode abstract method.
+    // Implements FtcOpMode abstract methods.
     //
 
     @Override

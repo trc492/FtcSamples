@@ -247,7 +247,7 @@ public class FtcAutoK9 extends FtcOpMode implements TrcPidController.PidInput,
     }   //doMenus
 
     //
-    // Implements FtcOpMode abstract method.
+    // Implements FtcOpMode abstract methods.
     //
 
     @Override

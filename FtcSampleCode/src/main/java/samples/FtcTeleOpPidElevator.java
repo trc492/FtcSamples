@@ -44,7 +44,7 @@ public class FtcTeleOpPidElevator extends FtcOpMode implements FtcGamepad.Button
     private Elevator elevator;
 
     //
-    // Implements FtcOpMode abstract method.
+    // Implements FtcOpMode abstract methods.
     //
 
     @Override

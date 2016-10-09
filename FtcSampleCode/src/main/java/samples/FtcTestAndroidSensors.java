@@ -55,7 +55,7 @@ public class FtcTestAndroidSensors extends FtcOpMode
     private FtcAndroidSensor light;
 
     //
-    // Implements FtcOpMode abstract method.
+    // Implements FtcOpMode abstract methods.
     //
 
     @Override

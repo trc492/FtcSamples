@@ -51,7 +51,7 @@ public class FtcTeleOpVariableSpeedServo extends FtcOpMode
     private TrcEnhancedServo arm;
 
     //
-    // Implements FtcOpMode abstract method.
+    // Implements FtcOpMode abstract methods.
     //
 
     @Override

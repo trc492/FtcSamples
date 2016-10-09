@@ -43,7 +43,7 @@ public class FtcTestMRI2cGyro extends FtcOpMode
     private FtcMRI2cGyro gyro;
 
     //
-    // Implements FtcOpMode abstract method.
+    // Implements FtcOpMode abstract methods.
     //
 
     @Override

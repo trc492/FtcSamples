@@ -59,7 +59,7 @@ public class FtcTeleOpK9TankDrive extends FtcOpMode implements FtcGamepad.Button
     private TrcEnhancedServo claw;
 
     //
-    // Implements FtcOpMode abstract method.
+    // Implements FtcOpMode abstract methods.
     //
 
     @Override

@@ -43,7 +43,7 @@ public class FtcTestMRRangeSensor extends FtcOpMode
     private FtcMRRangeSensor rangeSensor;
 
     //
-    // Implements FtcOpMode abstract method.
+    // Implements FtcOpMode abstract methods.
     //
 
     @Override

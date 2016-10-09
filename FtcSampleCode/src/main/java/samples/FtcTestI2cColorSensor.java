@@ -47,7 +47,7 @@ public class FtcTestI2cColorSensor extends FtcOpMode
     private ColorSensor colorSensor;
 
     //
-    // Implements FtcOpMode abstract method.
+    // Implements FtcOpMode abstract methods.
     //
 
     @Override

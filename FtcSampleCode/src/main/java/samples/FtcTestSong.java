@@ -131,7 +131,7 @@ public class FtcTestSong extends FtcOpMode
     private TrcEvent event = null;
 
     //
-    // Implements FtcOpMode abstract method.
+    // Implements FtcOpMode abstract methods.
     //
 
     @Override

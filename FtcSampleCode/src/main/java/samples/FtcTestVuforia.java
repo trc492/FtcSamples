@@ -94,7 +94,7 @@ public class FtcTestVuforia extends FtcOpMode
     private boolean[] targetsFound = null;
 
     //
-    // Implements FtcOpMode abstract method.
+    // Implements FtcOpMode abstract methods.
     //
 
     @Override

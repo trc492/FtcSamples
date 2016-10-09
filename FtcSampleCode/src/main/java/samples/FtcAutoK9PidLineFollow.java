@@ -120,7 +120,7 @@ public class FtcAutoK9PidLineFollow extends FtcOpMode implements TrcPidControlle
     private TrcStateMachine sm;
 
     //
-    // Implements FtcOpMode abstract method.
+    // Implements FtcOpMode abstract methods.
     //
 
     @Override

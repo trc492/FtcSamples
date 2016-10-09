@@ -43,7 +43,7 @@ public class FtcTestAndroidGyro extends FtcOpMode
     private FtcAndroidGyro gyro;
 
     //
-    // Implements FtcOpMode abstract method.
+    // Implements FtcOpMode abstract methods.
     //
 
     @Override
