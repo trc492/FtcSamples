@@ -24,20 +24,15 @@ package samples;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
-import com.qualcomm.robotcore.hardware.IrSeekerSensor;
 
-import ftclib.FtcDcMotor;
 import ftclib.FtcOpMode;
-import hallib.HalDashboard;
-import trclib.TrcDriveBase;
 import trclib.TrcEvent;
-import trclib.TrcPidController;
-import trclib.TrcPidDrive;
+import trclib.TrcRobot;
 import trclib.TrcStateMachine;
 
 @Autonomous(name="Auto: K9Bot PID Seek IR", group="3543AutoSamples")
-//@Disabled
-public class FtcAutoK9PidSeekIr extends FtcOpMode implements TrcPidController.PidInput
+@Disabled
+public class FtcAutoK9PidSeekIr extends FtcOpMode
 {
     //
     // State machine states.
@@ -48,45 +43,7 @@ public class FtcAutoK9PidSeekIr extends FtcOpMode implements TrcPidController.Pi
         DONE
     }
 
-    //
-    // PID drive constants.
-    //
-    private static final double IRDRIVE_KP              = 0.8;
-    private static final double IRDRIVE_KI              = 0.0;
-    private static final double IRDRIVE_KD              = 0.0;
-    private static final double IRDRIVE_KF              = 0.0;
-    private static final double IRDRIVE_TOLERANCE       = 0.1;
-    private static final double IRDRIVE_SETTLING        = 0.2;
-
-    //
-    // PID seek IR constants.
-    //
-    private static final double IRTURN_KP               = 0.1;
-    private static final double IRTURN_KI               = 0.0;
-    private static final double IRTURN_KD               = 0.0;
-    private static final double IRTURN_KF               = 0.0;
-    private static final double IRTURN_TOLERANCE        = 1.0;
-    private static final double IRTURN_SETTLING         = 0.2;
-
-    private HalDashboard dashboard;
-    //
-    // Sensors.
-    //
-    private IrSeekerSensor irSeeker;
-    private double prevIrAngle = 0.0;
-    private double prevIrStrength = 0.0;
-    //
-    // DriveBase subsystem.
-    //
-    private FtcDcMotor motorLeft;
-    private FtcDcMotor motorRight;
-    private TrcDriveBase driveBase;
-    //
-    // PID drive.
-    //
-    private TrcPidController irDrivePidCtrl;
-    private TrcPidController irTurnPidCtrl;
-    private TrcPidDrive seekIrDrive;
+    private K9Robot robot;
     //
     // Event and state machine.
     //
@@ -100,34 +57,7 @@ public class FtcAutoK9PidSeekIr extends FtcOpMode implements TrcPidController.Pi
     @Override
     public void initRobot()
     {
-        hardwareMap.logDevices();
-        dashboard = getDashboard();
-        //
-        // Sensors.
-        //
-        irSeeker = hardwareMap.irSeekerSensor.get("ir_seeker");
-        //
-        // DriveBase subsystem.
-        //
-        motorLeft = new FtcDcMotor("motor_1");
-        motorRight = new FtcDcMotor("motor_2");
-        motorLeft.setInverted(true);
-        driveBase = new TrcDriveBase(motorLeft, motorRight);
-        //
-        // PID drive.
-        //
-        irDrivePidCtrl = new TrcPidController(
-                "irDrivePid",
-                IRDRIVE_KP, IRDRIVE_KI, IRDRIVE_KD, IRDRIVE_KF,
-                IRDRIVE_TOLERANCE, IRDRIVE_SETTLING, this);
-        irDrivePidCtrl.setAbsoluteSetPoint(true);
-        irTurnPidCtrl = new TrcPidController(
-                "irTurnPid",
-                IRTURN_KP, IRTURN_KI, IRTURN_KD, IRTURN_KF,
-                IRTURN_TOLERANCE, IRTURN_SETTLING, this);
-        irTurnPidCtrl.setAbsoluteSetPoint(true);
-        seekIrDrive = new TrcPidDrive(
-                "seekIrDrive", driveBase, null, irDrivePidCtrl, irTurnPidCtrl);
+        robot = new K9Robot(TrcRobot.RunMode.AUTO_MODE);
         //
         // State machine.
         //
@@ -142,8 +72,7 @@ public class FtcAutoK9PidSeekIr extends FtcOpMode implements TrcPidController.Pi
     @Override
     public void startMode()
     {
-        dashboard.clearDisplay();
-        driveBase.resetPosition();
+        robot.startMode(TrcRobot.RunMode.AUTO_MODE);
         //
         // Start state machine at state FIND_LINE.
         //
@@ -151,24 +80,30 @@ public class FtcAutoK9PidSeekIr extends FtcOpMode implements TrcPidController.Pi
     }   //startMode
 
     @Override
+    public void stopMode()
+    {
+        robot.stopMode(TrcRobot.RunMode.AUTO_MODE);
+    }   //stopMode
+
+    @Override
     public void runContinuous(double elapsedTime)
     {
-        irDrivePidCtrl.displayPidInfo(1);
-        irTurnPidCtrl.displayPidInfo(3);
+        robot.irDrivePidCtrl.displayPidInfo(1);
+        robot.irTurnPidCtrl.displayPidInfo(3);
         //
         // Run state machine.
         //
         if (sm.isReady())
         {
             State state = (State)sm.getState();
-            dashboard.displayPrintf(5, "State: %s", state.toString());
+            robot.dashboard.displayPrintf(5, "State: %s", state.toString());
             switch (state)
             {
                 case SEEK_IR:
                     //
                     // Go towards IR beacon until IR strength reaches 0.8.
                     //
-                    seekIrDrive.setTarget(0.8, 0.0, false, event);
+                    robot.pidSeekIr.setTarget(0.8, 0.0, false, event);
                     sm.addEvent(event);
                     sm.waitForEvents(State.DONE);
                     break;
@@ -183,48 +118,5 @@ public class FtcAutoK9PidSeekIr extends FtcOpMode implements TrcPidController.Pi
             }
         }
     }   //runContinuous
-
-    //
-    // Implements TrcPidController.PidInput interface.
-    //
-
-    @Override
-    public double getInput(TrcPidController pidCtrl)
-    {
-        double input = 0.0;
-
-        if (pidCtrl == irDrivePidCtrl)
-        {
-            //
-            // Get the IR strength.
-            //
-            if (irSeeker.signalDetected())
-            {
-                input = irSeeker.getStrength();
-                prevIrStrength = input;
-            }
-            else
-            {
-                input = prevIrStrength;
-            }
-        }
-        else if (pidCtrl == irTurnPidCtrl)
-        {
-            //
-            // Get the IR direction.
-            //
-            if (irSeeker.signalDetected())
-            {
-                input = irSeeker.getAngle();
-                prevIrAngle = input;
-            }
-            else
-            {
-                input = prevIrAngle;
-            }
-        }
-
-        return input;
-    }   //getInput
 
 }   //class FtcAutoK9PidSeekIr

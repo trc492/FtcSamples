@@ -30,7 +30,7 @@ import ftclib.FtcOpMode;
 import hallib.HalDashboard;
 
 @TeleOp(name="TeleOp: PID Elevator", group="3543TeleOpSamples")
-//@Disabled
+@Disabled
 public class FtcTeleOpPidElevator extends FtcOpMode implements FtcGamepad.ButtonHandler
 {
     private HalDashboard dashboard;
@@ -51,7 +51,7 @@ public class FtcTeleOpPidElevator extends FtcOpMode implements FtcGamepad.Button
     public void initRobot()
     {
         hardwareMap.logDevices();
-        dashboard = getDashboard();
+        dashboard = HalDashboard.getInstance();
         //
         // Initializing Gamepad.
         //

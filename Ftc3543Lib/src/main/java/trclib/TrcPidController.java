@@ -22,7 +22,6 @@
 
 package trclib;
 
-import ftclib.FtcOpMode;
 import hallib.HalDashboard;
 import hallib.HalUtil;
 
@@ -80,7 +79,7 @@ public class TrcPidController
                     TrcDbgTrace.MsgLevel.INFO);
         }
 
-        dashboard = FtcOpMode.getDashboard();
+        dashboard = HalDashboard.getInstance();
         this.kP = kP;
         this.kI = kI;
         this.kD = kD;

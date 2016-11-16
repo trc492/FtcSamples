@@ -34,7 +34,7 @@ import trclib.TrcSongPlayer;
 import trclib.TrcStateMachine;
 
 @TeleOp(name="Test: Android Song", group="3543TestSamples")
-//@Disabled
+@Disabled
 public class FtcTestSong extends FtcOpMode
 {
     private static final FtcAndroidTone.Waveform WAVE_FORM = FtcAndroidTone.Waveform.SineWave;
@@ -138,7 +138,7 @@ public class FtcTestSong extends FtcOpMode
     public void initRobot()
     {
         hardwareMap.logDevices();
-        dashboard = getDashboard();
+        dashboard = HalDashboard.getInstance();
 
         androidTone = new FtcAndroidTone("AndroidTone", WAVE_FORM, SAMPLE_RATE);
         androidTone.setSoundEnvelope(ATTACK, DECAY, SUSTAIN, RELEASE);

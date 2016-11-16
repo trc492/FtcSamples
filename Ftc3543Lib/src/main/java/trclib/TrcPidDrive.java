@@ -75,6 +75,22 @@ public class TrcPidDrive implements TrcTaskMgr.Task
         this.manualY = 0.0;
     }   //TrcPidDrive
 
+    public void setPidPower(double xPower, double yPower, double turnPower)
+    {
+        final String funcName = "setPidPower";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(
+                    funcName, TrcDbgTrace.TraceLevel.API, "xPwr=%f,yPwr=%f,turnPwr=%f", xPower, yPower, turnPower);
+        }
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+    }   //setPidPower
+
     public void setTarget(
             double xTarget,
             double yTarget,

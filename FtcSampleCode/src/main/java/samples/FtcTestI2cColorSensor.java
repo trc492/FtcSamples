@@ -37,7 +37,7 @@ import hallib.HalDashboard;
 import trclib.TrcSensor;
 
 @TeleOp(name="Test: I2C Color Sensor", group="3543TestSamples")
-//@Disabled
+@Disabled
 public class FtcTestI2cColorSensor extends FtcOpMode
 {
     private static final int ALTERNATE_I2CADDRESS = 0x40;
@@ -54,7 +54,7 @@ public class FtcTestI2cColorSensor extends FtcOpMode
     public void initRobot()
     {
         hardwareMap.logDevices();
-        dashboard = getDashboard();
+        dashboard = HalDashboard.getInstance();
         FtcRobotControllerActivity activity = (FtcRobotControllerActivity)hardwareMap.appContext;
         dashboard.setTextView((TextView)activity.findViewById(R.id.textOpMode));
 

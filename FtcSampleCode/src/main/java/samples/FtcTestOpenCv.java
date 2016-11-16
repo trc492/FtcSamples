@@ -58,11 +58,11 @@ import trclib.TrcDbgTrace;
  * This class implements an OpenCV view for Face Detection.
  */
 @TeleOp(name="Test: OpenCV Face Detection", group="3543TestSamples")
-//@Disabled
+@Disabled
 public class FtcTestOpenCv extends FtcOpMode implements CameraBridgeViewBase.CvCameraViewListener2
 {
     private static final String moduleName = "FtcTestOpenCv";
-    private TrcDbgTrace tracer = FtcOpMode.getOpModeTracer();
+    private TrcDbgTrace tracer = FtcOpMode.getGlobalTracer();
     private static final boolean perfCheckEnabled = true;
     private static final boolean cameraEnabled = true;
     private static final Scalar FACE_RECT_COLOR = new Scalar(0, 255, 0, 255);
@@ -167,7 +167,7 @@ public class FtcTestOpenCv extends FtcOpMode implements CameraBridgeViewBase.CvC
     public void initRobot()
     {
         hardwareMap.logDevices();
-        dashboard = getDashboard();
+        dashboard = HalDashboard.getInstance();
         this.activity = (FtcRobotControllerActivity)hardwareMap.appContext;
 //        cameraPreview = (GLSurfaceView)activity.findViewById(R.id.CameraPreview);
 //        overlayView = (ImageView)activity.findViewById(R.id.OverlayView);

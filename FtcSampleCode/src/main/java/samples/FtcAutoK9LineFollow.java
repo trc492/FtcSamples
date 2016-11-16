@@ -22,33 +22,18 @@
 
 package samples;
 
-import android.widget.TextView;
-
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
-import com.qualcomm.robotcore.hardware.LightSensor;
 
-import org.firstinspires.ftc.robotcontroller.internal.FtcRobotControllerActivity;
-
-import FtcSampleCode.R;
-import ftclib.FtcDcMotor;
 import ftclib.FtcOpMode;
-import hallib.HalDashboard;
-import trclib.TrcDriveBase;
+import trclib.TrcRobot;
 
 @Autonomous(name="Auto: K9Bot Line Following", group="3543AutoSamples")
-//@Disabled
+@Disabled
 public class FtcAutoK9LineFollow extends FtcOpMode
 {
-    private static final double MOTOR_POWER     = 0.15;
-    private static final double LIGHT_THRESHOLD = 0.5;
-
-    private HalDashboard dashboard;
-    private LightSensor reflectedLight;
-
-    private FtcDcMotor motorLeft;
-    private FtcDcMotor motorRight;
-    private TrcDriveBase driveBase;
+    private static final double MOTOR_POWER = 0.15;
+    private K9Robot robot;
 
     //
     // Implements FtcOpMode abstract methods.
@@ -57,21 +42,7 @@ public class FtcAutoK9LineFollow extends FtcOpMode
     @Override
     public void initRobot()
     {
-        hardwareMap.logDevices();
-        dashboard = getDashboard();
-        FtcRobotControllerActivity activity = (FtcRobotControllerActivity)hardwareMap.appContext;
-        dashboard.setTextView((TextView)activity.findViewById(R.id.textOpMode));
-        //
-        // Sensors.
-        //
-        reflectedLight = hardwareMap.lightSensor.get("light_sensor");
-        //
-        // DriveBase subsystem.
-        //
-        motorLeft = new FtcDcMotor("motor_1");
-        motorRight = new FtcDcMotor("motor_2");
-        motorLeft.setInverted(true);
-        driveBase = new TrcDriveBase(motorLeft, motorRight);
+        robot = new K9Robot(TrcRobot.RunMode.AUTO_MODE);
     }   //initRobot
 
     //
@@ -81,15 +52,13 @@ public class FtcAutoK9LineFollow extends FtcOpMode
     @Override
     public void startMode()
     {
-        dashboard.clearDisplay();
-        reflectedLight.enableLed(true);
-        driveBase.resetPosition();
+        robot.startMode(TrcRobot.RunMode.AUTO_MODE);
     }   //startMode
 
     @Override
     public void stopMode()
     {
-        reflectedLight.enableLed(false);
+        robot.stopMode(TrcRobot.RunMode.AUTO_MODE);
     }   //stopMode
 
     @Override
@@ -98,11 +67,11 @@ public class FtcAutoK9LineFollow extends FtcOpMode
         final int LABEL_WIDTH = 200;
         double left = 0.0;
         double right = 0.0;
-        double reflection = reflectedLight.getLightDetected();
+        double lightValue = (Double)robot.lightSensor.getData(0).value;
         //
         // Following the left edge of a white line.
         //
-        if (reflection < LIGHT_THRESHOLD)
+        if (lightValue < K9Robot.LIGHT_THRESHOLD)
         {
             //
             // We see the floor, turn right back to the line edge.
@@ -118,12 +87,12 @@ public class FtcAutoK9LineFollow extends FtcOpMode
             left = 0.0;
             right = MOTOR_POWER;
         }
-        driveBase.tankDrive(left, right);
+        robot.driveBase.tankDrive(left, right);
 
-        dashboard.displayPrintf(1, LABEL_WIDTH, "Text: ", "*** Robot Data ***");
-        dashboard.displayPrintf(2, LABEL_WIDTH, "reflection: ", "%.2f", reflection);
-        dashboard.displayPrintf(3, LABEL_WIDTH, "left power: ", "%.2f", left);
-        dashboard.displayPrintf(4, LABEL_WIDTH, "right power: ", "%.2f", right);
+        robot.dashboard.displayPrintf(1, LABEL_WIDTH, "Text: ", "*** Robot Data ***");
+        robot.dashboard.displayPrintf(2, LABEL_WIDTH, "light: ", "%.2f", lightValue);
+        robot.dashboard.displayPrintf(3, LABEL_WIDTH, "left power: ", "%.2f", left);
+        robot.dashboard.displayPrintf(4, LABEL_WIDTH, "right power: ", "%.2f", right);
     }   //runContinuous
 
 }   //class FtcAutoK9LineFollow

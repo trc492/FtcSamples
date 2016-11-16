@@ -40,9 +40,9 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
     private static final boolean debugEnabled = false;
     private TrcDbgTrace dbgTrace = null;
 
-    private static TrcDbgTrace opModeTracer = null;
-    private static HalDashboard dashboard = null;
+    private static TrcDbgTrace globalTracer = null;
     private static String opModeName = null;
+    private HalDashboard dashboard = null;
 
     /**
      * This method is called to initialize the robot. In FTC, this is called when the
@@ -96,30 +96,20 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
      *
      * @return global opMode trace object.
      */
-    public static TrcDbgTrace getOpModeTracer()
+    public static TrcDbgTrace getGlobalTracer()
     {
-        if (opModeTracer == null)
+        if (globalTracer == null)
         {
-            opModeTracer = new TrcDbgTrace(
-                    opModeName != null? opModeName: "OpModeTracer",
+            globalTracer = new TrcDbgTrace(
+                    opModeName != null? opModeName: "globalTracer",
                     false, TrcDbgTrace.TraceLevel.API, TrcDbgTrace.MsgLevel.INFO);
         }
 
-        return opModeTracer;
-    }   //getOpModeTracer
+        return globalTracer;
+    }   //getGlobalTracer
 
     /**
-     * This method returns a global dashboard object for accessing the dashboard on the Driver Station.
-     *
-     * @return dashboard object.
-     */
-    public static HalDashboard getDashboard()
-    {
-        return dashboard;
-    }   //getDashboard
-
-    /**
-     * This method sets the OpMode trace configuration. The OpMode trace object was
+     * This method sets the global tracer configuration. The OpMode trace object was
      * created with default configuration of disabled method tracing, method tracing
      * level is set to API and message trace level set to INFO. Call this method if
      * you want to change the configuration.
@@ -128,11 +118,11 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
      * @param traceLevel specifies the method tracing level.
      * @param msgLevel specifies the message tracing level.
      */
-    public static void setOpModeTracerConfig(
+    public static void setGlobalTracerConfig(
             boolean traceEnabled, TrcDbgTrace.TraceLevel traceLevel, TrcDbgTrace.MsgLevel msgLevel)
     {
-        opModeTracer.setDbgTraceConfig(traceEnabled, traceLevel, msgLevel);
-    }   //setOpModeTracerConfig
+        globalTracer.setDbgTraceConfig(traceEnabled, traceLevel, msgLevel);
+    }   //setGlobalTracerConfig
 
     /**
      * This method returns the name of the active OpMode.
@@ -182,7 +172,7 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
     {
         final String funcName = "runOpMode";
         TrcTaskMgr taskMgr = TrcTaskMgr.getInstance();
-        dashboard = new HalDashboard(telemetry);
+        dashboard = HalDashboard.createInstance(telemetry);
 
         if (debugEnabled)
         {

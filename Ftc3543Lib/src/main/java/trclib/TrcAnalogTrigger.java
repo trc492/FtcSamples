@@ -43,6 +43,15 @@ public class TrcAnalogTrigger implements TrcTaskMgr.Task
     private int zone = -1;
     private double value = 0.0;
 
+    /**
+     * Contructor: Create an instance of the object.
+     *
+     * @param instanceName specifies the instance name.
+     * @param sensor specifies the sensor that is used to detect the trigger.
+     * @param dataIndex specifies the data index of the sensor to read the sensor value.
+     * @param triggerPoints specifies the data value trigger points array.
+     * @param triggerHandler specifies the object to handle the trigger event.
+     */
     public TrcAnalogTrigger(
             final String instanceName,
             TrcSensorDataSource sensor,

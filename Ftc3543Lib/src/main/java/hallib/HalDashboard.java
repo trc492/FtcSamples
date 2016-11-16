@@ -51,9 +51,25 @@ public class HalDashboard
     public static final int MAX_NUM_TEXTLINES = 16;
 
     private static final String displayKeyFormat = "%02d";
+    private static HalDashboard instance = null;
     private Telemetry telemetry = null;
     private Paint paint = null;
     private Telemetry.Item[] display = new Telemetry.Item[MAX_NUM_TEXTLINES];
+
+    public static HalDashboard createInstance(Telemetry telemetry)
+    {
+        if (instance == null)
+        {
+            instance = new HalDashboard(telemetry);
+        }
+
+        return instance;
+    }   //createInstance
+
+    public static HalDashboard getInstance()
+    {
+        return instance;
+    }   //getInstance
 
     /**
      * Constructor: Creates an instance of the object.
@@ -64,7 +80,7 @@ public class HalDashboard
      *
      * @param telemetry specifies the Telemetry object.
      */
-    public HalDashboard(Telemetry telemetry)
+    private HalDashboard(Telemetry telemetry)
     {
         if (debugEnabled)
         {

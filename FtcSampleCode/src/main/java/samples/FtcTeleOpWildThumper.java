@@ -49,13 +49,14 @@ import ftclib.FtcVuforia;
 import hallib.HalDashboard;
 import trclib.TrcBooleanState;
 import trclib.TrcDriveBase;
+import trclib.TrcEvent;
 import trclib.TrcPidController;
 import trclib.TrcPidDrive;
 import trclib.TrcSong;
 import trclib.TrcSongPlayer;
 
 @TeleOp(name="TeleOp: Wild Thumper", group="3543TeleOpSamples")
-//@Disabled
+@Disabled
 public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.ButtonHandler, TrcPidController.PidInput
 {
     private static final double ATTACK = 0.0;           // in seconds
@@ -72,6 +73,7 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.Button
     private static final boolean LEFTWHEEL_INVERTED = false;
     private static final boolean RIGHTWHEEL_INVERTED = true;
     private static final boolean BRAKE_MODE_ON = true;
+
     public static final double VISIONDRIVE_KP           = 0.03;
     public static final double VISIONDRIVE_KI           = 0.0;
     public static final double VISIONDRIVE_KD           = 0.0;
@@ -79,12 +81,19 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.Button
     public static final double VISIONDRIVE_TOLERANCE    = 2.0;
     public static final double VISIONDRIVE_SETTLING     = 0.2;
 
-    public static final double VISIONTURN_KP            = 0.05;
-    public static final double VISIONTURN_KI            = 0.0;
-    public static final double VISIONTURN_KD            = 0.0;
-    public static final double VISIONTURN_KF            = 0.0;
-    public static final double VISIONTURN_TOLERANCE     = 2.0;
-    public static final double VISIONTURN_SETTLING      = 0.2;
+    public static final double GYROTURN_KP              = 0.05;
+    public static final double GYROTURN_KI              = 0.0;
+    public static final double GYROTURN_KD              = 0.0;
+    public static final double GYROTURN_KF              = 0.0;
+    public static final double GYROTURN_TOLERANCE       = 2.0;
+    public static final double GYROTURN_SETTLING        = 0.2;
+
+//    public static final double VISIONTURN_KP            = 0.1;
+//    public static final double VISIONTURN_KI            = 0.0;
+//    public static final double VISIONTURN_KD            = 0.0;
+//    public static final double VISIONTURN_KF            = 0.0;
+//    public static final double VISIONTURN_TOLERANCE     = 2.0;
+//    public static final double VISIONTURN_SETTLING      = 0.2;
 
     private final float MM_PER_INCH = 25.4f;
     private final float ROBOT_WIDTH = 18*MM_PER_INCH;               // in mm
@@ -96,9 +105,9 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.Button
     //
     private final String VUFORIA_LICENSE_KEY =
             "AdCwzDH/////AAAAGeDkDS3ukU9+lIXc19LMh+cKk29caNhOl8UqmZOymRGwVwT1ZN8uaPdE3Q+zceDu9AKNsqL9qLblSFV" +
-                    "/x8Y3jfOZdjMFs0CQSQOEyWv3xfJsdSmevXDQDQr+4KI31HY2YSf/KB/kyxfuRMk4Pi+vWS+oLl65o7sWPiyFgzoM74ENyb" +
-                    "j4FgteD/2b6B+UFuwkHWKBNpp18wrpkaiFfr/FCbRFcdWP5mrjlEZM6eOj171dybw97HPeZbGihnnxOeeUv075O7P167AVq" +
-                    "aiPy2eRK7OCubR32KXOqQKoyF6AXp+qu2cOTApXS5dqOOseEm+HE4eMF0S2Pld3i5AWBIR+JlPXDuc9LwoH2Q8iDwUK1+4g";
+            "/x8Y3jfOZdjMFs0CQSQOEyWv3xfJsdSmevXDQDQr+4KI31HY2YSf/KB/kyxfuRMk4Pi+vWS+oLl65o7sWPiyFgzoM74ENyb" +
+            "j4FgteD/2b6B+UFuwkHWKBNpp18wrpkaiFfr/FCbRFcdWP5mrjlEZM6eOj171dybw97HPeZbGihnnxOeeUv075O7P167AVq" +
+            "aiPy2eRK7OCubR32KXOqQKoyF6AXp+qu2cOTApXS5dqOOseEm+HE4eMF0S2Pld3i5AWBIR+JlPXDuc9LwoH2Q8iDwUK1+4g";
     private final int CAMERAVIEW_ID = R.id.cameraMonitorViewId;
     private final VuforiaLocalizer.CameraDirection CAMERA_DIR = VuforiaLocalizer.CameraDirection.BACK;
     private final String TRACKABLES_FILE = "FTC_2016-17";
@@ -142,11 +151,13 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.Button
     private TrcBooleanState analogToneToggle = new TrcBooleanState("AnalogToneToggle", false);
     // Vision targeting.
     private FtcVuforia vuforia;
-    private OpenGLMatrix lastKnownRobotLocation = null;
-    private int targetIndex = 0;
-    private float lastTargetX = 0.0f;
-    private float lastTargetZ = 0.0f;
     private boolean visionEnabled = false;
+    private int targetIndex = 0;
+    private double targetHeading = 0.0;
+    private double targetDistance = 0.0;
+    private TrcEvent visionEvent = new TrcEvent("Vision", true);
+    private TrcBooleanState followTargetToggle = new TrcBooleanState("FollowTarget", false);
+    private OpenGLMatrix lastKnownRobotLocation = null;
     // Text To Speech.
     private TextToSpeech textToSpeech = null;
     private boolean[] targetsFound = null;
@@ -159,9 +170,9 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.Button
     private FtcDcMotor rrMotor;
     private TrcDriveBase driveBase;
     private TrcPidController visionDrivePidCtrl;
-    private TrcPidController visionTurnPidCtrl;
+    private TrcPidController gyroTurnPidCtrl;
+//    private TrcPidController visionTurnPidCtrl;
     private TrcPidDrive visionPidDrive;
-    private TrcBooleanState followTargetToggle = new TrcBooleanState("FollowTarget", false);
 
     //
     // Implements FtcOpMode abstract methods.
@@ -171,7 +182,7 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.Button
     public void initRobot()
     {
         hardwareMap.logDevices();
-        dashboard = getDashboard();
+        dashboard = HalDashboard.getInstance();
         FtcRobotControllerActivity activity = (FtcRobotControllerActivity)hardwareMap.appContext;
         dashboard.setTextView((TextView)activity.findViewById(R.id.textOpMode));
         //
@@ -296,14 +307,14 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.Button
                     VISIONDRIVE_KD, VISIONDRIVE_KF,
                     VISIONDRIVE_TOLERANCE, VISIONDRIVE_SETTLING,
                     this);
-            visionTurnPidCtrl = new TrcPidController(
-                    "visionTurnPidCtrl",
-                    VISIONTURN_KP, VISIONTURN_KI,
-                    VISIONTURN_KD, VISIONTURN_KF,
-                    VISIONTURN_TOLERANCE, VISIONTURN_SETTLING,
+            gyroTurnPidCtrl = new TrcPidController(
+                    "gyroTurnPidCtrl",
+                    GYROTURN_KP, GYROTURN_KI,
+                    GYROTURN_KD, GYROTURN_KF,
+                    GYROTURN_TOLERANCE, GYROTURN_SETTLING,
                     this);
             visionPidDrive = new TrcPidDrive(
-                    "visionPidDrive", driveBase, null, visionDrivePidCtrl, visionTurnPidCtrl);
+                    "visionPidDrive", driveBase, null, visionDrivePidCtrl, gyroTurnPidCtrl);
         }
     }   //initRobot
 
@@ -406,9 +417,12 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.Button
         dashboard.displayPrintf(3, LABEL_WIDTH, "SoundEnvelope = ", "%s", envelopeToggle.getState()? "ON": "OFF");
         dashboard.displayPrintf(4, LABEL_WIDTH, "ToneDevice = ", "%s",
                                 analogToneToggle.getState()? "AnalogOut": "Android");
+        dashboard.displayPrintf(5, LABEL_WIDTH, "Vision = ", "%s (%d)", visionEnabled, targetIndex);
 
         if (isVisionEnabled())
         {
+            boolean followTarget = followTargetToggle.getState();
+
             for (int i = 0; i < targets.length; i++)
             {
                 VuforiaTrackable target = vuforia.getTarget(i);
@@ -425,22 +439,39 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.Button
                     }
                 }
 
-                String label = String.format(i == targetIndex ? "<%s> = " : "%s = ", target.getName());
-                OpenGLMatrix pose = vuforia.getTargetPose(target);
-                if (pose != null)
+                if (visible)
                 {
-                    VectorF translation = pose.getTranslation();
-                    dashboard.displayPrintf(
-                            i + 5, LABEL_WIDTH, label, "%6.2f,%6.2f,%6.2f",
-                            translation.get(0) / MM_PER_INCH,
-                            translation.get(1) / MM_PER_INCH,
-                            -translation.get(2) / MM_PER_INCH);
-                }
+                    String label = String.format(i == targetIndex ? "<%s> = " : "%s = ", target.getName());
+                    OpenGLMatrix pose = vuforia.getTargetPose(target);
+                    if (pose != null)
+                    {
+                        VectorF translation = pose.getTranslation();
+                        float targetX = translation.get(0) / MM_PER_INCH;
+                        float targetY = translation.get(1) / MM_PER_INCH;
+                        float targetZ = -translation.get(2) / MM_PER_INCH;
 
-                OpenGLMatrix robotLocation = vuforia.getRobotLocation(target);
-                if (robotLocation != null)
-                {
-                    lastKnownRobotLocation = robotLocation;
+                        dashboard.displayPrintf(
+                                i + 5, LABEL_WIDTH, label, "%6.2f,%6.2f,%6.2f", targetX, targetY, targetZ);
+
+                        if (followTarget && i == targetIndex)
+                        {
+//                            targetDistance = targetZ;
+                            targetDistance = 24.0;
+                            // TODO: doesn't work! Event won't fire until distance is satisfied.
+                            if (visionEvent.isSignaled())
+                            {
+                                targetHeading = Math.toDegrees(Math.atan2(targetX, targetZ));
+                                visionEvent.set(false);
+                                visionPidDrive.setTarget(24.0, targetHeading, false, visionEvent);
+                            }
+                        }
+                    }
+
+                    OpenGLMatrix robotLocation = vuforia.getRobotLocation(target);
+                    if (robotLocation != null)
+                    {
+                        lastKnownRobotLocation = robotLocation;
+                    }
                 }
             }
 
@@ -491,16 +522,17 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.Button
                     break;
 
                 case FtcGamepad.GAMEPAD_A:
-                    if (pressed && isVisionEnabled())
+                    if (pressed && vuforia != null)
                     {
                         followTargetToggle.toggleState();
                         if (followTargetToggle.getState())
                         {
-                            visionPidDrive.setTarget(24.0, 0.0, true, null);
+                            setVisionEnabled(true);
                         }
-                        else
+                        else if (visionPidDrive.isEnabled())
                         {
                             visionPidDrive.cancel();
+                            setVisionEnabled(false);
                         }
                     }
                     break;
@@ -643,25 +675,13 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.Button
     {
         double input = 0.0;
 
-        if (vuforia != null)
+        if (pidCtrl == visionDrivePidCtrl)
         {
-            VuforiaTrackable target = vuforia.getTarget(targetIndex);
-            OpenGLMatrix pose = vuforia.getTargetPose(target);
-            if (pose != null)
-            {
-                VectorF translation = pose.getTranslation();
-                lastTargetX = translation.get(0)/MM_PER_INCH;
-                lastTargetZ = -translation.get(2)/MM_PER_INCH;
-            }
-
-            if (pidCtrl == visionDrivePidCtrl)
-            {
-                input = lastTargetZ;
-            }
-            else if (pidCtrl == visionTurnPidCtrl)
-            {
-                input = Math.toDegrees(Math.atan2(lastTargetX, lastTargetZ));
-            }
+            input = targetDistance;
+        }
+        else if (pidCtrl == gyroTurnPidCtrl)
+        {
+            input = driveBase.getHeading();
         }
 
         return input;

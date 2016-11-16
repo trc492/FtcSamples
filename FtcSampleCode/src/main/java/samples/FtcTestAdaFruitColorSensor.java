@@ -36,21 +36,21 @@ import hallib.HalDashboard;
 import trclib.TrcSensor;
 
 @TeleOp(name="Test: AdaFruit Color Sensor", group="3543TestSamples")
-//@Disabled
+@Disabled
 public class FtcTestAdaFruitColorSensor extends FtcOpMode
 {
     private HalDashboard dashboard;
     private FtcAdaFruitColorSensor sensor;
 
     //
-    // Implements FtcOpMode abstract methods.
+    // Implements FtcOpMode abstract method.
     //
 
     @Override
     public void initRobot()
     {
         hardwareMap.logDevices();
-        dashboard = getDashboard();
+        dashboard = HalDashboard.getInstance();
         FtcRobotControllerActivity activity = (FtcRobotControllerActivity)hardwareMap.appContext;
         dashboard.setTextView((TextView)activity.findViewById(R.id.textOpMode));
         sensor = new FtcAdaFruitColorSensor("adaFruitColorSensor");

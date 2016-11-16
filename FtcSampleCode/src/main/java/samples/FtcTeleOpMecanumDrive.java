@@ -38,7 +38,7 @@ import hallib.HalDashboard;
 import trclib.TrcDriveBase;
 
 @TeleOp(name="TeleOp: Mecanum Drive", group="3543TeleOpSamples")
-//@Disabled
+@Disabled
 public class FtcTeleOpMecanumDrive extends FtcOpMode implements FtcGamepad.ButtonHandler
 {
     private HalDashboard dashboard;
@@ -59,7 +59,7 @@ public class FtcTeleOpMecanumDrive extends FtcOpMode implements FtcGamepad.Butto
     public void initRobot()
     {
         hardwareMap.logDevices();
-        dashboard = getDashboard();
+        dashboard = HalDashboard.getInstance();
         FtcRobotControllerActivity activity = (FtcRobotControllerActivity)hardwareMap.appContext;
         dashboard.setTextView((TextView)activity.findViewById(R.id.textOpMode));
         //

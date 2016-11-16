@@ -155,7 +155,7 @@ public abstract class FtcMenu
             throw new NullPointerException("menuTitle/menuButtons cannot be null.");
         }
 
-        dashboard = FtcOpMode.getDashboard();
+        dashboard = HalDashboard.getInstance();
         this.menuTitle = menuTitle;
         this.parent = parent;
         this.menuButtons = menuButtons;
@@ -224,6 +224,7 @@ public abstract class FtcMenu
     public static void walkMenuTree(FtcMenu rootMenu)
     {
         setRootMenu(rootMenu);
+        rootMenu.displayMenu();
         while (!runMenus())
         {
             HalUtil.sleep(LOOP_INTERVAL);
@@ -251,10 +252,6 @@ public abstract class FtcMenu
             int currButtonStates = currMenu.getMenuButtons();
             int changedButtons = currButtonStates ^ prevButtonStates;
             //
-            // Refresh the display to update the menu state.
-            //
-            currMenu.displayMenu();
-            //
             // Check if any menu buttons changed states.
             //
             if (changedButtons != 0)
@@ -279,13 +276,6 @@ public abstract class FtcMenu
                     // MenuEnter is pressed, goto the child menu. If there is none, we are done.
                     //
                     currMenu = currMenu.getChildMenu();
-                    if (currMenu == null)
-                    {
-                        //
-                        // We are done with the menus. Let's clear the dashboard.
-                        //
-                        FtcOpMode.getDashboard().clearDisplay();
-                    }
                 }
                 else if ((buttonsPressed & MENUBUTTON_UP) != 0)
                 {
@@ -295,7 +285,20 @@ public abstract class FtcMenu
                 {
                     currMenu.menuDown();
                 }
-
+                //
+                // Refresh the display to update the menu state.
+                //
+                if (currMenu != null)
+                {
+                    currMenu.displayMenu();
+                }
+                else
+                {
+                    //
+                    // We are done with the menus. Let's clear the dashboard.
+                    //
+                    HalDashboard.getInstance().clearDisplay();
+                }
                 prevButtonStates = currButtonStates;
             }
         }

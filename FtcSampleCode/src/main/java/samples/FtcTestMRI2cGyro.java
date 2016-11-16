@@ -36,7 +36,7 @@ import hallib.HalDashboard;
 import trclib.TrcSensor;
 
 @TeleOp(name="Test: Modern Robotics I2C Gyro", group="3543TestSamples")
-//@Disabled
+@Disabled
 public class FtcTestMRI2cGyro extends FtcOpMode
 {
     private HalDashboard dashboard;
@@ -51,7 +51,7 @@ public class FtcTestMRI2cGyro extends FtcOpMode
 
     {
         hardwareMap.logDevices();
-        dashboard = getDashboard();
+        dashboard = HalDashboard.getInstance();
         FtcRobotControllerActivity activity = (FtcRobotControllerActivity)hardwareMap.appContext;
         dashboard.setTextView((TextView)activity.findViewById(R.id.textOpMode));
         gyro = new FtcMRI2cGyro("mrGyro");

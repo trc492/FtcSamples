@@ -26,8 +26,11 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import hallib.HalMotorController;
+import hallib.HalUtil;
 import trclib.TrcDigitalInput;
 import trclib.TrcDbgTrace;
+import trclib.TrcRobot;
+import trclib.TrcTaskMgr;
 
 /**
  * This class implements the Modern Robotics Motor Controller extending
@@ -38,7 +41,7 @@ import trclib.TrcDbgTrace;
  * It also provides a software encoder reset without switching the Modern
  * Robotics motor controller mode which is problematic.
  */
-public class FtcDcMotor implements HalMotorController
+public class FtcDcMotor implements HalMotorController, TrcTaskMgr.Task
 {
     private static final String moduleName = "FtcDcMotor";
     private static final boolean debugEnabled = false;
@@ -50,6 +53,10 @@ public class FtcDcMotor implements HalMotorController
     private DcMotor motor;
     private int zeroEncoderValue;
     private int positionSensorSign = 1;
+    private boolean speedTaskEnabled = false;
+    private double speed = 0.0;
+    private double prevTime = 0.0;
+    private double prevPos = 0.0;
 
     /**
      * Constructor: Create an instance of the object.
@@ -179,6 +186,50 @@ public class FtcDcMotor implements HalMotorController
     }   //getPosition
 
     /**
+     * This method enables/disables the task that monitors the motor speed. To determine the motor speed,
+     * the task runs periodically and determines the delta encoder reading over delta time to calculate
+     * the speed. Since the task takes up CPU cycle, it should not be enabled if the user doesn't need
+     * motor speed info.
+     *
+     * @param enabled specifies true to enable speed monitor task, disable otherwise.
+     */
+    public void setSpeedTaskEnabled(boolean enabled)
+    {
+        final String funcName = "setSpeedTaskEnabled";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "enabled=%s", Boolean.toString(enabled));
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+
+        speedTaskEnabled = enabled;
+        TrcTaskMgr taskMgr = TrcTaskMgr.getInstance();
+        if (enabled)
+        {
+            prevTime = HalUtil.getCurrentTime();
+            prevPos = getPosition();
+            taskMgr.registerTask(
+                    instanceName,
+                    this,
+                    TrcTaskMgr.TaskType.STOP_TASK);
+            taskMgr.registerTask(
+                    instanceName,
+                    this,
+                    TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+        }
+        else
+        {
+            taskMgr.unregisterTask(
+                    this,
+                    TrcTaskMgr.TaskType.STOP_TASK);
+            taskMgr.unregisterTask(
+                    this,
+                    TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
+        }
+    }   //setSpeedEnabled
+
+    /**
      * This method returns the speed of the motor rotation which is not
      * supported by the Modern Robotics motor controller.
      *
@@ -192,11 +243,17 @@ public class FtcDcMotor implements HalMotorController
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=0.0");
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%.3f", speed);
         }
 
-        throw new UnsupportedOperationException(
-                "Modern Robotics motor controllers do not have this support.");
+        if (speedTaskEnabled)
+        {
+            return speed;
+        }
+        else
+        {
+            throw new UnsupportedOperationException("SpeedTask is not enabled.");
+        }
     }   //getSpeed
 
     /**
@@ -360,5 +417,85 @@ public class FtcDcMotor implements HalMotorController
 
         positionSensorSign = inverted? -1: 1;
     }   //setPositionSensorInverted
+
+    //
+    // Implements TrcTaskMgr.Task
+    //
+
+    @Override
+    public void startTask(TrcRobot.RunMode runMode)
+    {
+    }   //startTask
+
+    @Override
+    public void stopTask(TrcRobot.RunMode runMode)
+    {
+        final String funcName = "stopTask";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(
+                    funcName, TrcDbgTrace.TraceLevel.TASK,
+                    "mode=%s", runMode.toString());
+        }
+
+        setSpeedTaskEnabled(false);
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
+        }
+    }   //stopTask
+
+    @Override
+    public void prePeriodicTask(TrcRobot.RunMode runMode)
+    {
+    }   //prePeriodicTask
+
+    @Override
+    public void postPeriodicTask(TrcRobot.RunMode runMode)
+    {
+    }   //postPeriodicTask
+
+    /**
+     * This task is run periodically o calculate he speed of the motor.
+     *
+     * @param runMode specifies the competition mode that is running.
+     */
+    @Override
+    public void preContinuousTask(TrcRobot.RunMode runMode)
+    {
+        final String funcName = "preContinuousTask";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(
+                    funcName, TrcDbgTrace.TraceLevel.TASK,
+                    "mode=%s", runMode.toString());
+        }
+
+        double currTime = HalUtil.getCurrentTime();
+        double currPos = getPosition();
+
+        if (currTime - prevTime >= 0.05)
+        {
+            if (prevTime != 0.0)
+            {
+                speed = (currPos - prevPos) / (currTime - prevTime);
+            }
+            prevTime = currTime;
+            prevPos = currPos;
+        }
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
+        }
+    }   //preContinuousTask
+
+    @Override
+    public void postContinuousTask(TrcRobot.RunMode runMode)
+    {
+    }   //postContinuousTask
 
 }   //class FtcDcMotor

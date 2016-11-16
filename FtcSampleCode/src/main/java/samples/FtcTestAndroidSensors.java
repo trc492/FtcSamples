@@ -40,7 +40,7 @@ import ftclib.FtcOpMode;
 import hallib.HalDashboard;
 
 @TeleOp(name="Test: Android Sensors", group="3543TestSamples")
-//@Disabled
+@Disabled
 public class FtcTestAndroidSensors extends FtcOpMode
 {
     private HalDashboard dashboard;
@@ -62,7 +62,7 @@ public class FtcTestAndroidSensors extends FtcOpMode
     public void initRobot()
     {
         hardwareMap.logDevices();
-        dashboard = getDashboard();
+        dashboard = HalDashboard.getInstance();
         FtcRobotControllerActivity activity = (FtcRobotControllerActivity)hardwareMap.appContext;
         dashboard.setTextView((TextView)activity.findViewById(R.id.textOpMode));
         //
