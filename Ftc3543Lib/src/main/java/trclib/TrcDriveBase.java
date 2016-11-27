@@ -25,6 +25,7 @@ package trclib;
 import hallib.HalGyro;
 import hallib.HalMotorController;
 import hallib.HalRobotDrive;
+import hallib.HalUtil;
 
 public class TrcDriveBase extends HalRobotDrive implements TrcTaskMgr.Task
 {
@@ -39,6 +40,12 @@ public class TrcDriveBase extends HalRobotDrive implements TrcTaskMgr.Task
     private HalMotorController rightMidMotor;
     private HalMotorController rightRearMotor;
     private HalGyro gyro;
+
+    private double prevLeftFrontPos = 0.0;
+    private double prevLeftRearPos = 0.0;
+    private double prevRightFrontPos = 0.0;
+    private double prevRightRearPos = 0.0;
+    private double stallStartTime = 0.0;
 
     private int numMotors = 0;
     private double xPos;
@@ -375,6 +382,20 @@ public class TrcDriveBase extends HalRobotDrive implements TrcTaskMgr.Task
         return turnSpeed;
     }   //getTurnSpeed
 
+    public boolean isStalled(double stallTime)
+    {
+        final String funcName = "isStalled";
+        boolean stalled = HalUtil.getCurrentTime() - stallStartTime > stallTime;
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "stallTime=%.3f", stallTime);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", Boolean.toString(stalled));
+        }
+
+        return stalled;
+    }   //isStalled
+
     public void setBrakeMode(boolean enabled)
     {
         final String funcName = "setBrakeMode";
@@ -619,6 +640,18 @@ public class TrcDriveBase extends HalRobotDrive implements TrcTaskMgr.Task
             heading = (Double)gyro.getZHeading().value;
             turnSpeed = (Double)gyro.getZRotationRate().value;
         }
+
+        if (lfEnc != prevLeftFrontPos || rfEnc != prevRightFrontPos ||
+            lrEnc != prevLeftRearPos || rrEnc != prevRightRearPos ||
+            leftFrontMotor.getPower() == 0.0 && rightFrontMotor.getPower() == 0.0 &&
+            leftRearMotor.getPower() == 0.0 && rightRearMotor.getPower() == 0.0)
+        {
+            stallStartTime = HalUtil.getCurrentTime();
+        }
+        prevLeftFrontPos = lfEnc;
+        prevRightFrontPos = rfEnc;
+        prevLeftRearPos = lrEnc;
+        prevRightRearPos = rrEnc;
 
         if (debugEnabled)
         {

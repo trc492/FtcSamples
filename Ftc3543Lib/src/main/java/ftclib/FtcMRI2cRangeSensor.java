@@ -33,9 +33,9 @@ import trclib.TrcUtil;
  * This class implements the Modern Robotics Range Sensor extending FtcMRI2cDevice that implements
  * the common features of all Modern Robotics I2C devices.
  */
-public class FtcMRRangeSensor extends FtcMRI2cDevice implements TrcSensorDataSource
+public class FtcMRI2cRangeSensor extends FtcMRI2cDevice implements TrcSensorDataSource
 {
-    private static final String moduleName = "FtcMRRangeSensor";
+    private static final String moduleName = "FtcMRI2cRangeSensor";
     private static final boolean debugEnabled = false;
     private TrcDbgTrace dbgTrace = null;
 
@@ -61,7 +61,7 @@ public class FtcMRRangeSensor extends FtcMRI2cDevice implements TrcSensorDataSou
      * @param i2cAddress specifies the I2C address of the device.
      * @param addressIs7Bit specifies true if the I2C address is a 7-bit address, false if it is 8-bit.
      */
-    public FtcMRRangeSensor(HardwareMap hardwareMap, String instanceName, int i2cAddress, boolean addressIs7Bit)
+    public FtcMRI2cRangeSensor(HardwareMap hardwareMap, String instanceName, int i2cAddress, boolean addressIs7Bit)
     {
         super(hardwareMap, instanceName, i2cAddress, addressIs7Bit);
 
@@ -75,7 +75,7 @@ public class FtcMRRangeSensor extends FtcMRI2cDevice implements TrcSensorDataSou
         }
 
         readerId = addReader(instanceName, READ_START, READ_LENGTH);
-    }   //FtcMRRangeSensor
+    }   //FtcMRI2cRangeSensor
 
     /**
      * Constructor: Creates an instance of the object.
@@ -84,20 +84,20 @@ public class FtcMRRangeSensor extends FtcMRI2cDevice implements TrcSensorDataSou
      * @param i2cAddress specifies the I2C address of the device.
      * @param addressIs7Bit specifies true if the I2C address is a 7-bit address, false if it is 8-bit.
      */
-    public FtcMRRangeSensor(String instanceName, int i2cAddress, boolean addressIs7Bit)
+    public FtcMRI2cRangeSensor(String instanceName, int i2cAddress, boolean addressIs7Bit)
     {
         this(FtcOpMode.getInstance().hardwareMap, instanceName, i2cAddress, addressIs7Bit);
-    }   //FtcMRRangeSensor
+    }   //FtcMRI2cRangeSensor
 
     /**
      * Constructor: Creates an instance of the object.
      *
      * @param instanceName specifies the instance name.
      */
-    public FtcMRRangeSensor(String instanceName)
+    public FtcMRI2cRangeSensor(String instanceName)
     {
         this(instanceName, DEF_I2CADDRESS, false);
-    }   //FtcMRRangeSensor
+    }   //FtcMRI2cRangeSensor
 
     /**
      * This method returns the ultrasonic distance.
@@ -180,4 +180,4 @@ public class FtcMRRangeSensor extends FtcMRI2cDevice implements TrcSensorDataSou
         return data;
     }   //getSensorData
 
-}   //class FtcMRRangeSensor
+}   //class FtcMRI2cRangeSensor

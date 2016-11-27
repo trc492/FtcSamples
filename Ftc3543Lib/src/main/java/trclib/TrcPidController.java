@@ -37,6 +37,7 @@ public class TrcPidController
     }   //interface PidInput
 
     private HalDashboard dashboard;
+    private String instanceName;
     private double kP;
     private double kI;
     private double kD;
@@ -80,6 +81,7 @@ public class TrcPidController
         }
 
         dashboard = HalDashboard.getInstance();
+        this.instanceName = instanceName;
         this.kP = kP;
         this.kI = kI;
         this.kD = kD;
@@ -93,11 +95,11 @@ public class TrcPidController
     {
         dashboard.displayPrintf(
                 lineNum,
-                "Target=%.1f, Input=%.1f, Error=%.1f",
-                setPoint, pidInput.getInput(this), prevError);
+                "%s:Target=%.1f,Input=%.1f,Error=%.1f",
+                instanceName, setPoint, pidInput.getInput(this), prevError);
         dashboard.displayPrintf(
                 lineNum + 1,
-                "minOutput=%.1f, Output=%.1f, maxOutput=%.1f",
+                "minOutput=%.1f,Output=%.1f,maxOutput=%.1f",
                 minOutput, output, maxOutput);
     }   //displayPidInfo
 
@@ -114,8 +116,8 @@ public class TrcPidController
         {
             tracer.traceInfo(
                     funcName,
-                    "Target=%6.1f, Input=%6.1f, Error=%6.1f, Output=%6.3f(%6.3f/%5.3f)",
-                    setPoint, pidInput.getInput(this), prevError, output,
+                    "%s: Target=%6.1f, Input=%6.1f, Error=%6.1f, Output=%6.3f(%6.3f/%5.3f)",
+                    instanceName, setPoint, pidInput.getInput(this), prevError, output,
                     minOutput, maxOutput);
         }
     }   //printPidInfo

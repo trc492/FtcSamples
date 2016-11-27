@@ -40,6 +40,13 @@ public interface HalMotorController
     public double getPosition();
 
     /**
+     * This method gets the last set power.
+     *
+     * @return the last setPower value.
+     */
+    public double getPower();
+
+    /**
      * This method returns the speed of the motor rotation.
      *
      * @return motor rotation speed.

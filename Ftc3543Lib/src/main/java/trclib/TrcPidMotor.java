@@ -43,6 +43,10 @@ public class TrcPidMotor implements TrcTaskMgr.Task
     private static final double MIN_MOTOR_POWER = -1.0;
     private static final double MAX_MOTOR_POWER = 1.0;
 
+    private static final double DEF_BEEP_LOW_FREQUENCY = 440.0;     //in Hz
+    private static final double DEF_BEEP_HIGH_FREQUECY = 880.0;     //in Hz
+    private static final double DEF_BEEP_DURATION = 0.2;            //in seconds
+
     private String instanceName;
     private HalMotorController motor1;
     private HalMotorController motor2;
@@ -61,6 +65,13 @@ public class TrcPidMotor implements TrcTaskMgr.Task
     private double prevTarget = 0.0;
     private boolean motor1ZeroCalDone = false;
     private boolean motor2ZeroCalDone = false;
+    //
+    // Beep device.
+    //
+    private TrcTone beepDevice = null;
+    private double beepLowFrequency = DEF_BEEP_LOW_FREQUENCY;
+    private double beepHighFrequency = DEF_BEEP_HIGH_FREQUECY;
+    private double beepDuration = DEF_BEEP_DURATION;
     //
     // Stall protection.
     //
@@ -257,6 +268,44 @@ public class TrcPidMotor implements TrcTaskMgr.Task
     }   //getPosition
 
     /**
+     * This method sets the beep device and the beep tones so that it can play beeps when motor stalled or
+     * if the limit switches are activated/deactivated.
+     *
+     * @param beepDevice specifies the beep device object.
+     * @param beepLowFrequency specifies the low frequency beep.
+     * @param beepHighFrequency specifies the high frequency beep.
+     * @param beepDuration specifies the beep duration.
+     */
+    public void setBeep(TrcTone beepDevice, double beepLowFrequency, double beepHighFrequency, double beepDuration)
+    {
+        final String funcName = "setBeep";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(
+                    funcName, TrcDbgTrace.TraceLevel.API, "beep=%s,lowFreq=%.0f,hiFreq=%.0f,duration=%.3f",
+                    beepDevice.toString(), beepLowFrequency, beepHighFrequency, beepDuration);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+
+        this.beepDevice = beepDevice;
+        this.beepLowFrequency = beepLowFrequency;
+        this.beepHighFrequency = beepHighFrequency;
+        this.beepDuration = beepDuration;
+    }   //setBeep
+
+    /**
+     * This method sets the beep device and the beep tones so that it can play beeps when motor stalled or
+     * if the limit switches are activated/deactivated.
+     *
+     * @param beepDevice specifies the beep device object.
+     */
+    public void setBeep(TrcTone beepDevice)
+    {
+        setBeep(beepDevice, DEF_BEEP_LOW_FREQUENCY, DEF_BEEP_HIGH_FREQUECY, DEF_BEEP_DURATION);
+    }   //setBeep
+
+    /**
      * This method sets stall protection. When stall protection is turned ON, it will
      * monitor the motor movement for stalled condition. A motor is considered stalled if:
      * - the power applied to the motor is above stallMinPower.
@@ -432,6 +481,10 @@ public class TrcPidMotor implements TrcTaskMgr.Task
                         prevPos = motor1.getPosition();
                         prevTime = HalUtil.getCurrentTime();
                         stalled = false;
+                        if (beepDevice != null)
+                        {
+                            beepDevice.playTone(beepLowFrequency, beepDuration);
+                        }
                     }
                 }
                 else
@@ -464,6 +517,10 @@ public class TrcPidMotor implements TrcTaskMgr.Task
                         //
                         motorPower = 0.0;
                         stalled = true;
+                        if (beepDevice != null)
+                        {
+                            beepDevice.playTone(beepHighFrequency, beepDuration);
+                        }
                     }
                 }
 

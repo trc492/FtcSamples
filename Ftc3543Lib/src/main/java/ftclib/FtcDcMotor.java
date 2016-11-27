@@ -149,6 +149,7 @@ public class FtcDcMotor implements HalMotorController, TrcTaskMgr.Task
      *
      * @return true if the motor direction is inverted, false otherwise.
      */
+    @Override
     public boolean getInverted()
     {
         final String funcName = "getInverted";
@@ -163,6 +164,25 @@ public class FtcDcMotor implements HalMotorController, TrcTaskMgr.Task
 
         return inverted;
     }   //getInverted
+
+    /**
+     * This method returns the current motor run mode.
+     *
+     * @return motor run mode.
+     */
+    public DcMotor.RunMode getMode()
+    {
+        final String funcName = "getMode";
+        DcMotor.RunMode runMode = motor.getMode();
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", runMode.toString());
+        }
+
+        return runMode;
+    }   //getMode
 
     /**
      * This method returns the motor position by reading the position sensor. The position
@@ -186,48 +206,24 @@ public class FtcDcMotor implements HalMotorController, TrcTaskMgr.Task
     }   //getPosition
 
     /**
-     * This method enables/disables the task that monitors the motor speed. To determine the motor speed,
-     * the task runs periodically and determines the delta encoder reading over delta time to calculate
-     * the speed. Since the task takes up CPU cycle, it should not be enabled if the user doesn't need
-     * motor speed info.
+     * This method gets the last set power.
      *
-     * @param enabled specifies true to enable speed monitor task, disable otherwise.
+     * @return the last setPower value.
      */
-    public void setSpeedTaskEnabled(boolean enabled)
+    @Override
+    public double getPower()
     {
-        final String funcName = "setSpeedTaskEnabled";
+        final String funcName = "getPower";
+        double power = motor.getPower();
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "enabled=%s", Boolean.toString(enabled));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%.3f", power);
         }
 
-        speedTaskEnabled = enabled;
-        TrcTaskMgr taskMgr = TrcTaskMgr.getInstance();
-        if (enabled)
-        {
-            prevTime = HalUtil.getCurrentTime();
-            prevPos = getPosition();
-            taskMgr.registerTask(
-                    instanceName,
-                    this,
-                    TrcTaskMgr.TaskType.STOP_TASK);
-            taskMgr.registerTask(
-                    instanceName,
-                    this,
-                    TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
-        }
-        else
-        {
-            taskMgr.unregisterTask(
-                    this,
-                    TrcTaskMgr.TaskType.STOP_TASK);
-            taskMgr.unregisterTask(
-                    this,
-                    TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
-        }
-    }   //setSpeedEnabled
+        return power;
+    }   //getPower
 
     /**
      * This method returns the speed of the motor rotation which is not
@@ -261,6 +257,7 @@ public class FtcDcMotor implements HalMotorController, TrcTaskMgr.Task
      *
      * @return true if lower limit switch is active, false otherwise.
      */
+    @Override
     public boolean isLowerLimitSwitchActive()
     {
         final String funcName = "isLowerLimitSwitchActive";
@@ -281,6 +278,7 @@ public class FtcDcMotor implements HalMotorController, TrcTaskMgr.Task
      *
      * @return true if upper limit switch is active, false otherwise.
      */
+    @Override
     public boolean isUpperLimitSwitchActive()
     {
         final String funcName = "isUpperLimitSwitchActive";
@@ -366,11 +364,30 @@ public class FtcDcMotor implements HalMotorController, TrcTaskMgr.Task
     }   //setInverted
 
     /**
+     * This method sets the motor run mode.
+     *
+     * @param runMode specifies the run mode to be set to the motor.
+     */
+    public void setMode(DcMotor.RunMode runMode)
+    {
+        final String funcName = "setMode";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "runMode=%s", runMode.toString());
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+
+        motor.setMode(runMode);
+    }   //setMode
+
+    /**
      * This method sets the output power of the motor controller.
      *
      * @param power specifies the output power for the motor controller in the range of
      *              -1.0 to 1.0.
      */
+    @Override
     public void setPower(double power)
     {
         final String funcName = "setPower";
@@ -417,6 +434,50 @@ public class FtcDcMotor implements HalMotorController, TrcTaskMgr.Task
 
         positionSensorSign = inverted? -1: 1;
     }   //setPositionSensorInverted
+
+    /**
+     * This method enables/disables the task that monitors the motor speed. To determine the motor speed,
+     * the task runs periodically and determines the delta encoder reading over delta time to calculate
+     * the speed. Since the task takes up CPU cycle, it should not be enabled if the user doesn't need
+     * motor speed info.
+     *
+     * @param enabled specifies true to enable speed monitor task, disable otherwise.
+     */
+    public void setSpeedTaskEnabled(boolean enabled)
+    {
+        final String funcName = "setSpeedTaskEnabled";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "enabled=%s", Boolean.toString(enabled));
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+
+        speedTaskEnabled = enabled;
+        TrcTaskMgr taskMgr = TrcTaskMgr.getInstance();
+        if (enabled)
+        {
+            prevTime = HalUtil.getCurrentTime();
+            prevPos = getPosition();
+            taskMgr.registerTask(
+                    instanceName,
+                    this,
+                    TrcTaskMgr.TaskType.STOP_TASK);
+            taskMgr.registerTask(
+                    instanceName,
+                    this,
+                    TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+        }
+        else
+        {
+            taskMgr.unregisterTask(
+                    this,
+                    TrcTaskMgr.TaskType.STOP_TASK);
+            taskMgr.unregisterTask(
+                    this,
+                    TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
+        }
+    }   //setSpeedEnabled
 
     //
     // Implements TrcTaskMgr.Task

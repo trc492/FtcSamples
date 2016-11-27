@@ -318,8 +318,7 @@ public class TrcStateMachine
         if (debugEnabled)
         {
             dbgTrace.traceEnter(
-                    funcName, TrcDbgTrace.TraceLevel.API,
-                    "event=%s", event.toString());
+                    funcName, TrcDbgTrace.TraceLevel.API, "event=%s", event.toString());
         }
 
         //
@@ -415,6 +414,56 @@ public class TrcStateMachine
     {
         waitForEvents(nextState, 0.0, false);
     }   //waitForEvents
+
+    /**
+     * This method puts the state machine into not ready mode and starts
+     * monitoring a single event. If the event is signaled, the state machine
+     * will be put back to ready mode and it will automatically advance to
+     * the given next state. If timeout is non-zero, the state machine will
+     * be put back to ready mode after timeout has expired even though the
+     * required event have not been signaled.
+     *
+     * @param nextState specifies the next state when the state machine
+     *                  becomes ready.
+     * @param timeout specifies a timeout value. A zero value means
+     *                there is no timeout.
+     */
+    public void waitForSingleEvent(TrcEvent event, Object nextState, double timeout)
+    {
+        final String funcName =  "waitForSingleEvent";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(
+                    funcName, TrcDbgTrace.TraceLevel.API, "event=%s,nextState=%d,timeout=%f",
+                    event.toString(), nextState, timeout);
+        }
+
+        eventList.clear();
+        addEvent(event);
+        waitForEvents(nextState, timeout, false);
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+    }   //waitForSingleEvent
+
+    /**
+     * This method puts the state machine into not ready mode and starts
+     * monitoring a single event. If the event is signaled, the state machine
+     * will be put back to ready mode and it will automatically advance to
+     * the given next state. If timeout is non-zero, the state machine will
+     * be put back to ready mode after timeout has expired even though the
+     * required event have not been signaled.
+     *
+     * @param nextState specifies the next state when the state machine
+     *                  becomes ready.
+     */
+    public void waitForSingleEvent(TrcEvent event, Object nextState)
+    {
+        waitForSingleEvent(event, nextState, 0.0);
+    }   //waitForSingleEvent
 
     /**
      * This method clears the signaled state of all the events in the list.

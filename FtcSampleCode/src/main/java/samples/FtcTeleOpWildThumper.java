@@ -25,12 +25,14 @@ package samples;
 import android.speech.tts.TextToSpeech;
 import android.widget.TextView;
 
+import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cRangeSensor;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.robotcontroller.internal.FtcRobotControllerActivity;
 import org.firstinspires.ftc.robotcore.external.matrices.OpenGLMatrix;
 import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackable;
 
@@ -141,6 +143,7 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.Button
     // Input and sensors.
     private FtcGamepad gamepad;
     private FtcMRGyro gyro;
+    public ModernRoboticsI2cRangeSensor rangeSensor;
     // Sound devices.
     private FtcAndroidTone androidTone = null;
     private FtcAnalogOutTone analogTone = null;
@@ -195,6 +198,7 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.Button
         //
         gyro = new FtcMRGyro("gyroSensor");
         gyro.calibrate();
+        rangeSensor = hardwareMap.get(ModernRoboticsI2cRangeSensor.class, "rangeSensor");
         //
         // Initializing Tone support.
         //
@@ -479,6 +483,8 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.Button
             {
                 dashboard.displayPrintf(9, LABEL_WIDTH, "RobotLoc = ", lastKnownRobotLocation.formatAsTransform());
             }
+
+            dashboard.displayPrintf(10, LABEL_WIDTH, "Range = ", "%.3f in", rangeSensor.getDistance(DistanceUnit.INCH));
         }
     }   //runPeriodic
 
