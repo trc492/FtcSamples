@@ -39,6 +39,7 @@ public class FtcOpticalDistanceSensor extends TrcAnalogInput
 {
     private static final String moduleName = "FtcOpticalDistanceSensor";
     private static final boolean debugEnabled = false;
+    private static final boolean tracingEnabled = false;
     private TrcDbgTrace dbgTrace = null;
 
     private OpticalDistanceSensor sensor;
@@ -58,10 +59,8 @@ public class FtcOpticalDistanceSensor extends TrcAnalogInput
 
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName,
-                                       false,
-                                       TrcDbgTrace.TraceLevel.API,
-                                       TrcDbgTrace.MsgLevel.INFO);
+            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled,
+                                       TrcDbgTrace.TraceLevel.API, TrcDbgTrace.MsgLevel.INFO);
         }
 
         sensor = hardwareMap.opticalDistanceSensor.get(instanceName);

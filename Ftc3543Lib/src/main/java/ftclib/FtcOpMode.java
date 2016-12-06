@@ -38,6 +38,7 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
 {
     private static final String moduleName = "FtcOpMode";
     private static final boolean debugEnabled = false;
+    private static final boolean tracingEnabled = false;
     private TrcDbgTrace dbgTrace = null;
 
     private static TrcDbgTrace globalTracer = null;
@@ -68,6 +69,13 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
     public FtcOpMode()
     {
         super();
+
+        if (debugEnabled)
+        {
+            dbgTrace = new TrcDbgTrace(
+                    moduleName, tracingEnabled, TrcDbgTrace.TraceLevel.API, TrcDbgTrace.MsgLevel.INFO);
+        }
+
         instance = this;
         //
         // Create task manager. There is only one global instance of task manager.
@@ -85,6 +93,7 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
      */
     public static FtcOpMode getInstance()
     {
+        if (instance == null) throw new NullPointerException("You are not using FtcOpMode!");
         return instance;
     }   //getInstance
 
@@ -229,7 +238,9 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
         {
             dbgTrace.traceInfo(funcName, "Runing robotInit ...");
         }
+        dashboard.displayPrintf(0, "initRobot starting...");
         initRobot();
+        dashboard.displayPrintf(0, "initRobot completed!");
 
         //
         // Wait for the start of autonomous mode.

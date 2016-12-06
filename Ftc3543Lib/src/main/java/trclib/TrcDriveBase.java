@@ -640,6 +640,10 @@ public class TrcDriveBase extends HalRobotDrive implements TrcTaskMgr.Task
             heading = (Double)gyro.getZHeading().value;
             turnSpeed = (Double)gyro.getZRotationRate().value;
         }
+        else
+        {
+            heading = rotPos;
+        }
 
         if (lfEnc != prevLeftFrontPos || rfEnc != prevRightFrontPos ||
             lrEnc != prevLeftRearPos || rrEnc != prevRightRearPos ||

@@ -24,6 +24,7 @@ package ftclib;
 
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
+import hallib.HalGyro;
 import trclib.TrcDbgTrace;
 import trclib.TrcSensor;
 import trclib.TrcSensorDataSource;
@@ -33,7 +34,7 @@ import trclib.TrcUtil;
  * This class implements the Modern Robotics Gyro extending FtcMRI2cDevice that implements
  * the common features of all Modern Robotics I2C devices.
  */
-public class FtcMRI2cGyro extends FtcMRI2cDevice implements TrcSensorDataSource
+public class FtcMRI2cGyro extends FtcMRI2cDevice implements HalGyro, TrcSensorDataSource
 {
     private static final String moduleName = "FtcMRI2cGyro";
     private static final boolean debugEnabled = false;
@@ -70,6 +71,9 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice implements TrcSensorDataSource
 
     private int readerId = -1;
     private boolean calibrating = false;
+    private int xSign = 1;
+    private int ySign = 1;
+    private int zSign = 1;
 
     /**
      * Constructor: Creates an instance of the object.
@@ -156,22 +160,6 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice implements TrcSensorDataSource
     }   //isCalibrating
 
     /**
-     * This method resets the Z integrator and the heading to zero.
-     */
-    public void resetZIntegrator()
-    {
-        final String funcName = "resetZIntegrator";
-
-        sendByteCommand(REG_COMMAND, CMD_RESET_Z_INTEGRATOR, false);
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
-        }
-    }   //resetZIntegrator
-
-    /**
      * This method returns the heading data.
      *
      * @return heading data in the range of 0 and 359 inclusive.
@@ -180,7 +168,8 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice implements TrcSensorDataSource
     {
         final String funcName = "getHeading";
         byte[] regData = getData(readerId);
-        int value = TrcUtil.bytesToInt(regData[REG_HEADING_LSB - READ_START], regData[REG_HEADING_MSB - READ_START]);
+        int value = zSign*TrcUtil.bytesToInt(
+                regData[REG_HEADING_LSB - READ_START], regData[REG_HEADING_MSB - READ_START]);
         //
         // MR gyro heading is decreasing when turning clockwise. This is opposite to convention.
         // So we are reversing it.
@@ -205,18 +194,31 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice implements TrcSensorDataSource
     public TrcSensor.SensorData getIntegratedZ()
     {
         final String funcName = "getIntegratedZ";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+
+        TrcSensor.SensorData data;
         byte[] regData = getData(readerId);
         //
         // MR gyro IntegratedZ is decreasing when turning clockwise. This is opposite to convention.
         // So we are reversing it.
         //
-        short value = TrcUtil.bytesToShort(regData[REG_INTEGRATED_Z_LSB - READ_START],
-                                           regData[REG_INTEGRATED_Z_MSB - READ_START]);
-        TrcSensor.SensorData data = new TrcSensor.SensorData(getDataTimestamp(readerId), -value);
+        if (regData != null)
+        {
+            int value = zSign * TrcUtil.bytesToInt(
+                    regData[REG_INTEGRATED_Z_LSB - READ_START], regData[REG_INTEGRATED_Z_MSB - READ_START]);
+            data = new TrcSensor.SensorData(getDataTimestamp(readerId), -value);
+        }
+        else
+        {
+            data = new TrcSensor.SensorData(0, 0);
+        }
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
                                "=(timestamp=%.3f,value=%d)", data.timestamp, (Integer)data.value);
         }
@@ -235,7 +237,7 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice implements TrcSensorDataSource
         byte[] regData = getData(readerId);
         TrcSensor.SensorData data = new TrcSensor.SensorData(
                 getDataTimestamp(readerId),
-                -TrcUtil.bytesToInt(regData[REG_RAW_X_LSB - READ_START], regData[REG_RAW_X_MSB - READ_START]));
+                -xSign*TrcUtil.bytesToInt(regData[REG_RAW_X_LSB - READ_START], regData[REG_RAW_X_MSB - READ_START]));
 
         if (debugEnabled)
         {
@@ -258,8 +260,7 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice implements TrcSensorDataSource
         byte[] regData = getData(readerId);
         TrcSensor.SensorData data = new TrcSensor.SensorData(
                 getDataTimestamp(readerId),
-                -TrcUtil.bytesToInt(regData[REG_RAW_Y_LSB - READ_START],
-                                    regData[REG_RAW_Y_MSB - READ_START]));
+                -ySign*TrcUtil.bytesToInt(regData[REG_RAW_Y_LSB - READ_START], regData[REG_RAW_Y_MSB - READ_START]));
 
         if (debugEnabled)
         {
@@ -282,8 +283,7 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice implements TrcSensorDataSource
         byte[] regData = getData(readerId);
         TrcSensor.SensorData data = new TrcSensor.SensorData(
                 getDataTimestamp(readerId),
-                -TrcUtil.bytesToInt(regData[REG_RAW_Z_LSB - READ_START],
-                                    regData[REG_RAW_Z_MSB - READ_START]));
+                -zSign*TrcUtil.bytesToInt(regData[REG_RAW_Z_LSB - READ_START], regData[REG_RAW_Z_MSB - READ_START]));
 
         if (debugEnabled)
         {
@@ -399,5 +399,154 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice implements TrcSensorDataSource
 
         return data;
     }   //getSensorData
+
+    //
+    // Implements HalGyro interface.
+    //
+
+    /**
+     * This method inverts the x-axis. This is useful if the orientation of
+     * the gyro x-axis is such that the data goes the wrong direction.
+     *
+     * @param inverted specifies true to invert x-axis, false otherwise.
+     */
+    @Override
+    public void setXInverted(boolean inverted)
+    {
+        xSign = inverted? -1: 1;
+    }   //setXInverted
+
+    /**
+     * This method inverts the y-axis. This is useful if the orientation of
+     * the gyro y-axis is such that the data goes the wrong direction.
+     *
+     * @param inverted specifies true to invert y-axis, false otherwise.
+     */
+    @Override
+    public void setYInverted(boolean inverted)
+    {
+        ySign = inverted? -1: 1;
+    }   //setYInverted
+
+    /**
+     * This method inverts the z-axis. This is useful if the orientation of
+     * the gyro z-axis is such that the data goes the wrong direction.
+     *
+     * @param inverted specifies true to invert z-axis, false otherwise.
+     */
+    @Override
+    public void setZInverted(boolean inverted)
+    {
+        zSign = inverted? -1: 1;
+    }   //setZInverted
+
+    /**
+     * This method returns the rotation rate on the x-axis.
+     *
+     * @return X rotation rate.
+     */
+    @Override
+    public TrcSensor.SensorData getXRotationRate()
+    {
+        return getRawX();
+    }   //getXRotationRate
+
+    /**
+     * This method returns the rotation rate on the y-axis.
+     *
+     * @return Y rotation rate.
+     */
+    @Override
+    public TrcSensor.SensorData getYRotationRate()
+    {
+        return getRawY();
+    }   //getYRotationRate
+
+    /**
+     * This method returns the rotation rate on the z-axis.
+     *
+     * @return Z rotation rate.
+     */
+    @Override
+    public TrcSensor.SensorData getZRotationRate()
+    {
+        return getRawZ();
+    }   //getZRotationRate
+
+    /**
+     * This method returns the heading of the x-axis. If there is an integrator,
+     * we call the integrator to get the heading. Else if we have an unwrapper,
+     * we call the unwrapper to get the heading else we call the platform dependent
+     * gyro to get the raw heading value.
+     *
+     * @return X heading.
+     */
+    @Override
+    public TrcSensor.SensorData getXHeading()
+    {
+        throw new UnsupportedOperationException("Modern Robotics Gyro does not support X heading.");
+    }   //getXHeading
+
+    /**
+     * This method returns the heading of the y-axis. If there is an integrator,
+     * we call the integrator to get the heading. Else if we have an unwrapper,
+     * we call the unwrapper to get the heading else we call the platform dependent
+     * gyro to get the raw heading value.
+     *
+     * @return Y heading.
+     */
+    public TrcSensor.SensorData getYHeading()
+    {
+        throw new UnsupportedOperationException("Modern Robotics Gyro does not support Y heading.");
+    }   //getYHeading
+
+    /**
+     * This method returns the heading of the z-axis. If there is an integrator,
+     * we call the integrator to get the heading. Else if we have an unwrapper,
+     * we call the unwrapper to get the heading else we call the platform dependent
+     * gyro to get the raw heading value.
+     *
+     * @return Z heading.
+     */
+    @Override
+    public TrcSensor.SensorData getZHeading()
+    {
+        return getHeading();
+    }   //getZHeading
+
+    /**
+     * This method resets the integrator on the x-axis.
+     */
+    @Override
+    public void resetXIntegrator()
+    {
+        throw new UnsupportedOperationException("Modern Robotics Gyro does not have X integrator.");
+    }   //resetXIntegrator
+
+    /**
+     * This method resets the integrator on the y-axis.
+     */
+    @Override
+    public void resetYIntegrator()
+    {
+        throw new UnsupportedOperationException("Modern Robotics Gyro does not have Y integrator.");
+    }   //resetYIntegrator
+
+    /**
+     * This method resets the integrator on the z-axis.
+     */
+    @Override
+    public void resetZIntegrator()
+    {
+        final String funcName = "resetZIntegrator";
+
+        sendByteCommand(REG_COMMAND, CMD_RESET_Z_INTEGRATOR, false);
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+    }   //resetZIntegrator
 
 }   //class FtcMRI2cGyro

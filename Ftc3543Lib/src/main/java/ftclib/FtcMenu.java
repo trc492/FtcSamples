@@ -115,7 +115,7 @@ public abstract class FtcMenu
         public boolean isMenuBackButton();
     }   //interface MenuButtons
 
-    private static final long LOOP_INTERVAL     = 50;
+    private static final long LOOP_INTERVAL     = 20;       //in msec.
 
     private static final int MENUBUTTON_BACK    = (1 << 0);
     private static final int MENUBUTTON_ENTER   = (1 << 1);
@@ -223,9 +223,11 @@ public abstract class FtcMenu
      */
     public static void walkMenuTree(FtcMenu rootMenu)
     {
+        FtcOpMode opmode = FtcOpMode.getInstance();
+
         setRootMenu(rootMenu);
         rootMenu.displayMenu();
-        while (!runMenus())
+        while (!runMenus() && !opmode.isStopRequested())
         {
             HalUtil.sleep(LOOP_INTERVAL);
         }

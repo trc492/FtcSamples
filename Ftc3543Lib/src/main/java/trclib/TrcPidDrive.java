@@ -401,7 +401,7 @@ public class TrcPidDrive implements TrcTaskMgr.Task
     @Override
     public void postContinuousTask(TrcRobot.RunMode runMode)
     {
-        final String funcName = "postPeriodicTask";
+        final String funcName = "postContinuousTask";
 
         if (debugEnabled)
         {

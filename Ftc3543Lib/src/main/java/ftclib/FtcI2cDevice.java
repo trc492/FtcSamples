@@ -39,6 +39,7 @@ public class FtcI2cDevice
 {
     private static final String moduleName = "FtcI2cDevice";
     private static final boolean debugEnabled = false;
+    private static final boolean tracingEnabled = false;
     private TrcDbgTrace dbgTrace = null;
 
     private I2cDevice device;
@@ -58,11 +59,8 @@ public class FtcI2cDevice
     {
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(
-                    moduleName + "." + instanceName,
-                    false,
-                    TrcDbgTrace.TraceLevel.API,
-                    TrcDbgTrace.MsgLevel.INFO);
+            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled,
+                                       TrcDbgTrace.TraceLevel.API, TrcDbgTrace.MsgLevel.INFO);
         }
 
         device = hardwareMap.i2cDevice.get(instanceName);
