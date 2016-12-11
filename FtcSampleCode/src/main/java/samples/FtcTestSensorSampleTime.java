@@ -9,7 +9,7 @@ import com.qualcomm.robotcore.hardware.ColorSensor;
 
 import ftclib.FtcDcMotor;
 import ftclib.FtcMRI2cColorSensor;
-import ftclib.FtcMRI2cGyro2;
+import ftclib.FtcMRI2cGyro;
 import ftclib.FtcOpMode;
 
 @TeleOp(name="Test: Sensor Sample Time", group="3543TestSamples")
@@ -38,7 +38,7 @@ public class FtcTestSensorSampleTime extends FtcOpMode
     private FtcDcMotor lrWheel;
     private FtcDcMotor rrWheel;
     private ModernRoboticsI2cGyro gyro;
-    private FtcMRI2cGyro2 i2cGyro;
+    private FtcMRI2cGyro i2cGyro;
     private ColorSensor colorSensor;
     private FtcMRI2cColorSensor i2cColorSensor;
 
@@ -75,7 +75,7 @@ public class FtcTestSensorSampleTime extends FtcOpMode
 
         if (USE_MY_GYRO)
         {
-            i2cGyro = new FtcMRI2cGyro2("i2cGyroSensor");
+            i2cGyro = new FtcMRI2cGyro("i2cGyroSensor");
             i2cGyro.resetZIntegrator();
             gyro = null;
         }
