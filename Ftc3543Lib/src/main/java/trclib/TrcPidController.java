@@ -63,6 +63,7 @@ public class TrcPidController
     private double input = 0.0;
     private double output = 0.0;
 
+    private TrcDbgTrace debugTracer = null;
     private double pTerm;
     private double iTerm;
     private double dTerm;
@@ -128,6 +129,11 @@ public class TrcPidController
     {
         printPidInfo(null);
     }   //printPidInfo
+
+    public void setDebugTraceEnabled(TrcDbgTrace tracer, boolean enabled)
+    {
+        debugTracer = enabled? tracer: null;
+    }   //setDebugTraceEnabled
 
     public void setInverted(boolean inverted)
     {
@@ -322,6 +328,11 @@ public class TrcPidController
         this.kD = kD;
         this.kF = kF;
     }   //setPID
+
+    public void setTargetTolerance(double tolerance)
+    {
+        this.tolerance = tolerance;
+    }   //setTargetTolerance
 
     public void setInputRange(double minInput, double maxInput)
     {
@@ -536,6 +547,11 @@ public class TrcPidController
         else if (output < minOutput)
         {
             output = minOutput;
+        }
+
+        if (debugTracer != null)
+        {
+            printPidInfo(debugTracer);
         }
 
         if (debugEnabled)

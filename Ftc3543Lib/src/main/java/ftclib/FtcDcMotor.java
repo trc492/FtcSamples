@@ -22,6 +22,7 @@
 
 package ftclib;
 
+import com.qualcomm.hardware.modernrobotics.ModernRoboticsUsbDcMotorController;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
@@ -232,6 +233,25 @@ public class FtcDcMotor implements HalMotorController, TrcTaskMgr.Task
             throw new UnsupportedOperationException("SpeedTask is not enabled.");
         }
     }   //getSpeed
+
+    /**
+     * This method returns the battery voltage that powers the motor.
+     *
+     * @return battery voltage.
+     */
+    public double getVoltage()
+    {
+        final String funcName = "getVoltage";
+        double voltage = ((ModernRoboticsUsbDcMotorController)motor.getController()).getVoltage();
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%.3f", voltage);
+        }
+
+        return voltage;
+    }   //getVoltage
 
     /**
      * This method returns the state of the lower limit switch.

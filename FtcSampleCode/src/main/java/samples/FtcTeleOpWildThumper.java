@@ -56,7 +56,7 @@ import trclib.TrcSong;
 import trclib.TrcSongPlayer;
 
 @TeleOp(name="TeleOp: Wild Thumper", group="3543TeleOpSamples")
-//@Disabled
+@Disabled
 public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.ButtonHandler, TrcPidController.PidInput
 {
     private static final double ATTACK = 0.0;           // in seconds

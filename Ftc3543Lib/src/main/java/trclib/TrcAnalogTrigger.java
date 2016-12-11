@@ -80,6 +80,16 @@ public class TrcAnalogTrigger implements TrcTaskMgr.Task
         this.triggerHandler = triggerHandler;
     }   //TrcAnalogTrigger
 
+    /**
+     * This method returns the instance name.
+     *
+     * @return instance name.
+     */
+    public String toString()
+    {
+        return instanceName;
+    }   //toString
+
     public void setTriggerPoints(double[] triggerPoints)
     {
         if (triggerPoints == null)

@@ -5,14 +5,21 @@ import android.util.Log;
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cGyro;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.ColorSensor;
 
 import ftclib.FtcDcMotor;
+import ftclib.FtcMRI2cColorSensor;
+import ftclib.FtcMRI2cGyro2;
 import ftclib.FtcOpMode;
 
 @TeleOp(name="Test: Sensor Sample Time", group="3543TestSamples")
-//@Disabled
+@Disabled
 public class FtcTestSensorSampleTime extends FtcOpMode
 {
+    private static final boolean USE_MY_GYRO = true;
+    private static final boolean USE_MY_COLOR_SENSOR = false;
+    private static final boolean USE_SDK_COLOR_SENSOR = false;
+
     private enum SensorType
     {
         DRIVEBASE_ENCODERS,
@@ -31,6 +38,9 @@ public class FtcTestSensorSampleTime extends FtcOpMode
     private FtcDcMotor lrWheel;
     private FtcDcMotor rrWheel;
     private ModernRoboticsI2cGyro gyro;
+    private FtcMRI2cGyro2 i2cGyro;
+    private ColorSensor colorSensor;
+    private FtcMRI2cColorSensor i2cColorSensor;
 
     private long minLoopInterval = Long.MAX_VALUE;
     private long maxLoopInterval = Long.MIN_VALUE;
@@ -48,6 +58,7 @@ public class FtcTestSensorSampleTime extends FtcOpMode
     @Override
     public void initRobot()
     {
+        Log.i(TAG, "initRobot started...");
         lfWheel = new FtcDcMotor("lfWheel");
         rfWheel = new FtcDcMotor("rfWheel");
         lrWheel = new FtcDcMotor("lrWheel");
@@ -62,8 +73,38 @@ public class FtcTestSensorSampleTime extends FtcOpMode
         lrWheel.resetPosition();
         rrWheel.resetPosition();
 
-        gyro = (ModernRoboticsI2cGyro)hardwareMap.gyroSensor.get("gyroSensor");
-        gyro.resetZAxisIntegrator();
+        if (USE_MY_GYRO)
+        {
+            i2cGyro = new FtcMRI2cGyro2("i2cGyroSensor");
+            i2cGyro.resetZIntegrator();
+            gyro = null;
+        }
+        else
+        {
+            gyro = (ModernRoboticsI2cGyro)hardwareMap.gyroSensor.get("gyroSensor");
+            gyro.resetZAxisIntegrator();
+            i2cGyro = null;
+        }
+
+        if (USE_MY_COLOR_SENSOR)
+        {
+            i2cColorSensor = new FtcMRI2cColorSensor("i2cColorSensor", 0x40, false);
+        }
+        else
+        {
+            i2cColorSensor = null;
+        }
+
+        if (USE_SDK_COLOR_SENSOR)
+        {
+            colorSensor = hardwareMap.colorSensor.get("colorSensor");
+        }
+        else
+        {
+            colorSensor = null;
+        }
+
+        Log.i(TAG, "initRobot completed!");
     }   //initRobot
 
     @Override
@@ -72,7 +113,7 @@ public class FtcTestSensorSampleTime extends FtcOpMode
         Log.i(TAG, String.format("startMode [%d]", System.nanoTime()));
         startTime = System.nanoTime();
         prevSampleTime = startTime;
-        prevSample = getSensorValue();
+//        prevSample = getSensorValue();
     }   //startMode
 
     @Override
@@ -126,8 +167,23 @@ public class FtcTestSensorSampleTime extends FtcOpMode
                 maxLoopInterval = loopInterval;
             }
 
+            int sensorValue;
+            if (USE_MY_COLOR_SENSOR)
+            {
+                sensorValue = (Integer)i2cColorSensor.getWhiteValue().value;
+            }
+            else if (USE_SDK_COLOR_SENSOR)
+            {
+                sensorValue = colorSensor.argb();
+            }
+            else
+            {
+                sensorValue = 0;
+            }
+
             runRobot(String.format("[%4d:%7.3f] LoopInterval=%7.3f, ",
-                                   loopCount, (currTime - startTime)/1000000.0, loopInterval/1000000.0));
+                     loopCount, (currTime - startTime)/1000000.0, loopInterval/1000000.0),
+                     String.format(", sensor=%d", sensorValue));
         }
         prevLoopTime = currTime;
         loopCount++;
@@ -145,14 +201,23 @@ public class FtcTestSensorSampleTime extends FtcOpMode
                 break;
 
             case GYRO:
-                value = -gyro.getIntegratedZValue();
+                if (USE_MY_GYRO)
+                {
+                    Log.i(TAG, "About to get heading value.");
+                    value = (Integer)i2cGyro.getIntegratedZ().value;
+                    Log.i(TAG, String.format("Got heading value %f.", value));
+                }
+                else
+                {
+                    value = -gyro.getIntegratedZValue();
+                }
                 break;
         }
 
         return value;
     }
 
-    private void runRobot(String prefix)
+    private void runRobot(String prefix, String subfix)
     {
         switch (sensorType)
         {
@@ -164,8 +229,7 @@ public class FtcTestSensorSampleTime extends FtcOpMode
                 rfWheel.setPower(DRIVE_POWER);
                 lrWheel.setPower(DRIVE_POWER);
                 rrWheel.setPower(DRIVE_POWER);
-                Log.i(TAG, prefix + String.format(
-                        "lf=%d, rf=%d, lr=%d, rr=%d",
+                Log.i(TAG, prefix + String.format("lf=%d, rf=%d, lr=%d, rr=%d" + subfix,
                         lfWheel.getPosition(), rfWheel.getPosition(), lrWheel.getPosition(), rrWheel.getPosition()));
                 break;
 
@@ -177,7 +241,14 @@ public class FtcTestSensorSampleTime extends FtcOpMode
                 lrWheel.setPower(TURN_POWER);
                 rfWheel.setPower(-TURN_POWER);
                 rrWheel.setPower(-TURN_POWER);
-                Log.i(TAG, prefix + String.format("heading=%d", -gyro.getIntegratedZValue()));
+                if (USE_MY_GYRO)
+                {
+                    Log.i(TAG, prefix + String.format("heading=%d", (Integer)i2cGyro.getIntegratedZ().value));
+                }
+                else
+                {
+                    Log.i(TAG, prefix + String.format("heading=%d", -gyro.getIntegratedZValue()));
+                }
                 break;
         }
     }
