@@ -946,7 +946,7 @@ public class TrcPidMotor implements TrcTaskMgr.Task
             // operation. Stop the motor and if there is a notification
             // event, signal it.
             //
-            if (!holdTarget && pidCtrl.isOnTarget() ||
+            if (!holdTarget && (pidCtrl.isOnTarget() || stalled) ||
                 expiredTime != 0.0 && HalUtil.getCurrentTime() >= expiredTime)
             {
                 stop(true);

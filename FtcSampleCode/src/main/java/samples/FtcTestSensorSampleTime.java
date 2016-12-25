@@ -2,45 +2,41 @@ package samples;
 
 import android.util.Log;
 
-import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cGyro;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.ColorSensor;
 
+import ftclib.FtcAnalogGyro;
+import ftclib.FtcAndroidGyro;
 import ftclib.FtcDcMotor;
-import ftclib.FtcMRI2cColorSensor;
-import ftclib.FtcMRI2cGyro;
+import ftclib.FtcMRGyro;
 import ftclib.FtcOpMode;
+import trclib.TrcGyro;
 
 @TeleOp(name="Test: Sensor Sample Time", group="3543TestSamples")
 @Disabled
 public class FtcTestSensorSampleTime extends FtcOpMode
 {
-    private static final boolean USE_MY_GYRO = true;
-    private static final boolean USE_MY_COLOR_SENSOR = false;
-    private static final boolean USE_SDK_COLOR_SENSOR = false;
-
     private enum SensorType
     {
         DRIVEBASE_ENCODERS,
-        GYRO
+        MR_GYRO,
+        ANALOG_GYRO,
+        ANDROID_GYRO
     }
 
     private static final String TAG = "TrcDbg";
     private static final double DRIVE_POWER = 0.2;
     private static final double TURN_POWER = 0.5;
-    private static SensorType sensorType = SensorType.GYRO;
+    private static SensorType sensorType = SensorType.ANDROID_GYRO;
     private static final boolean LEFTWHEEL_INVERTED = false;
     private static final boolean RIGHTWHEEL_INVERTED = true;
+    public static final double ANALOG_GYRO_VOLT_PER_DEG_PER_SEC = 0.007;
 
     private FtcDcMotor lfWheel;
     private FtcDcMotor rfWheel;
     private FtcDcMotor lrWheel;
     private FtcDcMotor rrWheel;
-    private ModernRoboticsI2cGyro gyro;
-    private FtcMRI2cGyro i2cGyro;
-    private ColorSensor colorSensor;
-    private FtcMRI2cColorSensor i2cColorSensor;
+    private TrcGyro gyro = null;
 
     private long minLoopInterval = Long.MAX_VALUE;
     private long maxLoopInterval = Long.MIN_VALUE;
@@ -73,35 +69,22 @@ public class FtcTestSensorSampleTime extends FtcOpMode
         lrWheel.resetPosition();
         rrWheel.resetPosition();
 
-        if (USE_MY_GYRO)
+        switch (sensorType)
         {
-            i2cGyro = new FtcMRI2cGyro("i2cGyroSensor");
-            i2cGyro.resetZIntegrator();
-            gyro = null;
-        }
-        else
-        {
-            gyro = (ModernRoboticsI2cGyro)hardwareMap.gyroSensor.get("gyroSensor");
-            gyro.resetZAxisIntegrator();
-            i2cGyro = null;
-        }
+            case MR_GYRO:
+                gyro = new FtcMRGyro("gyroSensor");
+                ((FtcMRGyro)gyro).calibrate();
+                break;
 
-        if (USE_MY_COLOR_SENSOR)
-        {
-            i2cColorSensor = new FtcMRI2cColorSensor("i2cColorSensor", 0x40, false);
-        }
-        else
-        {
-            i2cColorSensor = null;
-        }
+            case ANALOG_GYRO:
+                gyro = new FtcAnalogGyro("analogGyro", ANALOG_GYRO_VOLT_PER_DEG_PER_SEC);
+                ((FtcAnalogGyro)gyro).calibrate();
+                break;
 
-        if (USE_SDK_COLOR_SENSOR)
-        {
-            colorSensor = hardwareMap.colorSensor.get("colorSensor");
-        }
-        else
-        {
-            colorSensor = null;
+            case ANDROID_GYRO:
+                gyro = new FtcAndroidGyro("androidGyro");
+                ((FtcAndroidGyro)gyro).calibrate();
+                break;
         }
 
         Log.i(TAG, "initRobot completed!");
@@ -110,10 +93,18 @@ public class FtcTestSensorSampleTime extends FtcOpMode
     @Override
     public void startMode()
     {
-        Log.i(TAG, String.format("startMode [%d]", System.nanoTime()));
+        switch (sensorType)
+        {
+            case MR_GYRO:
+            case ANALOG_GYRO:
+            case ANDROID_GYRO:
+                gyro.setEnabled(true);
+        }
+
         startTime = System.nanoTime();
         prevSampleTime = startTime;
-//        prevSample = getSensorValue();
+        Log.i(TAG, String.format("startMode [%d]", System.nanoTime()));
+        prevSample = getSensorValue();
     }   //startMode
 
     @Override
@@ -123,6 +114,14 @@ public class FtcTestSensorSampleTime extends FtcOpMode
         lrWheel.setPower(0.0);
         rfWheel.setPower(0.0);
         rrWheel.setPower(0.0);
+
+        switch (sensorType)
+        {
+            case MR_GYRO:
+            case ANALOG_GYRO:
+            case ANDROID_GYRO:
+                gyro.setEnabled(false);
+        }
 
         long endTime = System.nanoTime();
         Log.i(TAG, String.format(
@@ -167,23 +166,9 @@ public class FtcTestSensorSampleTime extends FtcOpMode
                 maxLoopInterval = loopInterval;
             }
 
-            int sensorValue;
-            if (USE_MY_COLOR_SENSOR)
-            {
-                sensorValue = (Integer)i2cColorSensor.getWhiteValue().value;
-            }
-            else if (USE_SDK_COLOR_SENSOR)
-            {
-                sensorValue = colorSensor.argb();
-            }
-            else
-            {
-                sensorValue = 0;
-            }
-
-            runRobot(String.format("[%4d:%7.3f] LoopInterval=%7.3f, ",
-                     loopCount, (currTime - startTime)/1000000.0, loopInterval/1000000.0),
-                     String.format(", sensor=%d", sensorValue));
+            runRobot(String.format("[%4d:%7.3f] LoopInterval=%7.3f, Sensor=%7.2f: ",
+                                   loopCount, (currTime - startTime)/1000000.0, loopInterval/1000000.0,
+                                   getSensorValue()));
         }
         prevLoopTime = currTime;
         loopCount++;
@@ -197,27 +182,20 @@ public class FtcTestSensorSampleTime extends FtcOpMode
         {
             case DRIVEBASE_ENCODERS:
                 value = (lfWheel.getPosition() + rfWheel.getPosition() +
-                         lrWheel.getPosition() + rrWheel.getPosition())/4;
+                         lrWheel.getPosition() + rrWheel.getPosition())/4.0;
                 break;
 
-            case GYRO:
-                if (USE_MY_GYRO)
-                {
-                    Log.i(TAG, "About to get heading value.");
-                    value = (Integer)i2cGyro.getIntegratedZ().value;
-                    Log.i(TAG, String.format("Got heading value %f.", value));
-                }
-                else
-                {
-                    value = -gyro.getIntegratedZValue();
-                }
+            case MR_GYRO:
+            case ANALOG_GYRO:
+            case ANDROID_GYRO:
+                value = (Double)gyro.getZHeading().value;
                 break;
         }
 
         return value;
     }
 
-    private void runRobot(String prefix, String subfix)
+    private void runRobot(String prefix)
     {
         switch (sensorType)
         {
@@ -229,11 +207,14 @@ public class FtcTestSensorSampleTime extends FtcOpMode
                 rfWheel.setPower(DRIVE_POWER);
                 lrWheel.setPower(DRIVE_POWER);
                 rrWheel.setPower(DRIVE_POWER);
-                Log.i(TAG, prefix + String.format("lf=%d, rf=%d, lr=%d, rr=%d" + subfix,
-                        lfWheel.getPosition(), rfWheel.getPosition(), lrWheel.getPosition(), rrWheel.getPosition()));
+                Log.i(TAG, prefix + String.format("lf=%d, rf=%d, lr=%d, rr=%d",
+                                                  lfWheel.getPosition(), rfWheel.getPosition(),
+                                                  lrWheel.getPosition(), rrWheel.getPosition()));
                 break;
 
-            case GYRO:
+            case MR_GYRO:
+            case ANALOG_GYRO:
+            case ANDROID_GYRO:
                 //
                 // Turning right and checking gyro.
                 //
@@ -241,14 +222,7 @@ public class FtcTestSensorSampleTime extends FtcOpMode
                 lrWheel.setPower(TURN_POWER);
                 rfWheel.setPower(-TURN_POWER);
                 rrWheel.setPower(-TURN_POWER);
-                if (USE_MY_GYRO)
-                {
-                    Log.i(TAG, prefix + String.format("heading=%d", (Integer)i2cGyro.getIntegratedZ().value));
-                }
-                else
-                {
-                    Log.i(TAG, prefix + String.format("heading=%d", -gyro.getIntegratedZValue()));
-                }
+                Log.i(TAG, prefix);
                 break;
         }
     }

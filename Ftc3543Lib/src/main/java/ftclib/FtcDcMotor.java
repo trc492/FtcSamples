@@ -58,6 +58,7 @@ public class FtcDcMotor implements HalMotorController, TrcTaskMgr.Task
     private double speed = 0.0;
     private double prevTime = 0.0;
     private double prevPos = 0.0;
+    private double prevPower = 0.0;
 
     /**
      * Constructor: Create an instance of the object.
@@ -390,7 +391,11 @@ public class FtcDcMotor implements HalMotorController, TrcTaskMgr.Task
             power = 0.0;
         }
 
-        motor.setPower(power);
+        if (power != prevPower)
+        {
+            motor.setPower(power);
+            prevPower = power;
+        }
     }   //setPower
 
     /**

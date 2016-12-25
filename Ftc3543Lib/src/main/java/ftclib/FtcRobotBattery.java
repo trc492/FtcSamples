@@ -42,6 +42,7 @@ public class FtcRobotBattery implements TrcTaskMgr.Task
 
     private ModernRoboticsUsbDcMotorController motorController;
     private double lowestVoltage = 0.0;
+    private double highestVoltage = 0.0;
 
     /**
      * Constructor: create an instance of the object.
@@ -77,7 +78,7 @@ public class FtcRobotBattery implements TrcTaskMgr.Task
 
         if (enabled)
         {
-            lowestVoltage = 0.0;
+            lowestVoltage = highestVoltage = motorController.getVoltage();
             TrcTaskMgr.getInstance().registerTask(moduleName, this, TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
         }
         else
@@ -105,6 +106,16 @@ public class FtcRobotBattery implements TrcTaskMgr.Task
     {
         return lowestVoltage;
     }   //getLowestVoltage
+
+    /**
+     * This method returns the highest voltage it has ever seen during the monitoring session.
+     *
+     * @return highest battery voltage.
+     */
+    public double getHighestVoltage()
+    {
+        return highestVoltage;
+    }   //getHighestVoltage
 
     //
     // Implements TrcTaskMgr.Task
@@ -148,9 +159,13 @@ public class FtcRobotBattery implements TrcTaskMgr.Task
         }
 
         double voltage = getCurrentVoltage();
-        if (lowestVoltage == 0.0 || voltage < lowestVoltage)
+        if (voltage < lowestVoltage)
         {
             lowestVoltage = voltage;
+        }
+        else if (voltage > highestVoltage)
+        {
+            highestVoltage = voltage;
         }
     }   //preContinuousTask
 

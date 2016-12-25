@@ -46,6 +46,7 @@ public class FtcI2cDevice
     private I2cAddr i2cAddr;
     private I2cDeviceSynchImpl syncDevice;
     private ArrayList<FtcI2cDeviceReader> readers = new ArrayList<>();
+    private FtcI2cDeviceState deviceState;
 
     /**
      * Constructor: Creates an instance of the object.
@@ -64,6 +65,7 @@ public class FtcI2cDevice
         }
 
         device = hardwareMap.i2cDevice.get(instanceName);
+        deviceState = new FtcI2cDeviceState(device);
         setI2cAddress(i2cAddress, addressIs7Bit);
     }   //FtcI2cDevice
 
@@ -123,6 +125,44 @@ public class FtcI2cDevice
                     reader.toString(), device, i2cAddr, reader.getMemStart(), reader.getMemLength()));
         }
     }   //setI2cAddress
+
+    /**
+     * This method check if the I2C device is enabled.
+     *
+     * @return true if the device state indicates it is enabled, false otherwise.
+     */
+    public boolean isDeviceEnabled()
+    {
+        final String funcName = "isDeviceEnabled";
+        boolean enabled = deviceState.isEnabled();
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", Boolean.toString(enabled));
+        }
+
+        return enabled;
+    }   //isDeviceEnabled
+
+    /**
+     * This method is called to enable/disable the I2C device so that it will not unnecessarily bog down the I2C
+     * bus bandwidth if it is not needed.
+     *
+     * @param enabled specifies true to enable device, false otherwise.
+     */
+    public void setDeviceEnabled(boolean enabled)
+    {
+        final String funcName = "setDeviceEnabled";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "enabled=%s", Boolean.toString(enabled));
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+
+        deviceState.setEnabled(enabled);
+    }   //setDeviceEnabled
 
     /**
      * This method adds a device reader to read the specified block of memory.

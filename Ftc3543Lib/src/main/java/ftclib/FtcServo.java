@@ -61,6 +61,7 @@ public class FtcServo extends TrcServo implements TrcTaskMgr.Task
     private TrcStateMachine sm;
     private double servoPos = 0.0;
     private double servoOnTime = 0.0;
+    private double prevLogicalPos = 0.0;
 
     /**
      * Constructor: Creates an instance of the object.
@@ -83,6 +84,7 @@ public class FtcServo extends TrcServo implements TrcTaskMgr.Task
 
         this.instanceName = instanceName;
         servo = hardwareMap.servo.get(instanceName);
+        prevLogicalPos = servo.getPosition();
         controller = servo.getController();
         timer = new TrcTimer(instanceName);
         event = new TrcEvent(instanceName);
@@ -268,7 +270,12 @@ public class FtcServo extends TrcServo implements TrcTaskMgr.Task
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        servo.setPosition(toLogicalPosition(position));
+        double newLogicalPos = toLogicalPosition(position);
+        if (newLogicalPos != prevLogicalPos)
+        {
+            servo.setPosition(newLogicalPos);
+            prevLogicalPos = newLogicalPos;
+        }
     }   //setPosition
 
     /**
@@ -281,7 +288,7 @@ public class FtcServo extends TrcServo implements TrcTaskMgr.Task
     public double getPosition()
     {
         final String funcName = "getPosition";
-        double position = toPhysicalPosition(servo.getPosition());
+        double position = toPhysicalPosition(prevLogicalPos);
 
         if (debugEnabled)
         {
@@ -337,7 +344,7 @@ public class FtcServo extends TrcServo implements TrcTaskMgr.Task
             switch (state)
             {
                 case SET_POSITION:
-                    servo.setPosition(servoPos);
+                    setPosition(servoPos);
                     timer.set(servoOnTime, event);
                     sm.addEvent(event);
                     sm.waitForEvents(State.DISABLE_CONTROLLER);

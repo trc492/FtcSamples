@@ -425,51 +425,15 @@ public class HalRobotDrive
         drivePower = TrcUtil.limit(drivePower);
         turnPower = TrcUtil.limit(turnPower);
 
-        if (drivePower + turnPower > MOTOR_MAX_VALUE)
+        leftPower = drivePower + turnPower;
+        rightPower = drivePower - turnPower;
+        double maxMag = Math.max(Math.abs(leftPower), Math.abs(rightPower));
+        if (maxMag > 1.0)
         {
-            //
-            // Forward right:
-            //  left = drive + turn - (drive + turn - MOTOR_MAX_VALUE)
-            //  right = drive - turn - (drive + turn - MOTOR_MAX_VALUE)
-            //
-            leftPower = MOTOR_MAX_VALUE;
-            rightPower = -2*turnPower + MOTOR_MAX_VALUE;
+            leftPower /= maxMag;
+            rightPower /= maxMag;
         }
-        else if (drivePower - turnPower > MOTOR_MAX_VALUE)
-        {
-            //
-            // Forward left:
-            //  left = drive + turn - (drive - turn - MOTOR_MAX_VALUE)
-            //  right = drive - turn - (drive - turn - MOTOR_MAX_VALUE)
-            //
-            leftPower = 2*turnPower + MOTOR_MAX_VALUE;
-            rightPower = MOTOR_MAX_VALUE;
-        }
-        else if (drivePower + turnPower < MOTOR_MIN_VALUE)
-        {
-            //
-            // Backward left:
-            //  left = drive + turn - (drive + turn - MOTOR_MIN_VALUE)
-            //  right = drive - turn - (drive + turn - MOTOR_MIN_VALUE)
-            //
-            leftPower = MOTOR_MIN_VALUE;
-            rightPower = -2*turnPower + MOTOR_MIN_VALUE;
-        }
-        else if (drivePower - turnPower < MOTOR_MIN_VALUE)
-        {
-            //
-            // Backward right:
-            //  left = drive + turn - (drive - turn - MOTOR_MIN_VALUE)
-            //  right = drive - turn - (drive - turn - MOTOR_MIN_VALUE)
-            //
-            leftPower = 2*turnPower + MOTOR_MIN_VALUE;
-            rightPower = MOTOR_MIN_VALUE;
-        }
-        else
-        {
-            leftPower = drivePower + turnPower;
-            rightPower = drivePower - turnPower;
-        }
+
         tankDrive(leftPower, rightPower, inverted);
     }   //arcadeDrive
 

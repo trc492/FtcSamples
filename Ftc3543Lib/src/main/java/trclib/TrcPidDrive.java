@@ -22,6 +22,8 @@
 
 package trclib;
 
+import hallib.HalUtil;
+
 public class TrcPidDrive implements TrcTaskMgr.Task
 {
     private static final String moduleName = "TrcPidDrive";
@@ -43,6 +45,7 @@ public class TrcPidDrive implements TrcTaskMgr.Task
     private TrcPidController yPidCtrl;
     private TrcPidController turnPidCtrl;
     private TrcEvent notifyEvent;
+    private double expiredTime;
     private double stallTimeout;
     private TrcTone beepDevice;
     private double beepFrequency;
@@ -73,6 +76,7 @@ public class TrcPidDrive implements TrcTaskMgr.Task
         this.yPidCtrl = yPidCtrl;
         this.turnPidCtrl = turnPidCtrl;
         this.notifyEvent = null;
+        this.expiredTime = 0.0;
         this.stallTimeout = 0.0;
         this.beepDevice = null;
         this.beepFrequency = DEF_BEEP_FREQUENCY;
@@ -133,15 +137,16 @@ public class TrcPidDrive implements TrcTaskMgr.Task
         }
     }   //setPidPower
 
-    public void setTarget(double xTarget, double yTarget, double turnTarget, boolean holdTarget, TrcEvent event)
+    public void setTarget(
+            double xTarget, double yTarget, double turnTarget, boolean holdTarget, TrcEvent event, double timeout)
     {
         final String funcName = "setTarget";
 
         if (debugEnabled)
         {
             dbgTrace.traceEnter(
-                    funcName, TrcDbgTrace.TraceLevel.API, "x=%f,y=%f,turn=%f,hold=%s,event=%s",
-                    xTarget, yTarget, turnTarget, Boolean.toString(holdTarget), event.toString());
+                    funcName, TrcDbgTrace.TraceLevel.API, "x=%f,y=%f,turn=%f,hold=%s,event=%s,timeout=%.3f",
+                    xTarget, yTarget, turnTarget, Boolean.toString(holdTarget), event.toString(), timeout);
         }
 
         if (xPidCtrl != null)
@@ -165,6 +170,12 @@ public class TrcPidDrive implements TrcTaskMgr.Task
         }
         this.notifyEvent = event;
 
+        this.expiredTime = timeout;
+        if (timeout != 0)
+        {
+            this.expiredTime += HalUtil.getCurrentTime();
+        }
+
         flags = 0;
         if (holdTarget)
         {
@@ -184,15 +195,22 @@ public class TrcPidDrive implements TrcTaskMgr.Task
         }
     }   //setTarget
 
-    public void setTarget(double yTarget, double turnTarget, boolean holdTarget, TrcEvent event)
+    public void setTarget(double xTarget, double yTarget, double turnTarget, boolean holdTarget, TrcEvent event)
     {
-        setTarget(0.0, yTarget, turnTarget, holdTarget, event);
+        setTarget(xTarget, yTarget, turnTarget, holdTarget, event, 0.0);
     }   //setTarget
 
-    public void setHeadingTarget(
-            double xPower,
-            double yPower,
-            double headingTarget)
+    public void setTarget(double yTarget, double turnTarget, boolean holdTarget, TrcEvent event, double timeout)
+    {
+        setTarget(0.0, yTarget, turnTarget, holdTarget, event, timeout);
+    }   //setTarget
+
+    public void setTarget(double yTarget, double turnTarget, boolean holdTarget, TrcEvent event)
+    {
+        setTarget(0.0, yTarget, turnTarget, holdTarget, event, 0.0);
+    }   //setTarget
+
+    public void setHeadingTarget(double xPower, double yPower, double headingTarget)
     {
         final String funcName = "setHeadingTarget";
 
@@ -418,12 +436,13 @@ public class TrcPidDrive implements TrcTaskMgr.Task
                 0.0: yPidCtrl.getOutput();
         double turnPower = (turnPidCtrl == null)? 0.0: turnPidCtrl.getOutput();
 
+        boolean expired = expiredTime != 0.0 && HalUtil.getCurrentTime() >= expiredTime;
         boolean stalled = stallTimeout != 0.0? driveBase.isStalled(stallTimeout): false;
         boolean xOnTarget = xPidCtrl == null || xPidCtrl.isOnTarget();
         boolean yOnTarget = yPidCtrl == null || yPidCtrl.isOnTarget();
         boolean turnOnTarget = turnPidCtrl == null || turnPidCtrl.isOnTarget();
 
-        if (stalled && beepDevice != null)
+        if ((stalled || expired) && beepDevice != null)
         {
             beepDevice.playTone(beepFrequency, beepDuration);
         }
@@ -432,10 +451,8 @@ public class TrcPidDrive implements TrcTaskMgr.Task
         {
             driveBase.mecanumDrive_Cartesian(manualX, manualY, turnPower, false, 0.0);
         }
-        else if (stalled ||
-                 turnOnTarget &&
-                 ((flags & PIDDRIVEF_TURN_ONLY) != 0 ||
-                  xOnTarget && yOnTarget))
+        else if (expired || stalled ||
+                 turnOnTarget && ((flags & PIDDRIVEF_TURN_ONLY) != 0 || xOnTarget && yOnTarget))
         {
             if ((flags & PIDDRIVEF_HOLD_TARGET) == 0)
             {

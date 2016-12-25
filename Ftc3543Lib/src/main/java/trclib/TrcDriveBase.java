@@ -645,10 +645,13 @@ public class TrcDriveBase extends HalRobotDrive implements TrcTaskMgr.Task
             heading = rotPos;
         }
 
+        double lfPower = leftFrontMotor != null? leftFrontMotor.getPower(): 0.0;
+        double rfPower = rightFrontMotor != null? rightFrontMotor.getPower(): 0.0;
+        double lrPower = leftRearMotor != null? leftRearMotor.getPower(): 0.0;
+        double rrPower = rightRearMotor != null? rightRearMotor.getPower(): 0.0;
         if (lfEnc != prevLeftFrontPos || rfEnc != prevRightFrontPos ||
             lrEnc != prevLeftRearPos || rrEnc != prevRightRearPos ||
-            leftFrontMotor.getPower() == 0.0 && rightFrontMotor.getPower() == 0.0 &&
-            leftRearMotor.getPower() == 0.0 && rightRearMotor.getPower() == 0.0)
+            lfPower == 0.0 && rfPower == 0.0 && lrPower == 0.0 && rrPower == 0.0)
         {
             stallStartTime = HalUtil.getCurrentTime();
         }

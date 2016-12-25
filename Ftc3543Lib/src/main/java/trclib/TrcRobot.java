@@ -111,4 +111,22 @@ public class TrcRobot
 
     }   //interface AutoStrategy
 
+    /**
+     * This interface is used to implement a robot command. A robot command typically implements a subset of an
+     * autonomous routine. This allows the robot command to be shared by multiple autonomous strategies to
+     * maximize code reuse.
+     */
+    public interface RobotCommand
+    {
+        /**
+         * This method is call periodically to perform the robot command. Typically, it is implemented by using
+         * a state machine.
+         *
+         * @param elapsedTime specifies the elapsed time of the period in seconds.
+         * @return true if the command is done, false otherwise.
+         */
+        public boolean cmdPeriodic(double elapsedTime);
+
+    }   //interface RobotCommand
+
 }   //class TrcRobot

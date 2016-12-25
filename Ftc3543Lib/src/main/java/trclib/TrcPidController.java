@@ -99,6 +99,23 @@ public class TrcPidController
         this.pidInput = pidInput;
     }   //TrcPidController
 
+    protected TrcPidController(
+            final String instanceName,
+            double       kP,
+            double       kI,
+            double       kD,
+            double       kF,
+            double       tolerance,
+            double       settlingTime)
+    {
+        this(instanceName, kP, kI, kD, kF, tolerance, settlingTime, null);
+    }   //TrcPidController
+
+    protected void setPidInput(PidInput pidInput)
+    {
+        this.pidInput = pidInput;
+    }   //setPidInput
+
     public void displayPidInfo(int lineNum)
     {
         dashboard.displayPrintf(
@@ -473,7 +490,7 @@ public class TrcPidController
 
         if (noOscillation)
         {
-            if (Math.abs(prevError) <= tolerance)
+            if (prevError <= 0.0 || Math.abs(prevError) <= tolerance)
             {
                 onTarget = true;
             }

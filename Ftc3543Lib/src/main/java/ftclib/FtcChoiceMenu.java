@@ -33,7 +33,7 @@ import trclib.TrcDbgTrace;
  * ENTER button to select the choice. The user can also press the BACK button to cancel the
  * menu and go back to the parent menu.
  */
-public class FtcChoiceMenu extends FtcMenu
+public class FtcChoiceMenu<T> extends FtcMenu
 {
     /**
      * This class defines a choice item in a choice menu.
@@ -41,7 +41,7 @@ public class FtcChoiceMenu extends FtcMenu
     private class ChoiceItem
     {
         private String choiceText;
-        private Object choiceObject;
+        private T choiceObject;
         private FtcMenu childMenu;
 
         /**
@@ -52,7 +52,7 @@ public class FtcChoiceMenu extends FtcMenu
          * @param childMenu specifies the next menu to go to if the choice is selected. It can
          *                  be null if this is the end (i.e. leaf node of the menu tree).
          */
-        public ChoiceItem(String choiceText, Object choiceObject, FtcMenu childMenu)
+        public ChoiceItem(String choiceText, T choiceObject, FtcMenu childMenu)
         {
             this.choiceText = choiceText;
             this.choiceObject = choiceObject;
@@ -74,7 +74,7 @@ public class FtcChoiceMenu extends FtcMenu
          *
          * @return choice object.
          */
-        public Object getObject()
+        public T getObject()
         {
             return choiceObject;
         }   //getObject
@@ -119,7 +119,7 @@ public class FtcChoiceMenu extends FtcMenu
      *                  If this is the last menu (a leaf node in the tree), it can be set
      *                  to null.
      */
-    public void addChoice(String choiceText, Object choiceObject, FtcMenu childMenu)
+    public void addChoice(String choiceText, T choiceObject, FtcMenu childMenu)
     {
         final String funcName = "addChoice";
 
@@ -151,7 +151,7 @@ public class FtcChoiceMenu extends FtcMenu
      * @param choiceText specifies the choice text that will be displayed on the dashboard.
      * @param choiceObj specifies the object to be returned if the choice is selected.
      */
-    public void addChoice(String choiceText, Object choiceObj)
+    public void addChoice(String choiceText, T choiceObj)
     {
         addChoice(choiceText, choiceObj, null);
     }   //addChoice
@@ -189,10 +189,10 @@ public class FtcChoiceMenu extends FtcMenu
      * @param choice specifies the choice index in the menu.
      * @return object of the given choice if choice index is valid, null otherwise.
      */
-    public Object getChoiceObject(int choice)
+    public T getChoiceObject(int choice)
     {
         final String funcName = "getChoiceObject";
-        Object obj = null;
+        T obj = null;
         int tableSize = choiceItems.size();
 
         if (tableSize > 0 && choice >= 0 && choice < tableSize)
@@ -255,7 +255,7 @@ public class FtcChoiceMenu extends FtcMenu
      *
      * @return current choice object, null if menu is empty.
      */
-    public Object getCurrentChoiceObject()
+    public T getCurrentChoiceObject()
     {
         return getChoiceObject(currChoice);
     }   //getCurrentChoiceObject

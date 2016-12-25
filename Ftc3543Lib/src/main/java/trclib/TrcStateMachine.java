@@ -32,7 +32,7 @@ import hallib.HalUtil;
  * events are signaled, the state machine will automatically advance to
  * the specified next state.
  */
-public class TrcStateMachine
+public class TrcStateMachine<T>
 {
     private static final String moduleName = "TrcStateMachine";
     private static final boolean debugEnabled = false;
@@ -40,8 +40,8 @@ public class TrcStateMachine
 
     private final String instanceName;
     private ArrayList<TrcEvent> eventList = new ArrayList<TrcEvent>();
-    private Object currState = null;
-    private Object nextState = null;
+    private T currState = null;
+    private T nextState = null;
     private boolean enabled = false;
     private boolean ready = false;
     private boolean expired = false;
@@ -83,7 +83,7 @@ public class TrcStateMachine
      *
      * @param state specifies the starting state.
      */
-    public void start(Object state)
+    public void start(T state)
     {
         final String funcName = "start";
 
@@ -141,7 +141,7 @@ public class TrcStateMachine
      *
      * @return current state of the state machine.
      */
-    public Object getState()
+    public T getState()
     {
         final String funcName = "getState";
 
@@ -161,7 +161,7 @@ public class TrcStateMachine
      *
      * @param state specifies the state to set the state machine to.
      */
-    public void setState(Object state)
+    public void setState(T state)
     {
         final String funcName = "setState";
 
@@ -355,7 +355,7 @@ public class TrcStateMachine
      *                         will cause the state machien to go
      *                         ready.
      */
-    public void waitForEvents(Object nextState, double timeout, boolean waitForAllEvents)
+    public void waitForEvents(T nextState, double timeout, boolean waitForAllEvents)
     {
         final String funcName = "waitForEvents";
 
@@ -396,7 +396,7 @@ public class TrcStateMachine
      * @param timeout specifies a timeout value. A zero value means
      *                there is no timeout.
      */
-    public void waitForEvents(Object nextState, double timeout)
+    public void waitForEvents(T nextState, double timeout)
     {
         waitForEvents(nextState, timeout, false);
     }   //waitForEvents
@@ -410,7 +410,7 @@ public class TrcStateMachine
      * @param nextState specifies the next state when the state machine
      *                  becomes ready.
      */
-    public void waitForEvents(Object nextState)
+    public void waitForEvents(T nextState)
     {
         waitForEvents(nextState, 0.0, false);
     }   //waitForEvents
@@ -428,7 +428,7 @@ public class TrcStateMachine
      * @param timeout specifies a timeout value. A zero value means
      *                there is no timeout.
      */
-    public void waitForSingleEvent(TrcEvent event, Object nextState, double timeout)
+    public void waitForSingleEvent(TrcEvent event, T nextState, double timeout)
     {
         final String funcName =  "waitForSingleEvent";
 
@@ -460,7 +460,7 @@ public class TrcStateMachine
      * @param nextState specifies the next state when the state machine
      *                  becomes ready.
      */
-    public void waitForSingleEvent(TrcEvent event, Object nextState)
+    public void waitForSingleEvent(TrcEvent event, T nextState)
     {
         waitForSingleEvent(event, nextState, 0.0);
     }   //waitForSingleEvent
