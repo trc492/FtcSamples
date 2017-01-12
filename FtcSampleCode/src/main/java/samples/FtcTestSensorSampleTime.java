@@ -5,6 +5,8 @@ import android.util.Log;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
+import java.util.Locale;
+
 import ftclib.FtcAnalogGyro;
 import ftclib.FtcAndroidGyro;
 import ftclib.FtcDcMotor;
@@ -30,7 +32,7 @@ public class FtcTestSensorSampleTime extends FtcOpMode
     private static SensorType sensorType = SensorType.MR_GYRO;
     private static final boolean LEFTWHEEL_INVERTED = false;
     private static final boolean RIGHTWHEEL_INVERTED = true;
-    public static final double ANALOG_GYRO_VOLT_PER_DEG_PER_SEC = 0.007;
+    private static final double ANALOG_GYRO_VOLT_PER_DEG_PER_SEC = 0.007;
 
     private FtcDcMotor lfWheel;
     private FtcDcMotor rfWheel;
@@ -166,7 +168,7 @@ public class FtcTestSensorSampleTime extends FtcOpMode
                 maxLoopInterval = loopInterval;
             }
 
-            runRobot(String.format("[%4d:%7.3f] LoopInterval=%7.3f, Sensor=%7.2f: ",
+            runRobot(String.format(Locale.US, "[%4d:%7.3f] LoopInterval=%7.3f, Sensor=%7.2f: ",
                                    loopCount, (currTime - startTime)/1000000.0, loopInterval/1000000.0,
                                    getSensorValue()));
         }
@@ -207,7 +209,7 @@ public class FtcTestSensorSampleTime extends FtcOpMode
                 rfWheel.setPower(DRIVE_POWER);
                 lrWheel.setPower(DRIVE_POWER);
                 rrWheel.setPower(DRIVE_POWER);
-                Log.i(TAG, prefix + String.format("lf=%d, rf=%d, lr=%d, rr=%d",
+                Log.i(TAG, prefix + String.format("lf=%.0f, rf=%.0f, lr=%.0f, rr=%.0f",
                                                   lfWheel.getPosition(), rfWheel.getPosition(),
                                                   lrWheel.getPosition(), rrWheel.getPosition()));
                 break;
