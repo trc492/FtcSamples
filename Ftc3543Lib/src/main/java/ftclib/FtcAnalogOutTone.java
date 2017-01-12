@@ -25,11 +25,11 @@ package ftclib;
 import com.qualcomm.robotcore.hardware.AnalogOutput;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
-import hallib.HalUtil;
 import trclib.TrcDbgTrace;
 import trclib.TrcRobot;
 import trclib.TrcTone;
 import trclib.TrcTaskMgr;
+import trclib.TrcUtil;
 
 /**
  * This class implements a platform dependent sound player that can play a tone with specified waveform, frequency,
@@ -41,10 +41,13 @@ public class FtcAnalogOutTone extends TrcTone implements TrcTaskMgr.Task
 {
     private static final String moduleName = "FtcAnalogOutTone";
     private static final boolean debugEnabled = false;
+    private static final boolean tracingEnabled = false;
+    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
 
     private static final int MAX_VOLTAGE = 1023;
-    private static final Waveform DEF_WAVEFORM = Waveform.TriangleWave;
+    private static final Waveform DEF_WAVEFORM = Waveform.TRIANGLE_WAVE;
 
     private String instanceName;
     private AnalogOutput analogOut;
@@ -64,11 +67,7 @@ public class FtcAnalogOutTone extends TrcTone implements TrcTaskMgr.Task
 
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(
-                    moduleName + "." + instanceName,
-                    false,
-                    TrcDbgTrace.TraceLevel.API,
-                    TrcDbgTrace.MsgLevel.INFO);
+            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         this.instanceName = instanceName;
@@ -107,8 +106,7 @@ public class FtcAnalogOutTone extends TrcTone implements TrcTaskMgr.Task
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(
-                    funcName, TrcDbgTrace.TraceLevel.API, "enabled=%s", Boolean.toString(enabled));
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "enabled=%s", Boolean.toString(enabled));
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
@@ -143,9 +141,9 @@ public class FtcAnalogOutTone extends TrcTone implements TrcTaskMgr.Task
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(
-                    funcName, TrcDbgTrace.TraceLevel.API,
-                    "waveform=%s,freq=%.0f,dur=%.3f,vol=%.1f", waveform.toString(), frequency, duration, volume);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
+                                "waveform=%s,freq=%.0f,dur=%.3f,vol=%.1f",
+                                waveform.toString(), frequency, duration, volume);
         }
 
         if (volume < 0.0 || volume > 1.0)
@@ -166,15 +164,15 @@ public class FtcAnalogOutTone extends TrcTone implements TrcTaskMgr.Task
         byte outputMode = 0;
         switch (waveform)
         {
-            case SineWave:
+            case SINE_WAVE:
                 outputMode = 1;
                 break;
 
-            case SquareWave:
+            case SQUARE_WAVE:
                 outputMode = 2;
                 break;
 
-            case TriangleWave:
+            case TRIANGLE_WAVE:
                 outputMode = 3;
                 break;
         }
@@ -182,14 +180,14 @@ public class FtcAnalogOutTone extends TrcTone implements TrcTaskMgr.Task
         analogOut.setAnalogOutputMode(outputMode);
         analogOut.setAnalogOutputFrequency((int)frequency);
         analogOut.setAnalogOutputVoltage((int)(MAX_VOLTAGE*volume));
-        expiredTime = HalUtil.getCurrentTime() + duration;
+        expiredTime = TrcUtil.getCurrentTime() + duration;
         playing = true;
         setTaskEnabled(true);
 
         if (debugEnabled)
         {
-            dbgTrace.traceInfo(
-                    funcName, "mode=%d,freq=%d,dur=%.3f,vol=%.1f", outputMode, (int)frequency, duration, volume);
+            dbgTrace.traceInfo(funcName,
+                               "mode=%d,freq=%d,dur=%.3f,vol=%.1f", outputMode, (int)frequency, duration, volume);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
     }   //playTone
@@ -292,7 +290,7 @@ public class FtcAnalogOutTone extends TrcTone implements TrcTaskMgr.Task
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
         }
 
-        if (expiredTime > 0.0 && HalUtil.getCurrentTime() >= expiredTime)
+        if (expiredTime > 0.0 && TrcUtil.getCurrentTime() >= expiredTime)
         {
             stop();
         }

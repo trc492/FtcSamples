@@ -25,10 +25,9 @@ package ftclib;
 import trclib.TrcDbgTrace;
 
 /**
- * This class implements a value menu where a default value is displayed. The user can press the
- * UP and DOWN button to increase or decrease the value and press the ENTER button to select the
- * value. The user can also press the BACK button to cancel the menu and go back to the parent
- * menu.
+ * This class implements a value menu where a default value is displayed. The user can press the UP and DOWN button
+ * to increase or decrease the value and press the ENTER button to select the value. The user can also press the
+ * BACK button to cancel the menu and go back to the parent menu.
  */
 public class FtcValueMenu extends FtcMenu
 {
@@ -42,10 +41,9 @@ public class FtcValueMenu extends FtcMenu
     /**
      * Constructor: Create an instance of the object.
      *
-     * @param menuTitle specifies the title of the menu. The title will be displayed
-     *                  as the first line in the menu.
-     * @param parent specifies the parent menu to go back to if the BACK button
-     *               is pressed. If this is the root menu, it can be set to null.
+     * @param menuTitle specifies the title of the menu. The title will be displayed as the first line in the menu.
+     * @param parent specifies the parent menu to go back to if the BACK button is pressed. If this is the root menu,
+     *               it can be set to null.
      * @param menuButtons specifies the object that implements the MenuButtons interface.
      * @param minValue specifies the minimum value of the value range.
      * @param maxValue specifies the maximum value of the value range.
@@ -53,9 +51,9 @@ public class FtcValueMenu extends FtcMenu
      * @param defaultValue specifies the default value.
      * @param valueFormat specifies the format string for the value.
      */
-    public FtcValueMenu(String menuTitle, FtcMenu parent, MenuButtons menuButtons,
-                        double minValue, double maxValue, double valueStep, double defaultValue,
-                        String valueFormat)
+    public FtcValueMenu(
+            String menuTitle, FtcMenu parent, MenuButtons menuButtons, double minValue, double maxValue,
+            double valueStep, double defaultValue, String valueFormat)
     {
         super(menuTitle, parent, menuButtons);
         this.minValue = minValue;
@@ -76,8 +74,7 @@ public class FtcValueMenu extends FtcMenu
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
-                                "childMenu=%s", childMenu.getTitle());
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "childMenu=%s", childMenu.getTitle());
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
@@ -85,9 +82,9 @@ public class FtcValueMenu extends FtcMenu
     }   //setChildMenu
 
     /**
-     * This method returns the current value of the value menu. Every value menu has a current
-     * value even if the menu hasn't been displayed and the user hasn't changed the value. In
-     * that case, the current value is the default value.
+     * This method returns the current value of the value menu. Every value menu has a current value even if the menu
+     * hasn't been displayed and the user hasn't changed the value. In that case, the current value is the default
+     * value.
      *
      * @return current value of the value menu.
      */
@@ -109,8 +106,7 @@ public class FtcValueMenu extends FtcMenu
     //
 
     /**
-     * This method increases the current value by valueStep. If the value exceeds maxValue, it
-     * is capped at maxValue.
+     * This method increases the current value by valueStep. If the value exceeds maxValue, it is capped at maxValue.
      */
     public void menuUp()
     {
@@ -130,8 +126,7 @@ public class FtcValueMenu extends FtcMenu
     }   //menuUp
 
     /**
-     * This method decreases the current value by valueStep. If the value is below minValue, it
-     * is capped at minValue.
+     * This method decreases the current value by valueStep. If the value is below minValue, it is capped at minValue.
      */
     public void menuDown()
     {
@@ -170,8 +165,7 @@ public class FtcValueMenu extends FtcMenu
     }   //getChildMenu
 
     /**
-     * This method displays the menu on the dashboard with the current value in the specified
-     * format.
+     * This method displays the menu on the dashboard with the current value in the specified format.
      */
     public void displayMenu()
     {
@@ -184,8 +178,7 @@ public class FtcValueMenu extends FtcMenu
         }
 
         dashboard.clearDisplay();
-        dashboard.displayPrintf(0, "%s" + valueFormat + "%s",
-                                getTitle(), currValue, childMenu != null? " ...": "");
+        dashboard.displayPrintf(0, "%s" + valueFormat + "%s", getTitle(), currValue, childMenu != null? " ...": "");
     }   //displayMenu
 
 }   //class FtcValueMenu

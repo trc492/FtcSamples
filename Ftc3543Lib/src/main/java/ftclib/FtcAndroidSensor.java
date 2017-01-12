@@ -28,10 +28,12 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 
-import hallib.HalUtil;
+import java.util.Locale;
+
 import trclib.TrcDbgTrace;
 import trclib.TrcFilter;
 import trclib.TrcSensor;
+import trclib.TrcUtil;
 
 /**
  * This class implements an Android sensor that may have multiple axes.
@@ -40,12 +42,15 @@ public class FtcAndroidSensor extends TrcSensor implements SensorEventListener
 {
     private static final String moduleName = "FtcAndroidSensor";
     private static final boolean debugEnabled = false;
+    private static final boolean tracingEnabled = false;
+    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
 
     private SensorManager sensorManager;
     private Sensor sensor;
     private int numAxes;
-    private SensorData[] sensorData;
+    private SensorData<Double>[] sensorData;
     private boolean enabled = false;
 
     /**
@@ -55,20 +60,16 @@ public class FtcAndroidSensor extends TrcSensor implements SensorEventListener
      * @param instanceName specifies the instance name.
      * @param sensorType specifies the sensor type.
      * @param numAxes specifies the number of axes of the sensor.
-     * @param filters specifies an array of filter object used for filtering data of each axis.
-     *                If none needed, it can be set to null.
+     * @param filters specifies an array of filter object used for filtering data of each axis. If none needed, it
+     *                can be set to null.
      */
-    public FtcAndroidSensor(
-            Context context, String instanceName, int sensorType, int numAxes, TrcFilter[] filters)
+    public FtcAndroidSensor(Context context, String instanceName, int sensorType, int numAxes, TrcFilter[] filters)
     {
         super(instanceName, numAxes, filters);
 
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName,
-                                       false,
-                                       TrcDbgTrace.TraceLevel.API,
-                                       TrcDbgTrace.MsgLevel.INFO);
+            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         sensorManager = (SensorManager)context.getSystemService(Context.SENSOR_SERVICE);
@@ -76,14 +77,14 @@ public class FtcAndroidSensor extends TrcSensor implements SensorEventListener
         if (sensor == null)
         {
             throw new UnsupportedOperationException(
-                    String.format("There is no sensor of type %d in the system.", sensorType));
+                    String.format(Locale.US, "There is no sensor of type %d in the system.", sensorType));
         }
 
         this.numAxes = numAxes;
         sensorData = new SensorData[numAxes];
         for (int i = 0; i < numAxes; i++)
         {
-            sensorData[i] = new SensorData(HalUtil.getCurrentTime(), 0.0);
+            sensorData[i] = new SensorData<>(TrcUtil.getCurrentTime(), 0.0);
         }
     }   //FtcAndroidSensor
 
@@ -93,13 +94,12 @@ public class FtcAndroidSensor extends TrcSensor implements SensorEventListener
      * @param instanceName specifies the instance name.
      * @param sensorType specifies the sensor type.
      * @param numAxes specifies the number of axes of the sensor.
-     * @param filters specifies an array of filter object used for filtering data of each axis.
-     *                If none needed, it can be set to null.
+     * @param filters specifies an array of filter object used for filtering data of each axis. If none needed, it
+     *                can be set to null.
      */
     public FtcAndroidSensor(String instanceName, int sensorType, int numAxes, TrcFilter[] filters)
     {
-        this(FtcOpMode.getInstance().hardwareMap.appContext,
-             instanceName, sensorType, numAxes, filters);
+        this(FtcOpMode.getInstance().hardwareMap.appContext, instanceName, sensorType, numAxes, filters);
     }   //FtcAndroidSensor
 
     /**
@@ -115,15 +115,15 @@ public class FtcAndroidSensor extends TrcSensor implements SensorEventListener
     }   //FtcAndroidSensor
 
     /**
-     * This method creates an instance of the FtcAndroidSensor with the given sensor type.
-     * If none found, it will return null.
+     * This method creates an instance of the FtcAndroidSensor with the given sensor type. If none found, it will
+     * return null.
      *
      * @param context specifies the activity context.
      * @param instanceName specifies the instance name.
      * @param sensorType specifies the sensor type.
      * @param numAxes specifies the number of axes of the sensor.
-     * @param filters specifies an array of filter object used for filtering data of each axis.
-     *                If none needed, it can be set to null.
+     * @param filters specifies an array of filter object used for filtering data of each axis. If none needed, it
+     *                can be set to null.
      */
     public static FtcAndroidSensor createInstance(
             Context context, String instanceName, int sensorType, int numAxes, TrcFilter[] filters)
@@ -143,25 +143,24 @@ public class FtcAndroidSensor extends TrcSensor implements SensorEventListener
     }   //createInstance
 
     /**
-     * This method creates an instance of the FtcAndroidSensor with the given sensor type.
-     * If none found, it will return null.
+     * This method creates an instance of the FtcAndroidSensor with the given sensor type. If none found, it will
+     * return null.
      *
      * @param instanceName specifies the instance name.
      * @param sensorType specifies the sensor type.
      * @param numAxes specifies the number of axes of the sensor.
-     * @param filters specifies an array of filter object used for filtering data of each axis.
-     *                If none needed, it can be set to null.
+     * @param filters specifies an array of filter object used for filtering data of each axis. If none needed, it
+     *                can be set to null.
      */
-    public static FtcAndroidSensor createInstance(
-            String instanceName, int sensorType, int numAxes, TrcFilter[] filters)
+    public static FtcAndroidSensor createInstance(String instanceName, int sensorType, int numAxes, TrcFilter[] filters)
     {
-        return createInstance(FtcOpMode.getInstance().hardwareMap.appContext,
-                              instanceName, sensorType, numAxes, filters);
+        return createInstance(
+                FtcOpMode.getInstance().hardwareMap.appContext, instanceName, sensorType, numAxes, filters);
     }   //createInstance
 
     /**
-     * This method creates an instance of the FtcAndroidSensor with the given sensor type.
-     * If none found, it will return null.
+     * This method creates an instance of the FtcAndroidSensor with the given sensor type. If none found, it will
+     * return null.
      *
      * @param instanceName specifies the instance name.
      * @param sensorType specifies the sensor type.
@@ -184,8 +183,7 @@ public class FtcAndroidSensor extends TrcSensor implements SensorEventListener
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
-                                "enabled=%s", Boolean.toString(enabled));
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "enabled=%s", Boolean.toString(enabled));
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
@@ -222,8 +220,7 @@ public class FtcAndroidSensor extends TrcSensor implements SensorEventListener
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
-                               "=%s", Boolean.toString(enabled));
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", Boolean.toString(enabled));
         }
 
         return enabled;
@@ -241,10 +238,10 @@ public class FtcAndroidSensor extends TrcSensor implements SensorEventListener
      * @return raw sensor data of the specified axis.
      */
     @Override
-    public SensorData getRawData(int index, Object dataType)
+    public SensorData<Double> getRawData(int index, Object dataType)
     {
         final String funcName = "getRawData";
-        SensorData data = new SensorData(sensorData[index].timestamp, sensorData[index].value);
+        SensorData<Double> data = new SensorData<>(sensorData[index].timestamp, sensorData[index].value);
 
         if (debugEnabled)
         {
@@ -261,8 +258,7 @@ public class FtcAndroidSensor extends TrcSensor implements SensorEventListener
     //
 
     /**
-     * This method is called when the sensor data accuracy has changed.
-     * We don't do anything here.
+     * This method is called when the sensor data accuracy has changed. We don't do anything here.
      *
      * @param sensor specifies the sensor object that generates this event.
      * @param accuracy specifies the new accuracy.
@@ -281,8 +277,8 @@ public class FtcAndroidSensor extends TrcSensor implements SensorEventListener
     }   //onAccuracyChanged
 
     /**
-     * This method is called when new data is available from the sensor. It reads the
-     * data for each axis and stores them.
+     * This method is called when new data is available from the sensor. It reads the data for each axis and stores
+     * them.
      *
      * @param event specifies the sensor data.
      */

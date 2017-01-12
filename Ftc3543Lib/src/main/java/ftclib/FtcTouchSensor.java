@@ -29,14 +29,16 @@ import trclib.TrcDigitalInput;
 import trclib.TrcDbgTrace;
 
 /**
- * This class implements a platform dependent touch sensor extending
- * TrcDigitalInput. It provides implementation of the abstract methods
- * in TrcDigitalInput.
+ * This class implements a platform dependent touch sensor extending TrcDigitalInput. It provides implementation of
+ * the abstract methods in TrcDigitalInput.
  */
 public class FtcTouchSensor extends TrcDigitalInput
 {
     private static final String moduleName = "FtcTouchSensor";
     private static final boolean debugEnabled = false;
+    private static final boolean tracingEnabled = false;
+    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
 
     private TouchSensor touchSensor;
@@ -53,11 +55,7 @@ public class FtcTouchSensor extends TrcDigitalInput
 
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(
-                    moduleName + "." + instanceName,
-                    false,
-                    TrcDbgTrace.TraceLevel.API,
-                    TrcDbgTrace.MsgLevel.INFO);
+            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         this.touchSensor = hardwareMap.touchSensor.get(instanceName);
@@ -91,8 +89,7 @@ public class FtcTouchSensor extends TrcDigitalInput
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
-                               "=%s", Boolean.toString(active));
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", Boolean.toString(active));
         }
 
         return active;

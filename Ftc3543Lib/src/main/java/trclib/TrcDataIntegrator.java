@@ -22,30 +22,29 @@
 
 package trclib;
 
-import hallib.HalUtil;
-
 /**
- * This class does data integration for sensors that have one or more axes.
- * Some value sensors such as gyros and accelerometers may need to integrate
- * their data to provide heading from gyro rotation rate, and velocity or
- * distance from accelerometer acceleration data. This class uses a periodic
- * task to do integration and optionally double integration.
+ * This class does data integration for sensors that have one or more axes. Some value sensors such as gyros and
+ * accelerometers may need to integrate their data to provide heading from gyro rotation rate, and velocity or
+ * distance from accelerometer acceleration data. This class uses a periodic task to do integration and optionally
+ * double integration.
  */
-public class TrcDataIntegrator implements TrcTaskMgr.Task
+public class TrcDataIntegrator<D> implements TrcTaskMgr.Task
 {
     private static final String moduleName = "TrcDataIntegrator";
     private static final boolean debugEnabled = false;
+    private static final boolean tracingEnabled = false;
+    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
 
     private final String instanceName;
     private TrcSensor sensor;
-    private Object dataType;
+    private D dataType;
     private int numAxes;
-    private TrcSensor.SensorData[] inputData;
-    private TrcSensor.SensorData[] integratedData;
-    private TrcSensor.SensorData[] doubleIntegratedData;
+    private TrcSensor.SensorData<Double>[] inputData;
+    private TrcSensor.SensorData<Double>[] integratedData;
+    private TrcSensor.SensorData<Double>[] doubleIntegratedData;
     private double[] prevTimes;
-    private boolean unwindIntegratedData = false;
 
     /**
      * Constructor: Creates an instance of the object.
@@ -55,19 +54,11 @@ public class TrcDataIntegrator implements TrcTaskMgr.Task
      * @param dataType specifies the data type to be integrated.
      * @param doubleIntegration specifies true to do double integration, false otherwise.
      */
-    public TrcDataIntegrator(
-            final String instanceName,
-            TrcSensor sensor,
-            Object dataType,
-            boolean doubleIntegration)
+    public TrcDataIntegrator(final String instanceName, TrcSensor sensor, D dataType, boolean doubleIntegration)
     {
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(
-                    moduleName + "." + instanceName,
-                    false,
-                    TrcDbgTrace.TraceLevel.API,
-                    TrcDbgTrace.MsgLevel.INFO);
+            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         if (sensor == null)
@@ -87,10 +78,10 @@ public class TrcDataIntegrator implements TrcTaskMgr.Task
 
         for (int i = 0; i < numAxes; i++)
         {
-            integratedData[i] = new TrcSensor.SensorData(0.0, 0.0);
+            integratedData[i] = new TrcSensor.SensorData<>(0.0, 0.0);
             if (doubleIntegratedData != null)
             {
-                doubleIntegratedData[i] = new TrcSensor.SensorData(0.0, 0.0);
+                doubleIntegratedData[i] = new TrcSensor.SensorData<>(0.0, 0.0);
             }
             prevTimes[i] = 0.0;
         }
@@ -103,7 +94,7 @@ public class TrcDataIntegrator implements TrcTaskMgr.Task
      * @param sensor specifies the sensor object that needs integration.
      * @param dataType specifies the data type to be integrated.
      */
-    public TrcDataIntegrator(final String instanceName, TrcSensor sensor, Object dataType)
+    public TrcDataIntegrator(final String instanceName, TrcSensor sensor, D dataType)
     {
         this(instanceName, sensor, dataType, false);
     }   //TrcDataProcessor
@@ -119,21 +110,8 @@ public class TrcDataIntegrator implements TrcTaskMgr.Task
     }   //toString
 
     /**
-     * This method allows the caller to unwind the integrated data if the
-     * data point of all axes are zero.
-     *
-     * @param unwindData specifies true to reset integrated data if all inputs are zero,
-     *                   false otherwise.
-     */
-    public void setUnwindIntegratedData(boolean unwindData)
-    {
-        unwindIntegratedData = unwindData;
-    }   //setUnwindIntegratedData
-
-    /**
-     * This method enables the data integrator. The data integrator is not
-     * automatically enabled when created. You must explicitly call this
-     * method to enable the data integrator.
+     * This method enables the data integrator. The data integrator is not automatically enabled when created. You
+     * must explicitly call this method to enable the data integrator.
      *
      * @param enabled specifies true for enabling the data processor, disabling it otherwise.
      */
@@ -143,16 +121,14 @@ public class TrcDataIntegrator implements TrcTaskMgr.Task
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
-                                "enabled=%s", Boolean.toString(enabled));
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "enabled=%s", Boolean.toString(enabled));
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
         if (enabled)
         {
             reset();
-            TrcTaskMgr.getInstance().registerTask(
-                    instanceName, this, TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            TrcTaskMgr.getInstance().registerTask(instanceName, this, TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
         }
         else
         {
@@ -175,7 +151,7 @@ public class TrcDataIntegrator implements TrcTaskMgr.Task
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        prevTimes[index] = HalUtil.getCurrentTime();
+        prevTimes[index] = TrcUtil.getCurrentTime();
         integratedData[index].value = 0.0;
         if (doubleIntegratedData != null)
         {
@@ -211,16 +187,15 @@ public class TrcDataIntegrator implements TrcTaskMgr.Task
     public TrcSensor.SensorData getInputData(int index)
     {
         final String funcName = "getInputData";
-        TrcSensor.SensorData data =
-                new TrcSensor.SensorData(inputData[index].timestamp, inputData[index].value);
+        TrcSensor.SensorData<Double> data = new TrcSensor.SensorData<>(
+                inputData[index].timestamp, inputData[index].value);
 
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
                                "=(timestamp=%.3f,value=%f",
-                               data != null? data.timestamp: 0.0,
-                               data != null? data.value: 0.0);
+                               data != null? data.timestamp: 0.0, data != null? data.value: 0.0);
         }
 
         return data;
@@ -235,7 +210,7 @@ public class TrcDataIntegrator implements TrcTaskMgr.Task
     public TrcSensor.SensorData getIntegratedData(int index)
     {
         final String funcName = "getIntegratedData";
-        TrcSensor.SensorData data = new TrcSensor.SensorData(
+        TrcSensor.SensorData<Double> data = new TrcSensor.SensorData<>(
                 integratedData[index].timestamp, integratedData[index].value);
 
         if (debugEnabled)
@@ -243,8 +218,7 @@ public class TrcDataIntegrator implements TrcTaskMgr.Task
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
                                "=(timestamp=%.3f,value=%f",
-                               data != null? data.timestamp: 0.0,
-                               data != null? data.value: 0.0);
+                               data != null? data.timestamp: 0.0, data != null? data.value: 0.0);
         }
 
         return data;
@@ -259,7 +233,7 @@ public class TrcDataIntegrator implements TrcTaskMgr.Task
     public TrcSensor.SensorData getDoubleIntegratedData(int index)
     {
         final String funcName = "getDoubleIntegratedData";
-        TrcSensor.SensorData data = new TrcSensor.SensorData(
+        TrcSensor.SensorData<Double> data = new TrcSensor.SensorData<>(
                     doubleIntegratedData[index].timestamp, doubleIntegratedData[index].value);
 
         if (debugEnabled)
@@ -267,8 +241,7 @@ public class TrcDataIntegrator implements TrcTaskMgr.Task
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
                                "=(timestamp=%.3f,value=%f",
-                               data != null? data.timestamp: 0.0,
-                               data != null? data.value: 0.0);
+                               data != null? data.timestamp: 0.0, data != null? data.value: 0.0);
         }
 
         return data;
@@ -310,9 +283,7 @@ public class TrcDataIntegrator implements TrcTaskMgr.Task
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(
-                    funcName, TrcDbgTrace.TraceLevel.TASK,
-                    "mode=%s", runMode.toString());
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "mode=%s", runMode.toString());
         }
 
         boolean allZeroAxis = true;
@@ -322,9 +293,9 @@ public class TrcDataIntegrator implements TrcTaskMgr.Task
             //
             // Get sensor data.
             //
-            inputData[i] = sensor.getData(i, dataType);
+            inputData[i] = sensor.getProcessedData(i, dataType);
             deltaTime[i] = inputData[i].timestamp - prevTimes[i];
-            if ((Double)inputData[i].value != 0.0)
+            if (inputData[i].value != 0.0)
             {
                 allZeroAxis = false;
             }
@@ -332,8 +303,7 @@ public class TrcDataIntegrator implements TrcTaskMgr.Task
             // Do integration.
             //
             integratedData[i].timestamp = inputData[i].timestamp;
-            integratedData[i].value = (Double)integratedData[i].value +
-                                      (Double)inputData[i].value*deltaTime[i];
+            integratedData[i].value = integratedData[i].value + inputData[i].value*deltaTime[i];
             prevTimes[i] = inputData[i].timestamp;
         }
 
@@ -352,8 +322,7 @@ public class TrcDataIntegrator implements TrcTaskMgr.Task
                 else
                 {
                     doubleIntegratedData[i].value =
-                            (Double)doubleIntegratedData[i].value +
-                            (Double)integratedData[i].value*deltaTime[i];
+                            doubleIntegratedData[i].value + integratedData[i].value*deltaTime[i];
                 }
             }
         }

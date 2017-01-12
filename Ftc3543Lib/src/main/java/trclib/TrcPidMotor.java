@@ -22,22 +22,19 @@
 
 package trclib;
 
-import hallib.HalMotorController;
-import hallib.HalUtil;
-
 /**
- * This class implements a platform independent PID controlled motor.
- * A PID controlled motor may consist of one or two physical motors,
- * a position sensor, typically an encoder (or could be a potentiometer).
- * Optionally, it supports a lower limit switch or even an upper limit
- * switch. In addition, it has stall protection support which will detect
- * motor stall condition and will cut power to the motor preventing it
- * from burning out.
+ * This class implements a platform independent PID controlled motor. A PID controlled motor may consist of one or
+ * two physical motors, a position sensor, typically an encoder (or could be a potentiometer). Optionally, it supports
+ * a lower limit switch or even an upper limit switch. In addition, it has stall protection support which will detect
+ * motor stall condition and will cut power to the motor preventing it from burning out.
  */
 public class TrcPidMotor implements TrcTaskMgr.Task
 {
     private static final String moduleName = "TrcPidMotor";
     private static final boolean debugEnabled = false;
+    private static final boolean tracingEnabled = false;
+    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
 
     private static final double MIN_MOTOR_POWER = -1.0;
@@ -47,9 +44,9 @@ public class TrcPidMotor implements TrcTaskMgr.Task
     private static final double DEF_BEEP_HIGH_FREQUECY = 880.0;     //in Hz
     private static final double DEF_BEEP_DURATION = 0.2;            //in seconds
 
-    private String instanceName;
-    private HalMotorController motor1;
-    private HalMotorController motor2;
+    private final String instanceName;
+    private TrcMotor motor1;
+    private TrcMotor motor2;
     private TrcPidController pidCtrl;
 
     private boolean active = false;
@@ -85,26 +82,16 @@ public class TrcPidMotor implements TrcTaskMgr.Task
      *
      * @param instanceName specifies the instance name.
      * @param motor1 specifies motor1 object.
-     * @param motor2 specifies motor2 object.
-     *               If there is only one motor, this can be set to nul.
-     * @param syncGain specifies the gain constant for synchronizing motor1
-     *                 and motor2.
+     * @param motor2 specifies motor2 object. If there is only one motor, this can be set to null.
+     * @param syncGain specifies the gain constant for synchronizing motor1 and motor2.
      * @param pidCtrl specifies the PID controller object.
      */
     public TrcPidMotor(
-            final String instanceName,
-            HalMotorController motor1,
-            HalMotorController motor2,
-            double syncGain,
-            TrcPidController pidCtrl)
+            final String instanceName, TrcMotor motor1, TrcMotor motor2, double syncGain, TrcPidController pidCtrl)
     {
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(
-                    moduleName + "." + instanceName,
-                    false,
-                    TrcDbgTrace.TraceLevel.API,
-                    TrcDbgTrace.MsgLevel.INFO);
+            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         if (motor1 == null && motor2 == null)
@@ -129,15 +116,10 @@ public class TrcPidMotor implements TrcTaskMgr.Task
      *
      * @param instanceName specifies the instance name.
      * @param motor1 specifies motor1 object.
-     * @param motor2 specifies motor2 object.
-     *               If there is only one motor, this can be set to nul.
+     * @param motor2 specifies motor2 object. If there is only one motor, this can be set to null.
      * @param pidCtrl specifies the PID controller object.
      */
-    public TrcPidMotor(
-            final String instanceName,
-            HalMotorController motor1,
-            HalMotorController motor2,
-            TrcPidController pidCtrl)
+    public TrcPidMotor(final String instanceName, TrcMotor motor1, TrcMotor motor2, TrcPidController pidCtrl)
     {
         this(instanceName, motor1, motor2, 0.0, pidCtrl);
     }   //TrcPidMotor
@@ -149,10 +131,7 @@ public class TrcPidMotor implements TrcTaskMgr.Task
      * @param motor specifies motor object.
      * @param pidCtrl specifies the PID controller object.
      */
-    public TrcPidMotor(
-            final String instanceName,
-            HalMotorController motor,
-            TrcPidController pidCtrl)
+    public TrcPidMotor(final String instanceName, TrcMotor motor, TrcPidController pidCtrl)
     {
         this(instanceName, motor, null, 0.0, pidCtrl);
     }   //TrcPidMotor
@@ -179,8 +158,7 @@ public class TrcPidMotor implements TrcTaskMgr.Task
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(
-                    funcName, TrcDbgTrace.TraceLevel.API, "=%s", Boolean.toString(active));
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", Boolean.toString(active));
         }
 
         return active;
@@ -218,9 +196,8 @@ public class TrcPidMotor implements TrcTaskMgr.Task
     }   //cancel
 
     /**
-     * This method sets the position scale. Instead of setting PID target with units
-     * such as encoder count, one could set the scale to convert the unit to something
-     * meaningful such as inches.
+     * This method sets the position scale. Instead of setting PID target with units such as encoder count, one could
+     * set the scale to convert the unit to something meaningful such as inches or degrees.
      *
      * @param positionScale specifies the position scale value.
      */
@@ -230,9 +207,7 @@ public class TrcPidMotor implements TrcTaskMgr.Task
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(
-                    funcName, TrcDbgTrace.TraceLevel.API,
-                    "scale=%f", positionScale);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "scale=%f", positionScale);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
@@ -260,16 +235,15 @@ public class TrcPidMotor implements TrcTaskMgr.Task
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(
-                    funcName, TrcDbgTrace.TraceLevel.API, "=%f", pos);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", pos);
         }
 
         return pos;
     }   //getPosition
 
     /**
-     * This method sets the beep device and the beep tones so that it can play beeps when motor stalled or
-     * if the limit switches are activated/deactivated.
+     * This method sets the beep device and the beep tones so that it can play beeps when motor stalled or if the
+     * limit switches are activated/deactivated.
      *
      * @param beepDevice specifies the beep device object.
      * @param beepLowFrequency specifies the low frequency beep.
@@ -282,9 +256,9 @@ public class TrcPidMotor implements TrcTaskMgr.Task
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(
-                    funcName, TrcDbgTrace.TraceLevel.API, "beep=%s,lowFreq=%.0f,hiFreq=%.0f,duration=%.3f",
-                    beepDevice.toString(), beepLowFrequency, beepHighFrequency, beepDuration);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
+                                "beep=%s,lowFreq=%.0f,hiFreq=%.0f,duration=%.3f",
+                                beepDevice.toString(), beepLowFrequency, beepHighFrequency, beepDuration);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
@@ -295,8 +269,8 @@ public class TrcPidMotor implements TrcTaskMgr.Task
     }   //setBeep
 
     /**
-     * This method sets the beep device and the beep tones so that it can play beeps when motor stalled or
-     * if the limit switches are activated/deactivated.
+     * This method sets the beep device so that it can play beeps at default frequencies and duration when motor
+     * stalled or if the limit switches are activated/deactivated.
      *
      * @param beepDevice specifies the beep device object.
      */
@@ -306,19 +280,18 @@ public class TrcPidMotor implements TrcTaskMgr.Task
     }   //setBeep
 
     /**
-     * This method sets stall protection. When stall protection is turned ON, it will
-     * monitor the motor movement for stalled condition. A motor is considered stalled if:
-     * - the power applied to the motor is above stallMinPower.
+     * This method sets stall protection. When stall protection is turned ON, it will monitor the motor movement for
+     * stalled condition. A motor is considered stalled if:
+     * - the power applied to the motor is above or equal to stallMinPower.
      * - the motor has not moved for at least stallTimeout.
      *
-     * @param stallMinPower specifies the minimum motor power to detect stalled condition.
-     *                      If the motor power is below stallMinPower, it won't consider it
-     *                      as a stalled condition even if the motor does not move.
-     * @param stallTimeout specifies the time in seconds that the motor must stopped before
-     *                     it is declared stalled.
-     * @param resetTimeout specifies the time in seconds the motor must be set to zero power
-     *                     after it is declared stalled will the stalled condition be reset.
-     *                     If this is set to zero, the stalled condition won't be cleared.
+     * @param stallMinPower specifies the minimum motor power to detect stalled condition. If the motor power is
+     *                      below stallMinPower, it won't consider it as a stalled condition even if the motor does
+     *                      not move.
+     * @param stallTimeout specifies the time in seconds that the motor must stopped before it is declared stalled.
+     * @param resetTimeout specifies the time in seconds the motor must be set to zero power after it is declared
+     *                     stalled will the stalled condition be reset. If this is set to zero, the stalled condition
+     *                     won't be cleared.
      */
     public void setStallProtection(double stallMinPower, double stallTimeout, double resetTimeout)
     {
@@ -326,10 +299,9 @@ public class TrcPidMotor implements TrcTaskMgr.Task
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(
-                    funcName, TrcDbgTrace.TraceLevel.API,
-                    "stallMinPower=%f,stallTimeout=%f,resetTimeout=%f",
-                    stallMinPower, stallTimeout, resetTimeout);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
+                                "stallMinPower=%f,stallTimeout=%f,resetTimeout=%f",
+                                stallMinPower, stallTimeout, resetTimeout);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
@@ -344,10 +316,9 @@ public class TrcPidMotor implements TrcTaskMgr.Task
      * @param target specifies the PID target.
      * @param holdTarget specifies true to hold target after PID operation is completed.
      * @param event specifies an event object to signal when done.
-     * @param timeout specifies a timeout value in seconds. If the operation is not completed
-     *                without the specified timeout, the operation will be canceled and the
-     *                event will be signaled. If no timeout is specified, it should be set to
-     *                zero.
+     * @param timeout specifies a timeout value in seconds. If the operation is not completed without the specified
+     *                timeout, the operation will be canceled and the event will be signaled. If no timeout is
+     *                specified, it should be set to zero.
      */
     private void setTarget(double target, boolean holdTarget, TrcEvent event, double timeout)
     {
@@ -355,18 +326,15 @@ public class TrcPidMotor implements TrcTaskMgr.Task
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(
-                    funcName, TrcDbgTrace.TraceLevel.API,
-                    "target=%f,hold=%s,event=%s,timeout=%f",
-                    target, Boolean.toString(holdTarget),
-                    event != null? event.toString(): "null", timeout);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
+                                "target=%f,hold=%s,event=%s,timeout=%f",
+                                target, Boolean.toString(holdTarget), event != null? event.toString(): "null", timeout);
         }
 
         if (active)
         {
             //
-            // A previous PID operation in progress, stop it but don't stop the motor
-            // to prevent jerkiness.
+            // A previous PID operation in progress, stop it but don't stop the motor to prevent jerkiness.
             //
             stop(false);
         }
@@ -392,13 +360,13 @@ public class TrcPidMotor implements TrcTaskMgr.Task
         //
         if (timeout != 0.0)
         {
-            expiredTime += HalUtil.getCurrentTime();
+            expiredTime += TrcUtil.getCurrentTime();
         }
 
         //
         // Set the PID motor task active.
         //
-        setActive(true);
+        setTaskEnabled(true);
 
         if (debugEnabled)
         {
@@ -411,10 +379,9 @@ public class TrcPidMotor implements TrcTaskMgr.Task
      *
      * @param target specifies the PID target.
      * @param event specifies an event object to signal when done.
-     * @param timeout specifies a timeout value in seconds. If the operation is not completed
-     *                without the specified timeout, the operation will be canceled and the
-     *                event will be signaled. If no timeout is specified, it should be set to
-     *                zero.
+     * @param timeout specifies a timeout value in seconds. If the operation is not completed without the specified
+     *                timeout, the operation will be canceled and the event will be signaled. If no timeout is
+     *                specified, it should be set to zero.
      */
     public void setTarget(double target, TrcEvent event, double timeout)
     {
@@ -433,9 +400,8 @@ public class TrcPidMotor implements TrcTaskMgr.Task
     }   //setTarget
 
     /**
-     * This method sets the PID motor power. It will also check for stalled condition
-     * and cut motor power if stalled detected. It will also check to reset the stalled
-     * condition if reset timeout was specified.
+     * This method sets the PID motor power. It will also check for stalled condition and cut motor power if stalled
+     * detected. It will also check to reset the stalled condition if reset timeout was specified.
      *
      * @param power specifies the motor power.
      * @param rangeLow specifies the range low limit.
@@ -448,10 +414,9 @@ public class TrcPidMotor implements TrcTaskMgr.Task
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(
-                    funcName, TrcDbgTrace.TraceLevel.API,
-                    "power=%f,rangeLow=%f,rangeHigh=%f,stopPid=%s",
-                    power, rangeLow, rangeHigh, Boolean.toString(stopPid));
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
+                                "power=%f,rangeLow=%f,rangeHigh=%f,stopPid=%s",
+                                power, rangeLow, rangeHigh, Boolean.toString(stopPid));
         }
 
         if (power != 0.0 || calPower == 0.0)
@@ -459,27 +424,25 @@ public class TrcPidMotor implements TrcTaskMgr.Task
             if (active && stopPid)
             {
                 //
-                // A previous PID operation is still in progress, cancel it.
-                // Don't stop the motor to prevent jerkiness.
+                // A previous PID operation is still in progress, cancel it. Don't stop the motor to prevent jerkiness.
                 //
                 stop(false);
             }
 
-            power = TrcUtil.limit(power, rangeLow, rangeHigh);
+            power = TrcUtil.clipRange(power, rangeLow, rangeHigh);
 
             if (stalled)
             {
                 if (power == 0.0)
                 {
                     //
-                    // We had a stalled condition but if power is removed for at least
-                    // reset timeout, we clear the stalled condition.
+                    // We had a stalled condition but if power is removed for at least reset timeout, we clear the
+                    // stalled condition.
                     //
-                    if (resetTimeout == 0.0 ||
-                        HalUtil.getCurrentTime() - prevTime > resetTimeout)
+                    if (resetTimeout == 0.0 || TrcUtil.getCurrentTime() - prevTime > resetTimeout)
                     {
-                        prevPos = motor1.getPosition();
-                        prevTime = HalUtil.getCurrentTime();
+                        prevPos = getPosition();
+                        prevTime = TrcUtil.getCurrentTime();
                         stalled = false;
                         if (beepDevice != null)
                         {
@@ -489,7 +452,7 @@ public class TrcPidMotor implements TrcTaskMgr.Task
                 }
                 else
                 {
-                    prevTime = HalUtil.getCurrentTime();
+                    prevTime = TrcUtil.getCurrentTime();
                 }
             }
             else
@@ -502,18 +465,18 @@ public class TrcPidMotor implements TrcTaskMgr.Task
                     // - power is above stallMinPower
                     // - motor has not moved for at least stallTimeout.
                     //
-                    double currPos = motor1.getPosition();
+                    double currPos = getPosition();
                     if (Math.abs(power) < Math.abs(stallMinPower) || currPos != prevPos)
                     {
                         prevPos = currPos;
-                        prevTime = HalUtil.getCurrentTime();
+                        prevTime = TrcUtil.getCurrentTime();
                     }
 
-                    if (HalUtil.getCurrentTime() - prevTime > stallTimeout)
+                    if (TrcUtil.getCurrentTime() - prevTime > stallTimeout)
                     {
                         //
-                        // We have detected a stalled condition for at least
-                        // stallTimeout. Kill power to protect the motor.
+                        // We have detected a stalled condition for at least stallTimeout. Kill power to protect
+                        // the motor.
                         //
                         motorPower = 0.0;
                         stalled = true;
@@ -535,10 +498,9 @@ public class TrcPidMotor implements TrcTaskMgr.Task
     }   //setPower
 
     /**
-     * This method sets the PID motor power. It will check for the limit switches.
-     * If activated, it won't allow the motor to go in that direction. It will also
-     * check for stalled condition and cut motor power if stalled detected. It will
-     * also check to reset the stalled condition if reset timeout was specified.
+     * This method sets the PID motor power. It will check for the limit switches. If activated, it won't allow the
+     * motor to go in that direction. It will also check for stalled condition and cut motor power if stalled detected.
+     * It will also check to reset the stalled condition if reset timeout was specified.
      *
      * @param power specifies the motor power.
      * @param rangeLow specifies the range low limit.
@@ -550,10 +512,9 @@ public class TrcPidMotor implements TrcTaskMgr.Task
     }   //setPower
 
     /**
-     * This method sets the PID motor power. It will check for the limit switches.
-     * If activated, it won't allow the motor to go in that direction. It will also
-     * check for stalled condition and cut motor power if stalled detected. It will
-     * also check to reset the stalled condition if reset timeout was specified.
+     * This method sets the PID motor power. It will check for the limit switches. If activated, it won't allow the
+     * motor to go in that direction. It will also check for stalled condition and cut motor power if stalled detected.
+     * It will also check to reset the stalled condition if reset timeout was specified.
      *
      * @param power specifies the motor power.
      */
@@ -563,48 +524,41 @@ public class TrcPidMotor implements TrcTaskMgr.Task
     }   //setPower
 
     /**
-     * This method sets the motor power with PID control. The motor will be under
-     * PID control and the power specifies the upper bound of how fast the motor
-     * will spin. The actual motor power is controlled by a PID controller with
-     * the target either set to minPos or maxPos depending on the direction of
-     * the motor. This is very useful in scenarios such as an elevator where you
-     * want to have the elevator controlled by a joystick but would like PID
-     * control to pay attention to the upper and lower limits and slow down when
-     * approaching those limits. The joystick value will specify the upper bound
-     * of the elevator speed. So if the joystick is only pushed half way, the
+     * This method sets the motor speed with PID control. The motor will be under PID control and the speed specifies
+     * the upper bound of how fast the motor will spin. The actual motor power is controlled by a PID controller with
+     * the target either set to minPos or maxPos depending on the direction of the motor. This is very useful in
+     * scenarios such as an elevator where you want to have the elevator controlled by a joystick but would like PID
+     * control to pay attention to the upper and lower limits and slow down when approaching those limits. The joystick
+     * value will specify the upper bound of the elevator speed. So if the joystick is only pushed half way, the
      * elevator will only go half power even though it is far away from the target.
      *
-     * @param power specifies the upper bound power of the motor.
+     * @param speed specifies the upper bound speed of the motor.
      * @param minPos specifies the minimum position of the motor travel.
      * @param maxPos specifies the maximum position of the motor travel.
-     * @param holdTarget specifies true to hold target when power is set to 0, false otherwise.
+     * @param holdTarget specifies true to hold target when speed is set to 0, false otherwise.
      */
-    public void setPidPower(double power, double minPos, double maxPos, boolean holdTarget)
+    public void setSpeed(double speed, double minPos, double maxPos, boolean holdTarget)
     {
-        final String funcName = "setPidPower";
+        final String funcName = "setSpeed";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(
-                    funcName, TrcDbgTrace.TraceLevel.API,
-                    "power=%f,minPos=%f,maxPos=%f",
-                    power, minPos, maxPos);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
+                                "speed=%.2f,minPos=%.2f,maxPos=%.2f", speed, minPos, maxPos);
         }
 
         //
-        // If power is negative, set the target to minPos.
-        // If power is positive, set the target to maxPos.
-        // We only set a new target if the target has changed.
-        // (i.e. either the motor changes direction, starting or stopping).
+        // If speed is negative, set the target to minPos. If speed is positive, set the target to maxPos. We only
+        // set a new target if the target has changed. (i.e. either the motor changes direction, starting or stopping).
         //
-        double currTarget = power < 0.0? minPos: power > 0.0? maxPos: 0.0;
+        double currTarget = speed < 0.0? minPos: speed > 0.0? maxPos: 0.0;
         if (currTarget != prevTarget)
         {
-            if (power == 0.0)
+            if (speed == 0.0)
             {
                 //
-                // We are stopping, Relax the power range to max range so we have
-                // full power to hold target if necessary.
+                // We are stopping, Relax the power range to max range so we have full power to hold target if
+                // necessary.
                 //
                 pidCtrl.setOutputRange(MIN_MOTOR_POWER, MAX_MOTOR_POWER);
                 if (holdTarget)
@@ -612,7 +566,7 @@ public class TrcPidMotor implements TrcTaskMgr.Task
                     //
                     // Hold target at current position.
                     //
-                    setTarget(motor1.getPosition()*positionScale, true, null, 0.0);
+                    setTarget(getPosition(), true, null, 0.0);
                 }
                 else
                 {
@@ -627,17 +581,16 @@ public class TrcPidMotor implements TrcTaskMgr.Task
                 //
                 // We changed direction, change the target.
                 //
-                power = Math.abs(power);
-                pidCtrl.setOutputRange(-power, power);
+                speed = Math.abs(speed);
+                pidCtrl.setOutputRange(-speed, speed);
                 setTarget(currTarget, holdTarget, null, 0.0);
             }
             prevTarget = currTarget;
         }
-        else if (power == 0.0)
+        else if (speed == 0.0)
         {
             //
-            // We remain stopping, keep the power range relaxed in case we are holding
-            // previous target.
+            // We remain stopping, keep the power range relaxed in case we are holding previous target.
             //
             pidCtrl.setOutputRange(MIN_MOTOR_POWER, MAX_MOTOR_POWER);
         }
@@ -646,19 +599,19 @@ public class TrcPidMotor implements TrcTaskMgr.Task
             //
             // Direction did not change but we need to update the power range.
             //
-            power = Math.abs(power);
-            pidCtrl.setOutputRange(-power, power);
+            speed = Math.abs(speed);
+            pidCtrl.setOutputRange(-speed, speed);
         }
 
         if (debugEnabled)
         {
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
-    }   //setPidPower
+    }   //setSpeed
 
     /**
-     * This method starts zero calibration mode by moving the motor with specified
-     * calibration power until a limit switch is hit.
+     * This method starts zero calibration mode by moving the motor with specified calibration power until a limit
+     * switch is hit.
      *
      * @param calPower specifies calibration power.
      */
@@ -668,21 +621,17 @@ public class TrcPidMotor implements TrcTaskMgr.Task
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(
-                    funcName, TrcDbgTrace.TraceLevel.API,
-                    "calPower=%f", calPower);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "calPower=%f", calPower);
         }
 
         //
-        // Calibration power is always negative.
-        // Motor 1 always has a lower limit switch. If there is a motor 2, motor 2
-        // has a lower limit switch only if it is independent of motor 1 and needs
-        // synchronizing with motor 1.
+        // Calibration power is always negative. Motor 1 always has a lower limit switch. If there is a motor 2,
+        // motor 2 has a lower limit switch only if it is independent of motor 1 and needs synchronizing with motor 1.
         //
         this.calPower = -Math.abs(calPower);
         motor1ZeroCalDone = false;
         motor2ZeroCalDone = motor2 == null || syncGain == 0.0;
-        setActive(true);
+        setTaskEnabled(true);
 
         if (debugEnabled)
         {
@@ -701,10 +650,10 @@ public class TrcPidMotor implements TrcTaskMgr.Task
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(
-                    funcName, TrcDbgTrace.TraceLevel.API,
-                    "power=%f", power);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "power=%f", power);
         }
+
+        power = TrcUtil.clipRange(power, MIN_MOTOR_POWER, MAX_MOTOR_POWER);
 
         if (motor1.isLowerLimitSwitchActive())
         {
@@ -719,9 +668,8 @@ public class TrcPidMotor implements TrcTaskMgr.Task
         if (power == 0.0 || syncGain == 0.0 || calPower != 0.0)
         {
             //
-            // If we are not sync'ing or is in zero calibration mode, just set the motor power.
-            // If we are stopping the motor, even if we are sync'ing, we should just stop. But
-            // we should still observe the limit switches.
+            // If we are not sync'ing or is in zero calibration mode, just set the motor power. If we are stopping
+            // the motor, even if we are sync'ing, we should just stop. But we should still observe the limit switches.
             //
             motor1.setPower(power);
             if (motor2 != null)
@@ -733,23 +681,26 @@ public class TrcPidMotor implements TrcTaskMgr.Task
         {
             double pos1 = motor1.getPosition();
             double pos2 = motor2.getPosition();
-            double deltaPower = TrcUtil.limit((pos2 - pos1)*syncGain);
+            double deltaPower = TrcUtil.clipRange((pos2 - pos1)*syncGain);
             double power1 = power + deltaPower;
             double power2 = power - deltaPower;
+            double minPower = Math.min(power1, power2);
+            double maxPower = Math.max(power1, power2);
+            double scale = maxPower > MAX_MOTOR_POWER? maxPower: minPower < MIN_MOTOR_POWER? -minPower: 1.0;
 
             //
-            // We don't want the motors to switch direction in order to sync,
-            // so make sure the motor powers are in the same direction.
+            // We don't want the motors to switch direction in order to sync. It will worsen oscillation.
+            // So make sure the motor powers are moving in the same direction.
             //
             if (power > 0.0)
             {
-                power1 = TrcUtil.limit(power1, 0.0, 1.0);
-                power2 = TrcUtil.limit(power2, 0.0, 1.0);
+                power1 = TrcUtil.clipRange(power1/scale, 0.0, MAX_MOTOR_POWER);
+                power2 = TrcUtil.clipRange(power2/scale, 0.0, MAX_MOTOR_POWER);
             }
             else
             {
-                power1 = TrcUtil.limit(power1, -1.0, 0.0);
-                power2 = TrcUtil.limit(power2, -1.0, 0.0);
+                power1 = TrcUtil.clipRange(power1, MIN_MOTOR_POWER, 0.0);
+                power2 = TrcUtil.clipRange(power2, MIN_MOTOR_POWER, 0.0);
             }
 
             motor1.setPower(power1);
@@ -757,9 +708,8 @@ public class TrcPidMotor implements TrcTaskMgr.Task
 
             if (debugEnabled)
             {
-                dbgTrace.traceInfo(funcName,
-                        "P=%.2f,dP=%.2f,pos1=%.0f,pos2=%.0f,P1=%.2f,P2=%.2f",
-                        power, deltaPower, pos1, pos2, power1, power2);
+                dbgTrace.traceInfo(funcName, "P=%.2f,dP=%.2f,pos1=%.0f,pos2=%.0f,P1=%.2f,P2=%.2f",
+                                   power, deltaPower, pos1, pos2, power1, power2);
             }
         }
 
@@ -770,8 +720,8 @@ public class TrcPidMotor implements TrcTaskMgr.Task
     }   //setMotorPower
 
     /**
-     * This method stops the PID motor. Stopping a PID motor consists of two things:
-     * canceling PID and stopping the physical motor(s).
+     * This method stops the PID motor. Stopping a PID motor consists of two things: canceling PID and stopping
+     * the physical motor(s).
      *
      * @param stopMotor specifies true if also stopping the physical motor(s), false otherwise.
      */
@@ -781,14 +731,13 @@ public class TrcPidMotor implements TrcTaskMgr.Task
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC,
-                                "stopMotor=%s", Boolean.toString(stopMotor));
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC, "stopMotor=%s", Boolean.toString(stopMotor));
         }
 
         //
         // Canceling previous PID operation if any.
         //
-        setActive(false);
+        setTaskEnabled(false);
         pidCtrl.reset();
 
         if (stopMotor)
@@ -806,23 +755,21 @@ public class TrcPidMotor implements TrcTaskMgr.Task
     }   //stop
 
     /**
-     * This method activates/deactivates a PID motor operation by enabling/disabling
-     * the PID motor task.
+     * This method activates/deactivates a PID motor operation by enabling/disabling the PID motor task.
      *
-     * @param active specifies true to activate a PID motor operation, false otherwise.
+     * @param enabled specifies true to activate a PID motor operation, false otherwise.
      */
-    private void setActive(boolean active)
+    private void setTaskEnabled(boolean enabled)
     {
-        final String funcName = "setActive";
+        final String funcName = "setTaskEnabled";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC,
-                                "active=%s", Boolean.toString(active));
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC, "enabled=%s", Boolean.toString(enabled));
         }
 
         TrcTaskMgr taskMgr = TrcTaskMgr.getInstance();
-        if (active)
+        if (enabled)
         {
             taskMgr.registerTask(instanceName, this, TrcTaskMgr.TaskType.STOP_TASK);
             taskMgr.registerTask(instanceName, this, TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
@@ -832,13 +779,13 @@ public class TrcPidMotor implements TrcTaskMgr.Task
             taskMgr.unregisterTask(this, TrcTaskMgr.TaskType.STOP_TASK);
             taskMgr.unregisterTask(this, TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
         }
-        this.active = active;
+        this.active = enabled;
 
         if (debugEnabled)
         {
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC);
         }
-    }   //setActive
+    }   //setTaskEnabled
 
     //
     // Implements TrcTaskMgr.Task
@@ -850,8 +797,7 @@ public class TrcPidMotor implements TrcTaskMgr.Task
     }   //startTask
 
     /**
-     * This method is called when the competition mode is about to end. It stops the
-     * PID motor operation if any.
+     * This method is called when the competition mode is about to end. It stops the PID motor operation if any.
      *
      * @param runMode specifies the competition mode that is about to
      */
@@ -862,9 +808,7 @@ public class TrcPidMotor implements TrcTaskMgr.Task
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(
-                    funcName, TrcDbgTrace.TraceLevel.TASK,
-                    "mode=%s", runMode.toString());
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "mode=%s", runMode.toString());
         }
 
         stop(true);
@@ -880,17 +824,6 @@ public class TrcPidMotor implements TrcTaskMgr.Task
     {
     }   //prePeriodicTask
 
-    /**
-     * This method is called periodically to perform the PID motor task.
-     * The PID motor task can be in one of two mode: zero calibration mode
-     * and normal mode. In zero calibration mode, it will drive the motor
-     * with the specified calibration power until it hits one of the limit
-     * switches. Then it will stop the motor and reset the motor position
-     * sensor. In normal mode, it calls the PID control to calculate the
-     *
-     *
-     * @param runMode specifies the competition mode that is running.
-     */
     @Override
     public void postPeriodicTask(TrcRobot.RunMode runMode)
     {
@@ -901,6 +834,15 @@ public class TrcPidMotor implements TrcTaskMgr.Task
     {
     }   //preContinuousTask
 
+    /**
+     * This method is called periodically to perform the PID motor task. The PID motor task can be in one of two
+     * mode: zero calibration mode and normal mode. In zero calibration mode, it will drive the motor with the
+     * specified calibration power until it hits the lower limit switch. Then it will stop the motor and reset
+     * the motor position sensor. In normal mode, it calls the PID control to calculate and set the motor power.
+     * It also checks if the motor has reached the set target and disables the task.
+     *
+     * @param runMode specifies the competition mode that is running.
+     */
     @Override
     public void postContinuousTask(TrcRobot.RunMode runMode)
     {
@@ -908,9 +850,7 @@ public class TrcPidMotor implements TrcTaskMgr.Task
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(
-                    funcName, TrcDbgTrace.TraceLevel.TASK,
-                    "mode=%s", runMode.toString());
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "mode=%s", runMode.toString());
         }
 
         if (calPower != 0.0)
@@ -934,20 +874,18 @@ public class TrcPidMotor implements TrcTaskMgr.Task
                 // Done with zero calibration.
                 //
                 calPower = 0.0;
-                setActive(false);
+                setTaskEnabled(false);
             }
             setMotorPower(calPower);
         }
         else
         {
             //
-            // If we are not holding target and has reached target or
-            // we set a timeout and it has expired, we are done with the
-            // operation. Stop the motor and if there is a notification
-            // event, signal it.
+            // If we are not holding target and has reached target or we set a timeout and it has expired, we are
+            // done with the operation. Stop the motor and if there is a notification event, signal it.
             //
             if (!holdTarget && (pidCtrl.isOnTarget() || stalled) ||
-                expiredTime != 0.0 && HalUtil.getCurrentTime() >= expiredTime)
+                expiredTime != 0.0 && TrcUtil.getCurrentTime() >= expiredTime)
             {
                 stop(true);
                 if (notifyEvent != null)
@@ -959,8 +897,7 @@ public class TrcPidMotor implements TrcTaskMgr.Task
             else
             {
                 //
-                // We are still in business. Call PID controller to calculate the
-                // motor power and set it.
+                // We are still in business. Call PID controller to calculate the motor power and set it.
                 //
                 motorPower = pidCtrl.getOutput();
                 setPower(motorPower, MIN_MOTOR_POWER, MAX_MOTOR_POWER, false);

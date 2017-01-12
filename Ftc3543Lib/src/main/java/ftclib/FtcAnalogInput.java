@@ -25,20 +25,22 @@ package ftclib;
 import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
-import hallib.HalUtil;
 import trclib.TrcAnalogInput;
 import trclib.TrcDbgTrace;
 import trclib.TrcFilter;
+import trclib.TrcUtil;
 
 /**
- * This class implements a platform dependent AnalogInput sensor
- * extending TrcAnalogInput. It provides implementation of the
- * abstract methods in TrcAnalogInput.
+ * This class implements a platform dependent AnalogInput sensor extending TrcAnalogInput. It provides implementation
+ * of the abstract methods in TrcAnalogInput.
  */
 public class FtcAnalogInput extends TrcAnalogInput
 {
     private static final String moduleName = "FtcAnalogInput";
     private static final boolean debugEnabled = false;
+    private static final boolean tracingEnabled = false;
+    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
 
     private AnalogInput sensor;
@@ -49,8 +51,8 @@ public class FtcAnalogInput extends TrcAnalogInput
      *
      * @param hardwareMap specifies the global hardware map.
      * @param instanceName specifies the instance name.
-     * @param filters specifies an array of filter objects, one for each axis, to filter
-     *                sensor data. If no filter is used, this can be set to null.
+     * @param filters specifies an array of filter objects, one for each axis, to filter sensor data. If no filter
+     *                is used, this can be set to null.
      */
     public FtcAnalogInput(HardwareMap hardwareMap, String instanceName, TrcFilter[] filters)
     {
@@ -58,10 +60,7 @@ public class FtcAnalogInput extends TrcAnalogInput
 
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName,
-                                       false,
-                                       TrcDbgTrace.TraceLevel.API,
-                                       TrcDbgTrace.MsgLevel.INFO);
+            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         sensor = hardwareMap.analogInput.get(instanceName);
@@ -72,8 +71,8 @@ public class FtcAnalogInput extends TrcAnalogInput
      * Constructor: Creates an instance of the object.
      *
      * @param instanceName specifies the instance name.
-     * @param filters specifies an array of filter objects, one for each axis, to filter
-     *                sensor data. If no filter is used, this can be set to null.
+     * @param filters specifies an array of filter objects, one for each axis, to filter sensor data. If no filter
+     *                is used, this can be set to null.
      */
     public FtcAnalogInput(String instanceName, TrcFilter[] filters)
     {
@@ -106,25 +105,25 @@ public class FtcAnalogInput extends TrcAnalogInput
      * This method returns the raw sensor data of the specified type.
      *
      * @param index specifies the data index (not used).
+     * @param dataType specifies the data type.
      * @return raw sensor data of the specified type.
      */
     @Override
-    public SensorData getRawData(int index, DataType dataType)
+    public SensorData<Double> getRawData(int index, DataType dataType)
     {
         final String funcName = "getRawData";
-        SensorData data;
+        SensorData<Double> data;
 
         //
         // Ultrasonic sensor supports only INPUT_DATA type.
         //
         if (dataType == DataType.INPUT_DATA)
         {
-            data = new SensorData(HalUtil.getCurrentTime(), (double)sensor.getVoltage()/maxVoltage);
+            data = new SensorData<>(TrcUtil.getCurrentTime(), sensor.getVoltage()/maxVoltage);
         }
         else
         {
-            throw new UnsupportedOperationException(
-                    "AnalogInput sensor only support INPUT_DATA type.");
+            throw new UnsupportedOperationException("AnalogInput sensor only support INPUT_DATA type.");
         }
 
         if (debugEnabled)

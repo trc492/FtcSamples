@@ -28,10 +28,9 @@ import hallib.HalDashboard;
 import trclib.TrcDbgTrace;
 
 /**
- * This class implements a choice menu where a number of choices are presented to the user.
- * The user can press the UP and DOWN button to navigate the different choices and press the
- * ENTER button to select the choice. The user can also press the BACK button to cancel the
- * menu and go back to the parent menu.
+ * This class implements a choice menu where a number of choices are presented to the user. The user can press the
+ * UP and DOWN button to navigate the different choices and press the ENTER button to select the choice. The user
+ * can also press the BACK button to cancel the menu and go back to the parent menu.
  */
 public class FtcChoiceMenu<T> extends FtcMenu
 {
@@ -49,8 +48,8 @@ public class FtcChoiceMenu<T> extends FtcMenu
          *
          * @param choiceText specifies the text to be displayed in the choice menu.
          * @param choiceObject specifies the object to be returned if the choice is selected.
-         * @param childMenu specifies the next menu to go to if the choice is selected. It can
-         *                  be null if this is the end (i.e. leaf node of the menu tree).
+         * @param childMenu specifies the next menu to go to if the choice is selected. It can be null if this is
+         *                  the end (i.e. leaf node of the menu tree).
          */
         public ChoiceItem(String choiceText, T choiceObject, FtcMenu childMenu)
         {
@@ -91,17 +90,16 @@ public class FtcChoiceMenu<T> extends FtcMenu
 
     }   //class ChoiceItem
 
-    private ArrayList<ChoiceItem> choiceItems = new ArrayList<ChoiceItem>();
+    private ArrayList<ChoiceItem> choiceItems = new ArrayList<>();
     private int currChoice = -1;
     private int firstDisplayedChoice = 0;
 
     /**
      * Constructor: Creates an instance of the object.
      *
-     * @param menuTitle specifies the title of the menu. The title will be displayed
-     *                  as the first line in the menu.
-     * @param parent specifies the parent menu to go back to if the BACK button
-     *               is pressed. If this is the root menu, it can be set to null.
+     * @param menuTitle specifies the title of the menu. The title will be displayed as the first line in the menu.
+     * @param parent specifies the parent menu to go back to if the BACK button is pressed. If this is the root menu,
+     *               it can be set to null.
      * @param menuButtons specifies the object that implements the MenuButtons interface.
      */
     public FtcChoiceMenu(String menuTitle, FtcMenu parent, MenuButtons menuButtons)
@@ -110,14 +108,12 @@ public class FtcChoiceMenu<T> extends FtcMenu
     }   //FtcMenu
 
     /**
-     * This method adds a choice to the menu. The choices will be displayed in the
-     * order of them being added.
+     * This method adds a choice to the menu. The choices will be displayed in the order of them being added.
      *
      * @param choiceText specifies the choice text that will be displayed on the dashboard.
      * @param choiceObject specifies the object to be returned if the choice is selected.
-     * @param childMenu specifies the next menu to go to when this choice is selected.
-     *                  If this is the last menu (a leaf node in the tree), it can be set
-     *                  to null.
+     * @param childMenu specifies the next menu to go to when this choice is selected. If this is the last menu
+     *                  (a leaf node in the tree), it can be set to null.
      */
     public void addChoice(String choiceText, T choiceObject, FtcMenu childMenu)
     {
@@ -125,11 +121,9 @@ public class FtcChoiceMenu<T> extends FtcMenu
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(
-                    funcName, TrcDbgTrace.TraceLevel.API,
-                    "text=%s,obj=%s,child=%s",
-                    choiceText, choiceObject.toString(),
-                    childMenu == null? "null": childMenu.getTitle());
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
+                                "text=%s,obj=%s,child=%s",
+                                choiceText, choiceObject.toString(), childMenu == null? "null": childMenu.getTitle());
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
@@ -137,16 +131,14 @@ public class FtcChoiceMenu<T> extends FtcMenu
         if (currChoice == -1)
         {
             //
-            // This is the first added choice in the menu.
-            // Make it the default choice by highlighting it.
+            // This is the first added choice in the menu. Make it the default choice by highlighting it.
             //
             currChoice = 0;
         }
     }   //addChoice
 
     /**
-     * This method adds a choice to the menu. The choices will be displayed in the
-     * order of them being added.
+     * This method adds a choice to the menu. The choices will be displayed in the order of them being added.
      *
      * @param choiceText specifies the choice text that will be displayed on the dashboard.
      * @param choiceObj specifies the object to be returned if the choice is selected.
@@ -176,8 +168,7 @@ public class FtcChoiceMenu<T> extends FtcMenu
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "choice=%d", choice);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
-                               "=%s", text != null? text: "null");
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", text != null? text: "null");
         }
 
         return text;
@@ -203,19 +194,17 @@ public class FtcChoiceMenu<T> extends FtcMenu
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "choice=%d", choice);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
-                               "=%s", obj != null? obj.toString(): "null");
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", obj != null? obj.toString(): "null");
         }
 
         return obj;
     }   //getChoiceObject
 
     /**
-     * This method returns the index of the current choice. Every menu has a
-     * current choice even if the menu hasn't been displayed and the user
-     * hasn't picked a choice. In that case, the current choice is the
-     * highlighted selection of the menu which is the first choice in the menu.
-     * If the menu is empty, the current choice index is -1.
+     * This method returns the index of the current choice. Every menu has a current choice even if the menu hasn't
+     * been displayed and the user hasn't picked a choice. In that case, the current choice is the highlighted
+     * selection of the menu which is the first choice in the menu. If the menu is empty, the current choice index
+     * is -1.
      *
      * @return current choice index, -1 if menu is empty.
      */
@@ -233,11 +222,10 @@ public class FtcChoiceMenu<T> extends FtcMenu
     }   //getCurrentChoice
 
     /**
-     * This method returns the text of the current choice. Every menu has a
-     * current choice even if the menu hasn't been displayed and the user
-     * hasn't picked a choice. In that case, the current choice is the
-     * highlighted selection of the menu which is the first choice in the menu.
-     * If the menu is empty, the current choice index is -1.
+     * This method returns the text of the current choice. Every menu has a current choice even if the menu hasn't
+     * been displayed and the user hasn't picked a choice. In that case, the current choice is the highlighted
+     * selection of the menu which is the first choice in the menu. If the menu is empty, the current choice index
+     * is -1.
      *
      * @return current choice text, null if menu is empty.
      */
@@ -247,11 +235,10 @@ public class FtcChoiceMenu<T> extends FtcMenu
     }   //getCurrentChoiceText
 
     /**
-     * This method returns the object of the current choice. Every menu has a
-     * current choice even if the menu hasn't been displayed and the user
-     * hasn't picked a choice. In that case, the current choice is the
-     * highlighted selection of the menu which is the first choice in the menu.
-     * If the menu is empty, the current choice index is -1.
+     * This method returns the object of the current choice. Every menu has a current choice even if the menu hasn't
+     * been displayed and the user hasn't picked a choice. In that case, the current choice is the highlighted
+     * selection of the menu which is the first choice in the menu. If the menu is empty, the current choice index
+     * is -1.
      *
      * @return current choice object, null if menu is empty.
      */
@@ -265,8 +252,8 @@ public class FtcChoiceMenu<T> extends FtcMenu
     //
 
     /**
-     * This method moves the current selection to the previous choice in the menu.
-     * If it is already the first choice, it will wraparound back to the last choice.
+     * This method moves the current selection to the previous choice in the menu. If it is already the first choice,
+     * it will wraparound back to the last choice.
      */
     public void menuUp()
     {
@@ -301,8 +288,8 @@ public class FtcChoiceMenu<T> extends FtcMenu
     }   //menuUp
 
     /**
-     * This method moves the current selection to the next choice in the menu.
-     * If it is already the last choice, it will wraparound back to the first choice.
+     * This method moves the current selection to the next choice in the menu. If it is already the last choice,
+     * it will wraparound back to the first choice.
      */
     public void menuDown()
     {
@@ -360,13 +347,10 @@ public class FtcChoiceMenu<T> extends FtcMenu
     }   //getChildMenu
 
     /**
-     * This method displays the menu on the dashboard with the current
-     * selection highlighted. The number of choices in the menu may
-     * exceed the total number of lines on the dashboard. In that case,
-     * it will only display all the choices that will fit on the
-     * dashboard. If the user navigates to a choice outside of the
-     * dashboard display, the choices will scroll up or down to bring
-     * the new selection into the dashboard.
+     * This method displays the menu on the dashboard with the current selection highlighted. The number of choices
+     * in the menu may exceed the total number of lines on the dashboard. In that case, it will only display all the
+     * choices that will fit on the dashboard. If the user navigates to a choice outside of the dashboard display,
+     * the choices will scroll up or down to bring the new selection into the dashboard.
      */
     public void displayMenu()
     {
@@ -392,10 +376,8 @@ public class FtcChoiceMenu<T> extends FtcMenu
         for (int i = firstDisplayedChoice; i <= lastDisplayedChoice; i++)
         {
             ChoiceItem item = choiceItems.get(i);
-            dashboard.displayPrintf(
-                    i - firstDisplayedChoice + 1,
-                    i == currChoice? ">>\t%s%s": "%s%s",
-                    item.getText(), item.getChildMenu() != null? " ...": "");
+            dashboard.displayPrintf(i - firstDisplayedChoice + 1, i == currChoice? ">>\t%s%s": "%s%s",
+                                    item.getText(), item.getChildMenu() != null? " ...": "");
         }
     }   //displayMenu
 

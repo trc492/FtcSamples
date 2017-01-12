@@ -87,25 +87,15 @@ public class FtcTestI2cColorSensor extends FtcOpMode
         //
         if (data.value != null)
         {
-            dashboard.displayPrintf(4, LABEL_WIDTH, "ColorNumber: ", "%d",
-                                    (Integer)i2cColorSensor.getColorNumber().value);
-            dashboard.displayPrintf(5, LABEL_WIDTH, "RedValue: ", "%d", (Integer)i2cColorSensor.getRedValue().value);
-            dashboard.displayPrintf(6, LABEL_WIDTH, "GreenValue: ", "%d",
-                                    (Integer)i2cColorSensor.getGreenValue().value);
-            dashboard.displayPrintf(7, LABEL_WIDTH, "BlueValue: ", "%d",
-                                    (Integer)i2cColorSensor.getBlueValue().value);
-            dashboard.displayPrintf(8, LABEL_WIDTH, "WhiteValue: ", "%d",
-                                    (Integer)i2cColorSensor.getWhiteValue().value);
+            dashboard.displayPrintf(4, LABEL_WIDTH, "ColorNumber: ", "%.0f", i2cColorSensor.getColorNumber().value);
+            dashboard.displayPrintf(5, LABEL_WIDTH, "RedValue: ", "%.0f", i2cColorSensor.getRedValue().value);
+            dashboard.displayPrintf(6, LABEL_WIDTH, "GreenValue: ", "%.0f", i2cColorSensor.getGreenValue().value);
+            dashboard.displayPrintf(7, LABEL_WIDTH, "BlueValue: ", "%.0f", i2cColorSensor.getBlueValue().value);
+            dashboard.displayPrintf(8, LABEL_WIDTH, "WhiteValue: ", "%.0f", i2cColorSensor.getWhiteValue().value);
         }
         dashboard.displayPrintf(9, LABEL_WIDTH, "W/R/G/B: ", "%02x%02x%02x%02x (%d/%d/%d/%d)",
-                                colorSensor.alpha(),
-                                colorSensor.red(),
-                                colorSensor.green(),
-                                colorSensor.blue(),
-                                colorSensor.alpha(),
-                                colorSensor.red(),
-                                colorSensor.green(),
-                                colorSensor.blue());
+                                colorSensor.alpha(), colorSensor.red(), colorSensor.green(), colorSensor.blue(),
+                                colorSensor.alpha(), colorSensor.red(), colorSensor.green(), colorSensor.blue());
         dashboard.displayPrintf(10, LABEL_WIDTH, "Hue: ", "%08x", colorSensor.argb());
     }   //runPeriodic
 

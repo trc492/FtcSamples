@@ -29,8 +29,7 @@ import trclib.TrcEvent;
 import trclib.TrcPidController;
 import trclib.TrcPidMotor;
 
-public class Elevator implements TrcPidController.PidInput,
-                                 TrcDigitalTrigger.TriggerHandler
+public class Elevator implements TrcPidController.PidInput, TrcDigitalTrigger.TriggerHandler
 {
     //
     // Elevator constants.
@@ -47,8 +46,8 @@ public class Elevator implements TrcPidController.PidInput,
     private static final double ELEVATOR_CAL_POWER              = 0.3;
 
     //
-    // This subssytem consists of an elevator motor, a lower limit switch,
-    // and an encoder to keep track of the position of the elevator.
+    // This subsystem consists of an elevator motor, a lower limit switch, and an encoder to keep track of the
+    // position of the elevator.
     //
 
     private FtcTouchSensor lowerLimitSwitch;
@@ -78,9 +77,9 @@ public class Elevator implements TrcPidController.PidInput,
     }   //Elevator
 
     /**
-     * This method does a zero calibration on the elevator by slowly lowering it until it hits
-     * the lower limit switch. Then it stops and resets the motor encoder. This is typically
-     * called in the robot initialization or before competition start.
+     * This method does a zero calibration on the elevator by slowly lowering it until it hits the lower limit switch.
+     * Then it stops and resets the motor encoder. This is typically called in the robot initialization or before
+     * competition start.
      */
     public void zeroCalibrate()
     {
@@ -88,10 +87,10 @@ public class Elevator implements TrcPidController.PidInput,
     }   //zeroCalibrate
 
     /**
-     * This method sets manual override mode. This is useful to override PID control of the
-     * elevator in situations where the encoder is not zero calibrated or malfunctioning.
-     * Note that this only overrides the encoder but not the limit switch. So if the lower
-     * limit switch is engaged, the elevator will not go down even manual override is true.
+     * This method sets manual override mode. This is useful to override PID control of the elevator in situations
+     * where the encoder is not zero calibrated or malfunctioning. Note that this only overrides the encoder but not
+     * the limit switch. So if the lower limit switch is engaged, the elevator will not go down even manual override
+     * is true.
      *
      * @param manualOverride specifies true for manual override, false otherwise.
      */
@@ -101,8 +100,7 @@ public class Elevator implements TrcPidController.PidInput,
     }   //setManualOverride
 
     /**
-     * This method runs the elevator with the specified power. It will hold the current position
-     * even if power is zero.
+     * This method runs the elevator with the specified power. It will hold the current position even if power is zero.
      *
      * @param power specifies the power to run the elevator.
      */
@@ -114,7 +112,7 @@ public class Elevator implements TrcPidController.PidInput,
         }
         else
         {
-            pidMotor.setPidPower(power, ELEVATOR_MIN_HEIGHT, ELEVATOR_MAX_HEIGHT, true);
+            pidMotor.setSpeed(power, ELEVATOR_MIN_HEIGHT, ELEVATOR_MAX_HEIGHT, true);
         }
     }   //setPower
 
@@ -129,9 +127,9 @@ public class Elevator implements TrcPidController.PidInput,
     }   //setHeight
 
     /**
-     * This method runs the elevator to the specified height and signal the given event when done.
-     * Optionally, if a timeout is specified, the operation will be aborted when specified time
-     * has expired. Note that this method does not hold the elevator in place when reaching target.
+     * This method runs the elevator to the specified height and signal the given event when done. Optionally, if a
+     * timeout is specified, the operation will be aborted when specified time has expired. Note that this method
+     * does not hold the elevator in place when reaching target.
      *
      * @param height specifies the target height.
      * @param event specifies the event to signal when done.
@@ -163,8 +161,8 @@ public class Elevator implements TrcPidController.PidInput,
     }   //isLowerLimitSwitchPressed
 
     /**
-     * This method displays the elevator PID information to the dashboard on the given line number.
-     * Note that the information occupies two dashboard lines.
+     * This method displays the elevator PID information to the dashboard on the given line number. Note that the
+     * information occupies two dashboard lines.
      *
      * @param lineNum specifies the dashboard line number to display the first line.
      */
@@ -202,9 +200,9 @@ public class Elevator implements TrcPidController.PidInput,
     //
 
     /**
-     * This method is called by the DigitalTrigger object notifying us the lower limit swtich
-     * has changed state. Note that we are resetting the encoders on both pressed and released
-     * events. This ensures the encoder starts counting only when the limit switch is disengaged.
+     * This method is called by the DigitalTrigger object notifying us the lower limit switch has changed state.
+     * Note that we are resetting the encoders on both pressed and released events. This ensures the encoder starts
+     * counting only when the limit switch is disengaged.
      *
      * @param digitalTrigger specifies the DigitalTrigger object that gives us the notification.
      * @param active specifies true if the lower limit switch is pressed, false otherwise.

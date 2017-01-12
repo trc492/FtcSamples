@@ -27,22 +27,23 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.navigation.Acceleration;
 
-import hallib.HalUtil;
 import trclib.TrcAccelerometer;
 import trclib.TrcDbgTrace;
 import trclib.TrcFilter;
+import trclib.TrcUtil;
 
 /**
- * This class implements the platform dependent accelerometer extending
- * TrcAccelerometer. It provides implementation of the abstract methods
- * in TrcAccelerometer. It supports 3 axes: x, y and z. It provides
- * acceleration data for all 3 axes. However, it doesn't provide any
- * velocity or distance data.
+ * This class implements the platform dependent accelerometer extending TrcAccelerometer. It provides implementation
+ * of the abstract methods in TrcAccelerometer. It supports 3 axes: x, y and z. It provides acceleration data for all
+ * 3 axes. However, it doesn't provide any velocity or distance data.
  */
 public class FtcAccelerometer extends TrcAccelerometer
 {
     private static final String moduleName = "FtcAccelerometer";
     private static final boolean debugEnabled = false;
+    private static final boolean tracingEnabled = false;
+    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
 
     private AccelerationSensor accel;
@@ -52,25 +53,18 @@ public class FtcAccelerometer extends TrcAccelerometer
      *
      * @param hardwareMap specifies the global hardware map.
      * @param instanceName specifies the instance name.
-     * @param filters specifies an array of filters to use for filtering
-     *                sensor noise, one for each axis. Since we have 3 axes,
-     *                the array should have 3 elements. If no filters are
-     *                used, it can be set to null.
+     * @param filters specifies an array of filters to use for filtering sensor noise, one for each axis. Since we
+     *                have 3 axes, the array should have 3 elements. If no filters are used, it can be set to null.
      */
     public FtcAccelerometer(HardwareMap hardwareMap, String instanceName, TrcFilter[] filters)
     {
-        super(instanceName,
-              3,
-              ACCEL_HAS_X_AXIS | ACCEL_HAS_Y_AXIS | ACCEL_HAS_Z_AXIS |
-              ACCEL_INTEGRATE | ACCEL_DOUBLE_INTEGRATE,
+        super(instanceName, 3,
+              ACCEL_HAS_X_AXIS | ACCEL_HAS_Y_AXIS | ACCEL_HAS_Z_AXIS | ACCEL_INTEGRATE | ACCEL_DOUBLE_INTEGRATE,
               filters);
 
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName,
-                                       false,
-                                       TrcDbgTrace.TraceLevel.API,
-                                       TrcDbgTrace.MsgLevel.INFO);
+            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         accel = hardwareMap.accelerationSensor.get(instanceName);
@@ -80,10 +74,8 @@ public class FtcAccelerometer extends TrcAccelerometer
      * Constructor: Creates an instance of the object.
      *
      * @param instanceName specifies the instance name.
-     * @param filters specifies an array of filters to use for filtering
-     *                sensor noise, one for each axis. Since we have 3 axes,
-     *                the array should have 3 elements. If no filters are
-     *                used, it can be set to null.
+     * @param filters specifies an array of filters to use for filtering sensor noise, one for each axis. Since we
+     *                have 3 axes, the array should have 3 elements. If no filters are used, it can be set to null.
      */
     public FtcAccelerometer(String instanceName, TrcFilter[] filters)
     {
@@ -119,20 +111,19 @@ public class FtcAccelerometer extends TrcAccelerometer
      * @return raw data of the specified type for the x-axis.
      */
     @Override
-    public SensorData getRawXData(DataType dataType)
+    public SensorData<Double> getRawXData(DataType dataType)
     {
         final String funcName = "getRawXData";
-        SensorData data = null;
+        SensorData<Double> data;
 
         if (dataType == DataType.ACCELERATION)
         {
             Acceleration accelData = accel.getAcceleration();
-            data = new SensorData(HalUtil.getCurrentTime(), accelData.xAccel);
+            data = new SensorData<>(TrcUtil.getCurrentTime(), accelData.xAccel);
         }
         else
         {
-            throw new UnsupportedOperationException(
-                    "Accelerometer sensor does not provide velocity or distance data.");
+            throw new UnsupportedOperationException("Accelerometer sensor does not provide velocity or distance data.");
         }
 
         if (debugEnabled)
@@ -152,20 +143,19 @@ public class FtcAccelerometer extends TrcAccelerometer
      * @return raw data of the specified type for the y-axis.
      */
     @Override
-    public SensorData getRawYData(DataType dataType)
+    public SensorData<Double> getRawYData(DataType dataType)
     {
         final String funcName = "getRawYData";
-        SensorData data = null;
+        SensorData<Double> data;
 
         if (dataType == DataType.ACCELERATION)
         {
             Acceleration accelData = accel.getAcceleration();
-            data = new SensorData(HalUtil.getCurrentTime(), accelData.yAccel);
+            data = new SensorData<>(TrcUtil.getCurrentTime(), accelData.yAccel);
         }
         else
         {
-            throw new UnsupportedOperationException(
-                    "Accelerometer sensor does not provide velocity or distance data.");
+            throw new UnsupportedOperationException("Accelerometer sensor does not provide velocity or distance data.");
         }
 
         if (debugEnabled)
@@ -185,20 +175,19 @@ public class FtcAccelerometer extends TrcAccelerometer
      * @return raw data of the specified type for the z-axis.
      */
     @Override
-    public SensorData getRawZData(DataType dataType)
+    public SensorData<Double> getRawZData(DataType dataType)
     {
         final String funcName = "getRawZData";
-        SensorData data = null;
+        SensorData<Double> data;
 
         if (dataType == DataType.ACCELERATION)
         {
             Acceleration accelData = accel.getAcceleration();
-            data = new SensorData(HalUtil.getCurrentTime(), accelData.zAccel);
+            data = new SensorData<>(TrcUtil.getCurrentTime(), accelData.zAccel);
         }
         else
         {
-            throw new UnsupportedOperationException(
-                    "Accelerometer sensor does not provide velocity or distance data.");
+            throw new UnsupportedOperationException("Accelerometer sensor does not provide velocity or distance data.");
         }
 
         if (debugEnabled)

@@ -27,7 +27,7 @@ public class FtcTestSensorSampleTime extends FtcOpMode
     private static final String TAG = "TrcDbg";
     private static final double DRIVE_POWER = 0.2;
     private static final double TURN_POWER = 0.5;
-    private static SensorType sensorType = SensorType.ANDROID_GYRO;
+    private static SensorType sensorType = SensorType.MR_GYRO;
     private static final boolean LEFTWHEEL_INVERTED = false;
     private static final boolean RIGHTWHEEL_INVERTED = true;
     public static final double ANALOG_GYRO_VOLT_PER_DEG_PER_SEC = 0.007;

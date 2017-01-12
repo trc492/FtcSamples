@@ -22,24 +22,114 @@
 
 package trclib;
 
-import hallib.HalGyro;
-
 /**
- * This class implements a platform independent gyro. Typically, this
- * class is extended by a platform dependent gyro class. The platform
- * dependent gyro class must implement the abstract methods required
- * by this class. The abstract methods allow this class to get raw data
- * for each gyro axis. Depending on the options specified in the
- * constructor, this class creates an integrator or an unwrapper.
- * The platform dependent gyro can specify how many axes it supports by
- * setting the HAS_AXIS options. If it does not provide heading data, it can
- * set the INTEGRATE options and let the built-in integrator handle it. Or
- * if the heading data it provides wrap-around, it can set the UNWRAP_HEADING
- * options to enable the unwrapper to unwrap the heading data.
+ * This class implements a platform independent gyro. Typically, this class is extended by a platform dependent
+ * gyro class. The platform dependent gyro class must implement the abstract methods required by this class. The
+ * abstract methods allow this class to get raw data for each gyro axis. Depending on the options specified in the
+ * constructor, this class creates an integrator or a CardinalConverter. The platform dependent gyro can specify
+ * how many axes it supports by setting the HAS_AXIS options. If it does not provide heading data, it can set the
+ * INTEGRATE option and let the built-in integrator handle it. Or if it provides a Cardinal heading instead of
+ * Cartesian, it can set the CONVERT_TO_CARTESIAN option to enable the CardinalConverter to do the conversion.
  */
-public abstract class TrcGyro extends TrcSensor implements HalGyro,
-                                                           TrcSensorDataSource
+public abstract class TrcGyro extends TrcSensor<TrcGyro.DataType>
 {
+    private static final String moduleName = "TrcGyro";
+    private static final boolean debugEnabled = false;
+    private static final boolean tracingEnabled = false;
+    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
+    private TrcDbgTrace dbgTrace = null;
+
+    public interface GyroData
+    {
+        /**
+         * This method inverts the x-axis. This is useful if the orientation of the gyro x-axis is such that the data
+         * goes the wrong direction.
+         *
+         * @param inverted specifies true to invert x-axis, false otherwise.
+         */
+        void setXInverted(boolean inverted);
+
+        /**
+         * This method inverts the y-axis. This is useful if the orientation of the gyro y-axis is such that the data
+         * goes the wrong direction.
+         *
+         * @param inverted specifies true to invert y-axis, false otherwise.
+         */
+        void setYInverted(boolean inverted);
+
+        /**
+         * This method inverts the z-axis. This is useful if the orientation of the gyro z-axis is such that the data
+         * goes the wrong direction.
+         *
+         * @param inverted specifies true to invert z-axis, false otherwise.
+         */
+        void setZInverted(boolean inverted);
+
+        /**
+         * This method returns the rotation rate on the x-axis.
+         *
+         * @return X rotation rate.
+         */
+        SensorData getXRotationRate();
+
+        /**
+         * This method returns the rotation rate on the y-axis.
+         *
+         * @return Y rotation rate.
+         */
+        SensorData getYRotationRate();
+
+        /**
+         * This method returns the rotation rate on the z-axis.
+         *
+         * @return Z rotation rate.
+         */
+        SensorData getZRotationRate();
+
+        /**
+         * This method returns the heading of the x-axis. If there is an integrator, we call the integrator to get
+         * the heading. Else if we have a CardinalConverter, we call the converter to get the heading else we call
+         * the platform dependent gyro to get the raw heading value.
+         *
+         * @return X heading.
+         */
+        SensorData getXHeading();
+
+        /**
+         * This method returns the heading of the y-axis. If there is an integrator, we call the integrator to get
+         * the heading. Else if we have a CardinalConverter, we call the converter to get the heading else we call
+         * the platform dependent gyro to get the raw heading value.
+         *
+         * @return Y heading.
+         */
+        SensorData getYHeading();
+
+        /**
+         * This method returns the heading of the z-axis. If there is an integrator, we call the integrator to get
+         * the heading. Else if we have a CardinalConverter, we call the converter to get the heading else we call
+         * the platform dependent gyro to get the raw heading value.
+         *
+         * @return Z heading.
+         */
+        SensorData getZHeading();
+
+        /**
+         * This method resets the integrator on the x-axis.
+         */
+        void resetXIntegrator();
+
+        /**
+         * This method resets the integrator on the y-axis.
+         */
+        void resetYIntegrator();
+
+        /**
+         * This method resets the integrator on the z-axis.
+         */
+        void resetZIntegrator();
+
+    }
     //
     // Gyro data types.
     //
@@ -80,15 +170,11 @@ public abstract class TrcGyro extends TrcSensor implements HalGyro,
     public static final int GYRO_HAS_Y_AXIS             = (1 << 1);
     public static final int GYRO_HAS_Z_AXIS             = (1 << 2);
     public static final int GYRO_INTEGRATE              = (1 << 3);
-    public static final int GYRO_UNWRAP_HEADING         = (1 << 4);
-
-    private static final String moduleName = "TrcGyro";
-    private static final boolean debugEnabled = false;
-    private TrcDbgTrace dbgTrace = null;
+    public static final int GYRO_CONVERT_TO_CARTESIAN   = (1 << 4);
 
     private final String instanceName;
-    private TrcDataIntegrator dataIntegrator = null;
-    private TrcDataUnwrapper dataUnwrapper = null;
+    private TrcDataIntegrator integrator = null;
+    private TrcCardinalConverter cardinalConverter = null;
     private int xIndex = -1;
     private int yIndex = -1;
     private int zIndex = -1;
@@ -103,13 +189,11 @@ public abstract class TrcGyro extends TrcSensor implements HalGyro,
      *                GYRO_HAS_Y_AXIS - supports y-axis.
      *                GYRO_HAS_Z_AXIS - supports z-axis.
      *                GYRO_INTEGRATE - do integration on all axes to get headings.
-     *                GYRO_UNWRAP_HEADING - unwrap heading on all axes.
-     * @param filters specifies an array of filter objects one for each supported axis.
-     *                It is assumed that the order of the filters in the array is x, y
-     *                and then z. If an axis is specified in the options but no filter
-     *                will be used on that axis, the corresponding element in the array
-     *                should be set to null. If no filter is used at all, filters can
-     *                be set to null.
+     *                GYRO_CONVERT_TO_CARTESIAN - converts the Cardinal heading to Cartesian heading.
+     * @param filters specifies an array of filter objects one for each supported axis. It is assumed that the order
+     *                of the filters in the array is x, y and then z. If an axis is specified in the options but no
+     *                filter will be used on that axis, the corresponding element in the array should be set to null.
+     *                If no filter is used at all, filters can be set to null.
      */
     public TrcGyro(final String instanceName, int numAxes, int options, TrcFilter[] filters)
     {
@@ -117,10 +201,7 @@ public abstract class TrcGyro extends TrcSensor implements HalGyro,
 
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName,
-                                       false,
-                                       TrcDbgTrace.TraceLevel.API,
-                                       TrcDbgTrace.MsgLevel.INFO);
+            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         //
@@ -147,20 +228,17 @@ public abstract class TrcGyro extends TrcSensor implements HalGyro,
 
         if (axisCount != numAxes)
         {
-            throw new IllegalArgumentException(
-                    "numAxes doesn't match the number of axes in options");
+            throw new IllegalArgumentException("numAxes doesn't match the number of axes in options");
         }
 
         //
-        // Integration of rate and unwrapping of heading are mutually exclusive.
-        // If we are doing software integration, the resulting heading is not
-        // wrap-around. If we need to unwrap heading, the heading is from the
-        // physical sensor and not from the integrator.
+        // Integration of rate and converting to Cartesian heading are mutually exclusive. If we are doing software
+        // integration, the resulting heading is already Cartesian. If we need to convert to Cartesian heading, the
+        // heading is from the physical sensor and not from the integrator.
         //
-        if ((options & GYRO_INTEGRATE) != 0 && (options & GYRO_UNWRAP_HEADING) != 0)
+        if ((options & GYRO_INTEGRATE) != 0 && (options & GYRO_CONVERT_TO_CARTESIAN) != 0)
         {
-            throw new IllegalArgumentException(
-                    "Options Integrate and Unwrap cannot coexist.");
+            throw new IllegalArgumentException("Options Integrator and CardinalConverter cannot coexist.");
         }
 
         this.instanceName = instanceName;
@@ -170,16 +248,15 @@ public abstract class TrcGyro extends TrcSensor implements HalGyro,
         //
         if ((options & GYRO_INTEGRATE) != 0)
         {
-            dataIntegrator = new TrcDataIntegrator(
-                    instanceName, this, DataType.ROTATION_RATE, false);
+            integrator = new TrcDataIntegrator<>(instanceName, this, DataType.ROTATION_RATE, false);
         }
 
         //
-        // Create the data unwrapper.
+        // Create the data CardinalConverter.
         //
-        if ((options & GYRO_UNWRAP_HEADING) != 0)
+        if ((options & GYRO_CONVERT_TO_CARTESIAN) != 0)
         {
-            dataUnwrapper = new TrcDataUnwrapper(instanceName, this, DataType.HEADING);
+            cardinalConverter = new TrcCardinalConverter<>(instanceName, this, DataType.HEADING);
         }
     }   //TrcGyro
 
@@ -193,7 +270,7 @@ public abstract class TrcGyro extends TrcSensor implements HalGyro,
      *                GYRO_HAS_Y_AXIS - supports y-axis.
      *                GYRO_HAS_Z_AXIS - supports z-axis.
      *                GYRO_INTEGRATE - do integration on all axes to get headings.
-     *                GYRO_UNWRAP_HEADING - unwrap heading on all axes.
+     *                GYRO_CONVERT_TO_CARTESIAN - converts the Cardinal heading to Cartesian heading.
      */
     public TrcGyro(final String instanceName, int numAxes, int options)
     {
@@ -211,16 +288,12 @@ public abstract class TrcGyro extends TrcSensor implements HalGyro,
     }   //toString
 
     /**
-     * This method enables/disables the processing of gyro data. It is not
-     * automatically enabled when the TrcGyro object is created. You need
-     * to explicitly enable the it before data processing will start. As
-     * part of enabling the gyro, calibrate() is also called. calibrate()
-     * may be overridden by the platform dependent gyro if it is capable
-     * of doing its own. Otherwise, calibrate will call the built-in
-     * calibrator to do the calibration.
-     * Enabling/disabling data processing for the gyro involves
-     * enabling/disabling the integrator and the unwrapper if
-     * they exist.
+     * This method enables/disables the processing of gyro data. It is not automatically enabled when the TrcGyro
+     * object is created. You need to explicitly enable the it before data processing will start. As part of enabling
+     * the gyro, calibrate() is also called. calibrate() may be overridden by the platform dependent gyro if it is
+     * capable of doing its own. Otherwise, calibrate will call the built-in calibrator to do the calibration.
+     * Enabling/disabling data processing for the gyro involves enabling/disabling the Integrator and the
+     * CardinalConverter if they exist.
      *
      * @param enabled specifies true if enabling, false otherwise.
      */
@@ -230,31 +303,30 @@ public abstract class TrcGyro extends TrcSensor implements HalGyro,
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
-                                "enabled=%s", Boolean.toString(enabled));
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "enabled=%s", Boolean.toString(enabled));
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
         //
-        // Enable/disable integrator.
+        // Enable/disable Integrator.
         //
-        if (dataIntegrator != null)
+        if (integrator != null)
         {
-            dataIntegrator.setEnabled(enabled);
+            integrator.setEnabled(enabled);
         }
 
         //
-        // Enable/disable unwrapper.
+        // Enable/disable CardinalConverter.
         //
-        if (dataUnwrapper != null)
+        if (cardinalConverter != null)
         {
-            dataUnwrapper.setEnabled(enabled);
+            cardinalConverter.setEnabled(enabled);
         }
     }   //setEnabled
 
     /**
-     * This method inverts the x-axis. This is useful if the orientation of
-     * the gyro x-axis is such that the data goes the wrong direction.
+     * This method inverts the x-axis. This is useful if the orientation of the gyro x-axis is such that the data
+     * goes the wrong direction.
      *
      * @param inverted specifies true to invert x-axis, false otherwise.
      */
@@ -264,8 +336,7 @@ public abstract class TrcGyro extends TrcSensor implements HalGyro,
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
-                                "inverted=%s", Boolean.toString(inverted));
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "inverted=%s", Boolean.toString(inverted));
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
@@ -273,8 +344,8 @@ public abstract class TrcGyro extends TrcSensor implements HalGyro,
     }   //setXInverted
 
     /**
-     * This method inverts the y-axis. This is useful if the orientation of
-     * the gyro y-axis is such that the data goes the wrong direction.
+     * This method inverts the y-axis. This is useful if the orientation of the gyro y-axis is such that the data
+     * goes the wrong direction.
      *
      * @param inverted specifies true to invert y-axis, false otherwise.
      */
@@ -284,8 +355,7 @@ public abstract class TrcGyro extends TrcSensor implements HalGyro,
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
-                                "inverted=%s", Boolean.toString(inverted));
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "inverted=%s", Boolean.toString(inverted));
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
@@ -293,8 +363,8 @@ public abstract class TrcGyro extends TrcSensor implements HalGyro,
     }   //setYInverted
 
     /**
-     * This method inverts the z-axis. This is useful if the orientation of
-     * the gyro z-axis is such that the data goes the wrong direction.
+     * This method inverts the z-axis. This is useful if the orientation of the gyro z-axis is such that the data
+     * goes the wrong direction.
      *
      * @param inverted specifies true to invert z-axis, false otherwise.
      */
@@ -304,8 +374,7 @@ public abstract class TrcGyro extends TrcSensor implements HalGyro,
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
-                                "inverted=%s", Boolean.toString(inverted));
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "inverted=%s", Boolean.toString(inverted));
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
@@ -367,9 +436,8 @@ public abstract class TrcGyro extends TrcSensor implements HalGyro,
     }   //setZScale
 
     /**
-     * This method sets the heading value range of the x-axis.
-     * The value range is used by the unwrapper to unwrap heading
-     * data.
+     * This method sets the heading value range of the x-axis. The value range is used by the CardinalConverter to
+     * convert the heading to Cartesian heading.
      *
      * @param valueRangeLow specifies the low value of the x-axis range.
      * @param valueRangeHigh specifies the high value of the x-axis range.
@@ -380,21 +448,19 @@ public abstract class TrcGyro extends TrcSensor implements HalGyro,
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
-                                "low=%f,high=%f", valueRangeLow, valueRangeHigh);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "low=%f,high=%f", valueRangeLow, valueRangeHigh);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        if (dataUnwrapper != null)
+        if (cardinalConverter != null)
         {
-            dataUnwrapper.setValueRange(xIndex, valueRangeLow, valueRangeHigh);
+            cardinalConverter.setCardinalRange(xIndex, valueRangeLow, valueRangeHigh);
         }
     }   //setXValueRange
 
     /**
-     * This method sets the heading value range of the y-axis.
-     * The value range is used by the unwrapper to unwrap heading
-     * data.
+     * This method sets the heading value range of the y-axis. The value range is used by the CardinalConverter to
+     * convert the heading to Cartesian heading.
      *
      * @param valueRangeLow specifies the low value of the y-axis range.
      * @param valueRangeHigh specifies the high value of the y-axis range.
@@ -405,21 +471,19 @@ public abstract class TrcGyro extends TrcSensor implements HalGyro,
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
-                                "low=%f,high=%f", valueRangeLow, valueRangeHigh);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "low=%f,high=%f", valueRangeLow, valueRangeHigh);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        if (dataUnwrapper != null)
+        if (cardinalConverter != null)
         {
-            dataUnwrapper.setValueRange(yIndex, valueRangeLow, valueRangeHigh);
+            cardinalConverter.setCardinalRange(yIndex, valueRangeLow, valueRangeHigh);
         }
     }   //setYValueRange
 
     /**
-     * This method sets the heading value range of the z-axis.
-     * The value range is used by the unwrapper to unwrap heading
-     * data.
+     * This method sets the heading value range of the z-axis. The value range is used by the CardinalConverter to
+     * convert the heading to Cartesian heading.
      *
      * @param valueRangeLow specifies the low value of the z-axis range.
      * @param valueRangeHigh specifies the high value of the z-axis range.
@@ -430,27 +494,26 @@ public abstract class TrcGyro extends TrcSensor implements HalGyro,
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
-                                "low=%f,high=%f", valueRangeLow, valueRangeHigh);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "low=%f,high=%f", valueRangeLow, valueRangeHigh);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        if (dataUnwrapper != null)
+        if (cardinalConverter != null)
         {
-            dataUnwrapper.setValueRange(zIndex, valueRangeLow, valueRangeHigh);
+            cardinalConverter.setCardinalRange(zIndex, valueRangeLow, valueRangeHigh);
         }
     }   //setZValueRange
 
     /**
-     * This method resets the unwrapper on the x-axis.
+     * This method resets the CardinalConverter on the x-axis.
      */
-    public void resetXUnwrapper()
+    public void resetXCardinalConverter()
     {
-        final String funcName = "resetXUnwrapper";
+        final String funcName = "resetXCardinalConverter";
 
-        if (dataUnwrapper != null)
+        if (cardinalConverter != null)
         {
-            dataUnwrapper.reset(xIndex);
+            cardinalConverter.reset(xIndex);
         }
 
         if (debugEnabled)
@@ -458,18 +521,18 @@ public abstract class TrcGyro extends TrcSensor implements HalGyro,
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
-    }   //resetXUnwrapper
+    }   //resetXCardinalConverter
 
     /**
-     * This method resets the unwrapper on the y-axis.
+     * This method resets the CardinalConverter on the y-axis.
      */
-    public void resetYUnwrapper()
+    public void resetYCardinalConverter()
     {
-        final String funcName = "resetYUnwrapper";
+        final String funcName = "resetYCardinalConverter";
 
-        if (dataUnwrapper != null)
+        if (cardinalConverter != null)
         {
-            dataUnwrapper.reset(yIndex);
+            cardinalConverter.reset(yIndex);
         }
 
         if (debugEnabled)
@@ -477,18 +540,18 @@ public abstract class TrcGyro extends TrcSensor implements HalGyro,
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
-    }   //resetYUnwrapper
+    }   //resetYCardinalConverter
 
     /**
-     * This method resets the unwrapper on the z-axis.
+     * This method resets the CardinalConverter on the z-axis.
      */
-    public void resetZUnwrapper()
+    public void resetZCardinalConverter()
     {
-        final String funcName = "resetZUnwrapper";
+        final String funcName = "resetZCardinalConverter";
 
-        if (dataUnwrapper != null)
+        if (cardinalConverter != null)
         {
-            dataUnwrapper.reset(zIndex);
+            cardinalConverter.reset(zIndex);
         }
 
         if (debugEnabled)
@@ -496,7 +559,7 @@ public abstract class TrcGyro extends TrcSensor implements HalGyro,
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
-    }   //resetZUnwrapper
+    }   //resetZCardinalConverter
 
     /**
      * This method returns the rotation rate on the x-axis.
@@ -506,7 +569,7 @@ public abstract class TrcGyro extends TrcSensor implements HalGyro,
     public SensorData getXRotationRate()
     {
         final String funcName = "getXRotationRate";
-        SensorData data = getData(xIndex, DataType.ROTATION_RATE);
+        SensorData<Double> data = getProcessedData(xIndex, DataType.ROTATION_RATE);
 
         if (debugEnabled)
         {
@@ -526,7 +589,7 @@ public abstract class TrcGyro extends TrcSensor implements HalGyro,
     public SensorData getYRotationRate()
     {
         final String funcName = "getYRotationRate";
-        SensorData data = getData(yIndex, DataType.ROTATION_RATE);
+        SensorData<Double> data = getProcessedData(yIndex, DataType.ROTATION_RATE);
 
         if (debugEnabled)
         {
@@ -546,7 +609,7 @@ public abstract class TrcGyro extends TrcSensor implements HalGyro,
     public SensorData getZRotationRate()
     {
         final String funcName = "getZRotationRate";
-        SensorData data = getData(zIndex, DataType.ROTATION_RATE);
+        SensorData<Double> data = getProcessedData(zIndex, DataType.ROTATION_RATE);
 
         if (debugEnabled)
         {
@@ -559,9 +622,8 @@ public abstract class TrcGyro extends TrcSensor implements HalGyro,
     }   //getZRotationRate
 
     /**
-     * This method returns the heading of the x-axis. If there is an integrator,
-     * we call the integrator to get the heading. Else if we have an unwrapper,
-     * we call the unwrapper to get the heading else we call the platform dependent
+     * This method returns the heading of the x-axis. If there is an integrator, we call the integrator to get the
+     * heading. Else if we have a CardinalConverter, we call it to get the heading else we call the platform dependent
      * gyro to get the raw heading value.
      *
      * @return X heading.
@@ -569,15 +631,15 @@ public abstract class TrcGyro extends TrcSensor implements HalGyro,
     public SensorData getXHeading()
     {
         final String funcName = "getXHeading";
-        SensorData data = null;
+        SensorData<Double> data;
 
-        if (dataIntegrator != null)
+        if (integrator != null)
         {
-            data = dataIntegrator.getIntegratedData(xIndex);
+            data = integrator.getIntegratedData(xIndex);
         }
-        else if (dataUnwrapper != null)
+        else if (cardinalConverter != null)
         {
-            data = dataUnwrapper.getUnwrappedData(xIndex);
+            data = cardinalConverter.getCartesianData(xIndex);
         }
         else
         {
@@ -595,9 +657,8 @@ public abstract class TrcGyro extends TrcSensor implements HalGyro,
     }   //getXHeading
 
     /**
-     * This method returns the heading of the y-axis. If there is an integrator,
-     * we call the integrator to get the heading. Else if we have an unwrapper,
-     * we call the unwrapper to get the heading else we call the platform dependent
+     * This method returns the heading of the y-axis. If there is an integrator, we call the integrator to get the
+     * heading. Else if we have a CardinalConverter, we call it to get the heading else we call the platform dependent
      * gyro to get the raw heading value.
      *
      * @return Y heading.
@@ -605,15 +666,15 @@ public abstract class TrcGyro extends TrcSensor implements HalGyro,
     public SensorData getYHeading()
     {
         final String funcName = "getYHeading";
-        SensorData data = null;
+        SensorData<Double> data;
 
-        if (dataIntegrator != null)
+        if (integrator != null)
         {
-            data = dataIntegrator.getIntegratedData(yIndex);
+            data = integrator.getIntegratedData(yIndex);
         }
-        else if (dataUnwrapper != null)
+        else if (cardinalConverter != null)
         {
-            data = dataUnwrapper.getUnwrappedData(yIndex);
+            data = cardinalConverter.getCartesianData(yIndex);
         }
         else
         {
@@ -631,9 +692,8 @@ public abstract class TrcGyro extends TrcSensor implements HalGyro,
     }   //getYHeading
 
     /**
-     * This method returns the heading of the z-axis. If there is an integrator,
-     * we call the integrator to get the heading. Else if we have an unwrapper,
-     * we call the unwrapper to get the heading else we call the platform dependent
+     * This method returns the heading of the z-axis. If there is an integrator, we call the integrator to get the
+     * heading. Else if we have a CardinalConverter, we call it to get the heading else we call the platform dependent
      * gyro to get the raw heading value.
      *
      * @return Z heading.
@@ -641,15 +701,15 @@ public abstract class TrcGyro extends TrcSensor implements HalGyro,
     public SensorData getZHeading()
     {
         final String funcName = "getZHeading";
-        SensorData data = null;
+        SensorData<Double> data;
 
-        if (dataIntegrator != null)
+        if (integrator != null)
         {
-            data = dataIntegrator.getIntegratedData(zIndex);
+            data = integrator.getIntegratedData(zIndex);
         }
-        else if (dataUnwrapper != null)
+        else if (cardinalConverter != null)
         {
-            data = dataUnwrapper.getUnwrappedData(zIndex);
+            data = cardinalConverter.getCartesianData(zIndex);
         }
         else
         {
@@ -677,9 +737,9 @@ public abstract class TrcGyro extends TrcSensor implements HalGyro,
     {
         final String funcName = "resetXIntegrator";
 
-        if (dataIntegrator != null)
+        if (integrator != null)
         {
-            dataIntegrator.reset(xIndex);
+            integrator.reset(xIndex);
         }
 
         if (debugEnabled)
@@ -696,9 +756,9 @@ public abstract class TrcGyro extends TrcSensor implements HalGyro,
     {
         final String funcName = "resetYIntegrator";
 
-        if (dataIntegrator != null)
+        if (integrator != null)
         {
-            dataIntegrator.reset(yIndex);
+            integrator.reset(yIndex);
         }
 
         if (debugEnabled)
@@ -715,9 +775,9 @@ public abstract class TrcGyro extends TrcSensor implements HalGyro,
     {
         final String funcName = "resetZIntegrator";
 
-        if (dataIntegrator != null)
+        if (integrator != null)
         {
-            dataIntegrator.reset(zIndex);
+            integrator.reset(zIndex);
         }
 
         if (debugEnabled)
@@ -739,22 +799,22 @@ public abstract class TrcGyro extends TrcSensor implements HalGyro,
      * @return raw data for the specified axis and type.
      */
     @Override
-    public SensorData getRawData(int index, Object dataType)
+    public SensorData getRawData(int index, DataType dataType)
     {
         final String funcName = "getRawData";
-        SensorData data = null;
+        SensorData<Double> data = null;
 
         if (index == xIndex)
         {
-            data = getRawXData((DataType)dataType);
+            data = getRawXData(dataType);
         }
         else if (index == yIndex)
         {
-            data = getRawYData((DataType)dataType);
+            data = getRawYData(dataType);
         }
         else if (index == zIndex)
         {
-            data = getRawZData((DataType)dataType);
+            data = getRawZData(dataType);
         }
 
         if (debugEnabled)
@@ -766,58 +826,5 @@ public abstract class TrcGyro extends TrcSensor implements HalGyro,
 
         return data;
     }   //getRawData
-
-    //
-    // Implements TrcSensorDataSource interface.
-    //
-
-    /**
-     * This method returns the sensor data of the specified index.
-     *
-     * @param index specifies the data index.
-     * @return sensor data of the specified index.
-     */
-    @Override
-    public TrcSensor.SensorData getSensorData(int index)
-    {
-        final String funcName = "getSensorData";
-        TrcSensor.SensorData data = null;
-
-        switch (index)
-        {
-            case 0:
-                data = getXRotationRate();
-                break;
-
-            case 1:
-                data = getYRotationRate();
-                break;
-
-            case 2:
-                data = getZRotationRate();
-                break;
-
-            case 3:
-                data = getXHeading();
-                break;
-
-            case 4:
-                data = getYHeading();
-                break;
-
-            case 5:
-                data = getZHeading();
-                break;
-        }
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "index=%d", index);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
-                               "=(time=%.3f,value=%f)", data.timestamp, data.value);
-        }
-
-        return data;
-    }   //getSensorData
 
 }   //class TrcGyro

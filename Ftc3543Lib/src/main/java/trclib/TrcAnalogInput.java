@@ -23,19 +23,22 @@
 package trclib;
 
 /**
- * This class implements a platform independent AnalogInput. Typically, this
- * class is extended by a platform dependent sensor class that produces value
- * data. The sensor doesn't have to be connected to the AnalogInput port. It
- * could be connected to an I2C port as long as it produces a value data.
- * The platform dependent sensor class must implement the abstract methods
- * required by this class. The abstract methods allow this class to get raw
- * data from the sensor.
- * Depending on the options specified in the constructor, this class may create
- * an integrator. If it needs data integration, it can set the INTEGRATE or the
- * DOUBLE_INTEGRATE options.
+ * This class implements a platform independent AnalogInput. Typically, this class is extended by a platform dependent
+ * sensor class that produces value data. The sensor doesn't have to be connected to the AnalogInput port. It could be
+ * connected to an I2C port as long as it produces a value data. The platform dependent sensor class must implement
+ * the abstract methods required by this class. The abstract methods allow this class to get raw data from the sensor.
+ * Depending on the options specified in the constructor, this class may create an integrator. If it needs data
+ * integration, it can set the INTEGRATE or the DOUBLE_INTEGRATE options.
  */
-public abstract class TrcAnalogInput extends TrcSensor implements TrcSensorDataSource
+public abstract class TrcAnalogInput extends TrcSensor<TrcAnalogInput.DataType>
 {
+    private static final String moduleName = "TrcAnalogInput";
+    private static final boolean debugEnabled = false;
+    private static final boolean tracingEnabled = false;
+    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
+    private TrcDbgTrace dbgTrace = null;
+
     //
     // AnalogInput data type.
     //
@@ -61,10 +64,6 @@ public abstract class TrcAnalogInput extends TrcSensor implements TrcSensorDataS
     public static final int ANALOGINPUT_INTEGRATE       = (1 << 0);
     public static final int ANALOGINPUT_DOUBLE_INTEGRATE= (1 << 1);
 
-    private static final String moduleName = "TrcAnalogInput";
-    private static final boolean debugEnabled = false;
-    private TrcDbgTrace dbgTrace = null;
-
     private final String instanceName;
     private TrcDataIntegrator dataIntegrator = null;
 
@@ -76,8 +75,8 @@ public abstract class TrcAnalogInput extends TrcSensor implements TrcSensorDataS
      * @param options specifies the AnalogInput options. Multiple options can be OR'd together.
      *                ANALOGINPUT_INTEGRATE - do integration on sensor data.
      *                ANALOGINPUT_DOUBLE_INTEGRATE - do double integration on sensor data.
-     * @param filters specifies an array of filter objects, one for each axis, to filter
-     *                sensor data. If no filter is used, this can be set to null.
+     * @param filters specifies an array of filter objects, one for each axis, to filter sensor data. If no filter
+     *                is used, this can be set to null.
      */
     public TrcAnalogInput(final String instanceName, int numAxes, int options, TrcFilter[] filters)
     {
@@ -85,23 +84,18 @@ public abstract class TrcAnalogInput extends TrcSensor implements TrcSensorDataS
 
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName,
-                                       false,
-                                       TrcDbgTrace.TraceLevel.API,
-                                       TrcDbgTrace.MsgLevel.INFO);
+            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         this.instanceName = instanceName;
 
         //
-        // Create the data integrator. Data integrator needs data providers to
-        // provide processed data from the sensor.
+        // Create the data integrator. Data integrator needs data providers to provide processed data from the sensor.
         //
         if ((options & ANALOGINPUT_INTEGRATE) != 0)
         {
-            dataIntegrator = new TrcDataIntegrator(
-                    instanceName, this, DataType.INPUT_DATA,
-                    (options & ANALOGINPUT_DOUBLE_INTEGRATE) != 0);
+            dataIntegrator = new TrcDataIntegrator<>(
+                    instanceName, this, DataType.INPUT_DATA, (options & ANALOGINPUT_DOUBLE_INTEGRATE) != 0);
         }
     }   //TrcAnalogInput
 
@@ -140,14 +134,11 @@ public abstract class TrcAnalogInput extends TrcSensor implements TrcSensorDataS
     }   //toString
 
     /**
-     * The method enables/disables the processing of sensor data. It is not
-     * automatically enabled when the TrcAnalogInput object is created. You
-     * need to explicitly enable the it before data processing will start. As
-     * part of enabling the sensor, calibrate() is also called. calibrate()
-     * may be overridden by the platform dependent sensor if it is capable
-     * of doing its own. Otherwise, calibrate will call the built-in
-     * calibrator to do the calibration.
-     * Enabling/disabling data processing for the sensor involves
+     * The method enables/disables the processing of sensor data. It is not automatically enabled when the
+     * TrcAnalogInput object is created. You need to explicitly enable the it before data processing will
+     * start. As part of enabling the sensor, calibrate() is also called. calibrate() may be overridden by
+     * the platform dependent sensor if it is capable of doing its own. Otherwise, calibrate will call the
+     * built-in calibrator to do the calibration. Enabling/disabling data processing for the sensor involves
      * enabling/disabling the integrator if it exists.
      *
      * @param enabled specifies true if enabling, false otherwise.
@@ -158,8 +149,7 @@ public abstract class TrcAnalogInput extends TrcSensor implements TrcSensorDataS
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
-                                "enabled=%s", Boolean.toString(enabled));
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "enabled=%s", Boolean.toString(enabled));
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
@@ -173,8 +163,8 @@ public abstract class TrcAnalogInput extends TrcSensor implements TrcSensorDataS
     }   //setEnabled
 
     /**
-     * This method inverts the sensor data. This is useful if the orientation of
-     * the sensor is such that the data goes the wrong direction.
+     * This method inverts the sensor data. This is useful if the orientation of the sensor is such that the data
+     * goes the wrong direction.
      *
      * @param inverted specifies true to invert sensor data, false otherwise.
      */
@@ -184,8 +174,7 @@ public abstract class TrcAnalogInput extends TrcSensor implements TrcSensorDataS
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
-                                "inverted=%s", Boolean.toString(inverted));
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "inverted=%s", Boolean.toString(inverted));
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
@@ -219,7 +208,7 @@ public abstract class TrcAnalogInput extends TrcSensor implements TrcSensorDataS
     public TrcSensor.SensorData getData(int index)
     {
         final String funcName = "getData";
-        TrcSensor.SensorData data = getData(index, DataType.INPUT_DATA);;
+        TrcSensor.SensorData<Double> data = getProcessedData(index, DataType.INPUT_DATA);;
 
         if (debugEnabled)
         {
@@ -240,7 +229,7 @@ public abstract class TrcAnalogInput extends TrcSensor implements TrcSensorDataS
     public TrcSensor.SensorData getIntegratedData(int index)
     {
         final String funcName = "getIntegratedData";
-        TrcSensor.SensorData data = null;
+        TrcSensor.SensorData<Double> data;
 
         if (dataIntegrator != null)
         {
@@ -270,7 +259,7 @@ public abstract class TrcAnalogInput extends TrcSensor implements TrcSensorDataS
     public TrcSensor.SensorData getDoubleIntegratedData(int index)
     {
         final String funcName = "getDoubleIntegratedData";
-        TrcSensor.SensorData data = null;
+        TrcSensor.SensorData<Double> data;
 
         if (dataIntegrator != null)
         {
@@ -315,50 +304,5 @@ public abstract class TrcAnalogInput extends TrcSensor implements TrcSensorDataS
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
     }   //resetIntegrator
-
-    //
-    // Implements TrcSensor abstract methods.
-    //
-
-    /**
-     * This abstract method returns the raw sensor data for the specified axis and type.
-     *
-     * @param index specifies the axis index.
-     * @param dataType specifies the data type.
-     * @return raw data for the specified axis.
-     */
-    @Override
-    public SensorData getRawData(int index, Object dataType)
-    {
-        final String funcName = "getRawData";
-        SensorData data = null;
-
-        data = getRawData(index, (DataType)dataType);
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.CALLBK, "index=%d", index);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.CALLBK,
-                               "=(timestamp=%.3f,value=%f", data.timestamp, data.value);
-        }
-
-        return data;
-    }   //getRawData
-
-    //
-    // Implements TrcSensorDataSource interface.
-    //
-
-    /**
-     * This method returns the sensor data of the specified index.
-     *
-     * @param index specifies the data index.
-     * @return sensor data of the specified index.
-     */
-    @Override
-    public TrcSensor.SensorData getSensorData(int index)
-    {
-        return getData(index);
-    }   //getSensorData
 
 }   //class TrcAnalogInput

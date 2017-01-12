@@ -67,7 +67,7 @@ public class FtcAutoK9LineFollow extends FtcOpMode
         final int LABEL_WIDTH = 200;
         double left = 0.0;
         double right = 0.0;
-        double lightValue = (Double)robot.lightSensor.getData(0).value;
+        double lightValue = robot.lightSensor.sensor.getRawLightDetected();
         //
         // Following the left edge of a white line.
         //

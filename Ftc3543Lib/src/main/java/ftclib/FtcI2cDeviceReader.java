@@ -39,6 +39,15 @@ public class FtcI2cDeviceReader extends I2cDeviceReader
     private byte[] data = null;
     private double timestamp = 0.0;
 
+    /**
+     * Constructor: Creates an instance of the object.
+     *
+     * @param instanceName specifies the instance name.
+     * @param device specifies the I2C device this reader is created for.
+     * @param i2cAddr specifies the I2C address of the device.
+     * @param memStart specifies the start address of the register window to read from.
+     * @param memLen specifies the length of the register window to read from.
+     */
     public FtcI2cDeviceReader(String instanceName, I2cDevice device, I2cAddr i2cAddr, int memStart, int memLen)
     {
         super(device, i2cAddr, memStart, memLen);
@@ -101,9 +110,9 @@ public class FtcI2cDeviceReader extends I2cDeviceReader
     }   //getMemLength
 
     /**
-     * This method checks if it is in the same time slice loop as before. If so, it will just returned the
-     * data cached from last time. Otherwise, it will retrieve a new data buffer from the device and update
-     * the cache with it.
+     * This method checks if it is in the same time slice loop as before. If so, it will just returned the data
+     * cached from last time. Otherwise, it will retrieve a new data buffer from the device and update the cache
+     * with it.
      *
      * @return device data.
      */

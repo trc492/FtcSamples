@@ -22,71 +22,85 @@
 
 package trclib;
 
+/**
+ * This class implements the TrcEvent. TrcEvent is very important in our event driven architecture where things
+ * only happen when an event is signaled.
+ */
 public class TrcEvent
 {
     private static final String moduleName = "TrcEvent";
     private static final boolean debugEnabled = false;
+    private static final boolean tracingEnabled = false;
+    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
 
-    private String instanceName;
+    private final String instanceName;
     private boolean signaled;
     private boolean canceled;
 
+    /**
+     * Constructor: Create an instance of the object.
+     *
+     * @param instanceName specifies the instance name.
+     * @param state specifies the initial state of the event.
+     */
+    public TrcEvent(final String instanceName, boolean state)
+    {
+        if (debugEnabled)
+        {
+            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
+        }
+
+        this.instanceName = instanceName;
+        this.signaled = state;
+        this.canceled = false;
+    }   //TrcEvent
+
+    /**
+     * Constructor: Create an instance of the object.
+     *
+     * @param instanceName specifies the instance name.
+     */
     public TrcEvent(final String instanceName)
     {
         this(instanceName, false);
     }   //TrcEvent
 
-    public TrcEvent(final String instanceName, boolean state)
-    {
-        if (debugEnabled)
-        {
-            dbgTrace = new TrcDbgTrace(
-                    moduleName + "." + instanceName,
-                    false,
-                    TrcDbgTrace.TraceLevel.API,
-                    TrcDbgTrace.MsgLevel.INFO);
-        }
-
-        this.instanceName = instanceName;
-        set(state);
-        this.canceled = false;
-    }   //TrcEvent
-
+    /**
+     * This method returns the instance name.
+     *
+     * @return instance name.
+     */
     public String toString()
     {
-        final String funcName = "getName";
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(
-                    funcName, TrcDbgTrace.TraceLevel.API,
-                    "=%s", instanceName);
-        }
-
         return instanceName;
     }   //toString
 
+    /**
+     * This method sets the state of the event object.
+     *
+     * @param signaled specifies the event state to be set.
+     */
     public void set(boolean signaled)
     {
         final String funcName = "set";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(
-                    funcName, TrcDbgTrace.TraceLevel.API,
-                    "signaled=%s", Boolean.toString(signaled));
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "signaled=%s", Boolean.toString(signaled));
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
         this.signaled = signaled;
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
-        }
     }   //set
 
+    /**
+     * This method cancels an event if it is not already signaled. An event is either signaled or canceled by the
+     * event source either of which will cause whoever is waiting for it to move on. We could have overloaded
+     * signal for this (i.e. set signal to true when canceled) but we like to be able to differentiate whether
+     * the event was completed normally or aborted.
+     */
     public void cancel()
     {
         final String funcName = "cancel";
@@ -94,19 +108,18 @@ public class TrcEvent
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
         if (!signaled)
         {
             canceled = true;
         }
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
-        }
     }   //cancel
 
+    /**
+     * This method clears the event.
+     */
     public void clear()
     {
         final String funcName = "clear";
@@ -114,17 +127,18 @@ public class TrcEvent
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
         signaled = false;
         canceled = false;
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
-        }
     }   //clear
 
+    /**
+     * This method checks if the event is signaled.
+     *
+     * @return true if the event is signaled, false otherwise.
+     */
     public boolean isSignaled()
     {
         final String funcName = "isSignaled";
@@ -132,15 +146,17 @@ public class TrcEvent
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-
-            dbgTrace.traceExit(
-                    funcName, TrcDbgTrace.TraceLevel.API,
-                    "=%s", Boolean.toString(signaled));
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", Boolean.toString(signaled));
         }
 
         return signaled;
     }   //isSignaled
 
+    /**
+     * This method checks if the event was canceled.
+     *
+     * @return true if the event was canceled, false otherwise.
+     */
     public boolean isCanceled()
     {
         final String funcName = "isCanceled";
@@ -148,9 +164,7 @@ public class TrcEvent
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(
-                    funcName, TrcDbgTrace.TraceLevel.API,
-                    "=%s", Boolean.toString(canceled));
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", Boolean.toString(canceled));
         }
 
         return canceled;

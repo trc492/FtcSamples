@@ -26,18 +26,26 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import trclib.TrcDbgTrace;
 import trclib.TrcSensor;
-import trclib.TrcSensorDataSource;
 import trclib.TrcUtil;
 
 /**
- * This class implements the Modern Robotics Range Sensor extending FtcMRI2cDevice that implements
- * the common features of all Modern Robotics I2C devices.
+ * This class implements the Modern Robotics Range Sensor extending FtcMRI2cDevice that implements the common features
+ * of all Modern Robotics I2C devices.
  */
-public class FtcMRI2cRangeSensor extends FtcMRI2cDevice implements TrcSensorDataSource
+public class FtcMRI2cRangeSensor extends FtcMRI2cDevice implements TrcSensor.DataSource<FtcMRI2cRangeSensor.DataType>
 {
     private static final String moduleName = "FtcMRI2cRangeSensor";
     private static final boolean debugEnabled = false;
+    private static final boolean tracingEnabled = false;
+    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
+
+    public enum DataType
+    {
+        ULTRASONIC_DISTANCE,
+        OPTICAL_DISTANCE
+    }
 
     public static final int DEF_I2CADDRESS          = 0x28;     //8-bit address.
 
@@ -67,11 +75,7 @@ public class FtcMRI2cRangeSensor extends FtcMRI2cDevice implements TrcSensorData
 
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(
-                    moduleName + "." + instanceName,
-                    false,
-                    TrcDbgTrace.TraceLevel.API,
-                    TrcDbgTrace.MsgLevel.INFO);
+            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         readerId = addReader(instanceName, READ_START, READ_LENGTH);
@@ -104,18 +108,18 @@ public class FtcMRI2cRangeSensor extends FtcMRI2cDevice implements TrcSensorData
      *
      * @return ultrasonic distance.
      */
-    public TrcSensor.SensorData getUltrasonicDistance()
+    public TrcSensor.SensorData<Double> getUltrasonicDistance()
     {
         final String funcName = "getUltrasonicDistance";
         byte[] regData = getData(readerId);
-        TrcSensor.SensorData data = new TrcSensor.SensorData(
-                getDataTimestamp(readerId), TrcUtil.bytesToInt(regData[REG_ULTRSONIC_DISTANCE - READ_START]));
+        TrcSensor.SensorData<Double> data = new TrcSensor.SensorData<>(
+                getDataTimestamp(readerId), (double)TrcUtil.bytesToInt(regData[REG_ULTRSONIC_DISTANCE - READ_START]));
 
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
-                               "=(timestamp=%.3f,value=%d)", data.timestamp, (Integer)data.value);
+                               "=(timestamp=%.3f,value=%.0f)", data.timestamp, data.value);
         }
 
         return data;
@@ -126,58 +130,60 @@ public class FtcMRI2cRangeSensor extends FtcMRI2cDevice implements TrcSensorData
      *
      * @return optical distance.
      */
-    public TrcSensor.SensorData getOpticalDistance()
+    public TrcSensor.SensorData<Double> getOpticalDistance()
     {
         final String funcName = "getOpticalDistance";
         byte[] regData = getData(readerId);
-        TrcSensor.SensorData data = new TrcSensor.SensorData(
-                getDataTimestamp(readerId), TrcUtil.bytesToInt(regData[REG_OPTICAL_DISTANCE - READ_START]));
+        TrcSensor.SensorData<Double> data = new TrcSensor.SensorData<>(
+                getDataTimestamp(readerId), (double)TrcUtil.bytesToInt(regData[REG_OPTICAL_DISTANCE - READ_START]));
 
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
-                               "=(timestamp=%.3f,value=%d)", data.timestamp, (Integer)data.value);
+                               "=(timestamp=%.3f,value=%.0f)", data.timestamp, data.value);
         }
 
         return data;
     }   //getOpticalDistance
 
     //
-    // Implements TrcSensorDataSource interface.
+    // Implements TrcSensor.DataSource interface.
     //
 
     /**
      * This method returns the sensor data of the specified index.
      *
      * @param index specifies the data index.
-     * @return sensor data of the specified index.
+     * @param dataType specifies the data type.
+     * @return sensor data of the specified index and type.
      */
     @Override
-    public TrcSensor.SensorData getSensorData(int index)
+    public TrcSensor.SensorData<Double> getRawData(int index, DataType dataType)
     {
-        final String funcName = "getSensorData";
-        TrcSensor.SensorData data = null;
+        final String funcName = "getRawData";
+        TrcSensor.SensorData<Double> data = null;
 
-        switch (index)
+        switch (dataType)
         {
-            case 0:
+            case ULTRASONIC_DISTANCE:
                 data = getUltrasonicDistance();
                 break;
 
-            case 1:
+            case OPTICAL_DISTANCE:
                 data = getOpticalDistance();
                 break;
         }
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "index=%d", index);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
+                                "index=%d,dataType=%s", index, dataType.toString());
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
-                               "=(time=%.3f,value=%d)", data.timestamp, data.value);
+                               "=(time=%.3f,value=%.0f)", data.timestamp, data.value);
         }
 
         return data;
-    }   //getSensorData
+    }   //getRawData
 
 }   //class FtcMRI2cRangeSensor

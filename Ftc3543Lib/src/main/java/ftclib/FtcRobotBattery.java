@@ -38,6 +38,8 @@ public class FtcRobotBattery implements TrcTaskMgr.Task
     private static final String moduleName = "FtcRobotBattery";
     private static final boolean debugEnabled = false;
     private static final boolean tracingEnabled = false;
+    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
 
     private ModernRoboticsUsbDcMotorController motorController;
@@ -53,8 +55,7 @@ public class FtcRobotBattery implements TrcTaskMgr.Task
     {
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(
-                    moduleName, tracingEnabled, TrcDbgTrace.TraceLevel.API, TrcDbgTrace.MsgLevel.INFO);
+            dbgTrace = new TrcDbgTrace(moduleName, tracingEnabled, traceLevel, msgLevel);
         }
 
         this.motorController = (ModernRoboticsUsbDcMotorController)motorController;
@@ -66,9 +67,9 @@ public class FtcRobotBattery implements TrcTaskMgr.Task
      *
      * @param enabled specifies true to enable the task, false to disable.
      */
-    public void setTaskEnabled(boolean enabled)
+    public void setEnabled(boolean enabled)
     {
-        final String funcName = "setTaskEnabled";
+        final String funcName = "setEnabled";
 
         if (debugEnabled)
         {
@@ -85,7 +86,7 @@ public class FtcRobotBattery implements TrcTaskMgr.Task
         {
             TrcTaskMgr.getInstance().unregisterTask(this, TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
         }
-    }   //setTaskEnabled
+    }   //setEnabled
 
     /**
      * This method returns the current robot battery voltage.
@@ -142,8 +143,8 @@ public class FtcRobotBattery implements TrcTaskMgr.Task
     }   //postPeriodicTask
 
     /**
-     * This method is called periodically to monitor the battery voltage and to keep track of the lowest voltage
-     * it has ever seen.
+     * This method is called periodically to monitor the battery voltage and to keep track of the lowest voltage it
+     * has ever seen.
      *
      * @param runMode specifies the competition mode that is running.
      */

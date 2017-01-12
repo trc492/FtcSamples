@@ -22,32 +22,38 @@
 
 package ftclib;
 
+import android.speech.tts.TextToSpeech;
+
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
+import java.util.Locale;
+
 import hallib.HalDashboard;
-import hallib.HalUtil;
 import trclib.TrcDbgTrace;
 import trclib.TrcRobot;
 import trclib.TrcTaskMgr;
+import trclib.TrcUtil;
 
 /**
- * This class implements a cooperative multi-tasking scheduler
- * extending LinearOpMode.
+ * This class implements a cooperative multi-tasking scheduler extending LinearOpMode.
  */
 public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMode
 {
     private static final String moduleName = "FtcOpMode";
     private static final boolean debugEnabled = false;
     private static final boolean tracingEnabled = false;
+    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
 
     private static TrcDbgTrace globalTracer = null;
     private static String opModeName = null;
     private HalDashboard dashboard = null;
+    private TextToSpeech textToSpeech = null;
 
     /**
-     * This method is called to initialize the robot. In FTC, this is called when the
-     * "Init" button on the Driver Station phone is pressed.
+     * This method is called to initialize the robot. In FTC, this is called when the "Init" button on the Driver
+     * Station phone is pressed.
      */
     public abstract void initRobot();
 
@@ -63,8 +69,8 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
     private static double loopStartTime = 0.0;
 
     /**
-     * Constructor: Creates an instance of the object. It calls the constructor
-     * of the LinearOpMode class and saves an instance of this class.
+     * Constructor: Creates an instance of the object. It calls the constructor of the LinearOpMode class and saves
+     * an instance of this class.
      */
     public FtcOpMode()
     {
@@ -72,8 +78,7 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
 
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(
-                    moduleName, tracingEnabled, TrcDbgTrace.TraceLevel.API, TrcDbgTrace.MsgLevel.INFO);
+            dbgTrace = new TrcDbgTrace(moduleName, tracingEnabled, traceLevel, msgLevel);
         }
 
         instance = this;
@@ -84,9 +89,8 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
     }   //FtcOpMode
 
     /**
-     * This method returns the saved instance. This is a static method. So other
-     * class can get to this class instance by calling getInstance(). This is very
-     * useful for other classes that need to access the public fields such as
+     * This method returns the saved instance. This is a static method. So other class can get to this class instance
+     * by calling getInstance(). This is very useful for other classes that need to access the public fields such as
      * hardwareMap, gamepad1 and gamepad2.
      *
      * @return save instance of this class.
@@ -98,10 +102,9 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
     }   //getInstance
 
     /**
-     * This method returns a global debug trace object for tracing OpMode code.
-     * If it doesn't exist yet, one is created. This is an easy way to quickly
-     * get some debug output without a whole lot of setup overhead as the full
-     * module-based debug tracing.
+     * This method returns a global debug trace object for tracing OpMode code. If it doesn't exist yet, one is
+     * created. This is an easy way to quickly get some debug output without a whole lot of setup overhead as the
+     * full module-based debug tracing.
      *
      * @return global opMode trace object.
      */
@@ -109,19 +112,54 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
     {
         if (globalTracer == null)
         {
-            globalTracer = new TrcDbgTrace(
-                    opModeName != null? opModeName: "globalTracer",
-                    false, TrcDbgTrace.TraceLevel.API, TrcDbgTrace.MsgLevel.INFO);
+            globalTracer = new TrcDbgTrace(opModeName != null? opModeName: "globalTracer", false,
+                                           TrcDbgTrace.TraceLevel.API, TrcDbgTrace.MsgLevel.INFO);
         }
 
         return globalTracer;
     }   //getGlobalTracer
 
     /**
-     * This method sets the global tracer configuration. The OpMode trace object was
-     * created with default configuration of disabled method tracing, method tracing
-     * level is set to API and message trace level set to INFO. Call this method if
-     * you want to change the configuration.
+     * This method returns a TextToSpeech object. If it doesn't exist yet, one is created.
+     *
+     * @param locale specifies the language locale.
+     * @return TextToSpeech object.
+     */
+    public TextToSpeech getTextToSpeech(final Locale locale)
+    {
+        if (textToSpeech == null)
+        {
+            textToSpeech = new TextToSpeech(hardwareMap.appContext,
+                                            new TextToSpeech.OnInitListener()
+                                            {
+                                                @Override
+                                                public void onInit(int status)
+                                                {
+                                                    if (status != TextToSpeech.ERROR)
+                                                    {
+                                                        textToSpeech.setLanguage(locale);
+                                                    }
+                                                }
+                                            });
+        }
+
+        return textToSpeech;
+    }   //getTextToSpeech
+
+    /**
+     * This method returns a TextToSpeech object with US locale.
+     *
+     * @return TextToSpeech object.
+     */
+    public TextToSpeech getTextToSpeech()
+    {
+        return getTextToSpeech(Locale.US);
+    }   //getTextToSpeech
+
+    /**
+     * This method sets the global tracer configuration. The OpMode trace object was created with default
+     * configuration of disabled method tracing, method tracing level is set to API and message trace level
+     * set to INFO. Call this method if you want to change the configuration.
      *
      * @param traceEnabled specifies true if enabling method tracing.
      * @param traceLevel specifies the method tracing level.
@@ -144,22 +182,20 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
     }   //getOpModeName
 
     /**
-     * This method returns the elapsed time since competition starts.
-     * This is the elapsed time after robotInit() is called and after
-     * waitForStart() has returned (i.e. The "Play" button is pressed
-     * on the Driver Station.
+     * This method returns the elapsed time since competition starts. This is the elapsed time after robotInit() is
+     * called and after waitForStart() has returned (i.e. The "Play" button is pressed on the Driver Station.
      *
      * @return OpMode elapsed time in seconds.
      */
     public static double getOpModeElapsedTime()
     {
-        opModeElapsedTime = HalUtil.getCurrentTime() - opModeStartTime;
+        opModeElapsedTime = TrcUtil.getCurrentTime() - opModeStartTime;
         return opModeElapsedTime;
     }   //getElapsedTime
 
     /**
-     * This method returns the start time of the time slice loop. This is useful for the caller to determine
-     * if it is in the same time slice as a previous operation for optimization purposes.
+     * This method returns the start time of the time slice loop. This is useful for the caller to determine if it
+     * is in the same time slice as a previous operation for optimization purposes.
      *
      * @return time slice loop start time.
      */
@@ -173,8 +209,7 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
     //
 
     /**
-     * This method is called when our OpMode is loaded and the "Init" button
-     * on the Driver Station is pressed.
+     * This method is called when our OpMode is loaded and the "Init" button on the Driver Station is pressed.
      */
     @Override
     public void runOpMode()
@@ -187,15 +222,12 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
         {
             if (dbgTrace == null)
             {
-                dbgTrace = new TrcDbgTrace(
-                        moduleName, false, TrcDbgTrace.TraceLevel.API, TrcDbgTrace.MsgLevel.INFO);
+                dbgTrace = new TrcDbgTrace(moduleName, false, TrcDbgTrace.TraceLevel.API, TrcDbgTrace.MsgLevel.INFO);
             }
         }
 
         //
-        // Determine run mode.
-        // Note that it means the OpMode must have "FtcAuto", "FtcTeleOp" or "FtcTest"
-        // in its name.
+        // Determine run mode. Note that it means the OpMode must have "FtcAuto", "FtcTeleOp" or "FtcTest" in its name.
         //
         String opModeFullName = this.toString();
         opModeName = "Invalid";
@@ -222,8 +254,7 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
         }
         else
         {
-            throw new IllegalStateException(
-                    "Invalid OpMode (must be either FtcAuto, FtcTeleOp or FtcTest.");
+            throw new IllegalStateException("Invalid OpMode (must be either FtcAuto, FtcTeleOp or FtcTest.");
         }
 
         if (debugEnabled)
@@ -250,7 +281,7 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
             dbgTrace.traceInfo(funcName, "Waiting to start ...");
         }
         waitForStart();
-        opModeStartTime = HalUtil.getCurrentTime();
+        opModeStartTime = TrcUtil.getCurrentTime();
 
         //
         // Prepare for starting the run mode.
@@ -267,10 +298,10 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
         }
         startMode();
 
-        long nextPeriodTime = HalUtil.getCurrentTimeMillis();
+        long nextPeriodTime = TrcUtil.getCurrentTimeMillis();
         while (opModeIsActive())
         {
-            loopStartTime = HalUtil.getCurrentTime();
+            loopStartTime = TrcUtil.getCurrentTime();
             opModeElapsedTime = loopStartTime - opModeStartTime;
 
             if (debugEnabled)
@@ -291,7 +322,7 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
             }
             taskMgr.executeTaskType(TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK, runMode);
 
-            if (HalUtil.getCurrentTimeMillis() >= nextPeriodTime)
+            if (TrcUtil.getCurrentTimeMillis() >= nextPeriodTime)
             {
                 dashboard.displayPrintf(0, "%s: %.3f", opModeName, opModeElapsedTime);
                 nextPeriodTime += LOOP_PERIOD;
@@ -331,10 +362,9 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
     }   //runOpMode
 
     /**
-     * This method is called when the competition mode is about to start. In FTC, this is
-     * called when the "Play" button on the Driver Station phone is pressed. Typically,
-     * you put code that will prepare the robot for start of competition here such as
-     * resetting the encoders/sensors and enabling some sensors to start sampling.
+     * This method is called when the competition mode is about to start. In FTC, this is called when the "Play"
+     * button on the Driver Station phone is pressed. Typically, you put code that will prepare the robot for start
+     * of competition here such as resetting the encoders/sensors and enabling some sensors to start sampling.
      */
     @Override
     public void startMode()
@@ -342,8 +372,8 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
     }   //startMode
 
     /**
-     * This method is called when competition mode is about to end. Typically, you put code
-     * that will do clean up here such as disabling the sampling of some sensors.
+     * This method is called when competition mode is about to end. Typically, you put code that will do clean up
+     * here such as disabling the sampling of some sensors.
      */
     @Override
     public void stopMode()
@@ -351,9 +381,9 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
     }   //stopMode
 
     /**
-     * This method is called periodically about 50 times a second. Typically, you put code
-     * that doesn't require frequent update here. For example, TeleOp joystick code can be
-     * put here since human responses are considered slow.
+     * This method is called periodically about 50 times a second. Typically, you put code that doesn't require
+     * frequent update here. For example, TeleOp joystick code can be put here since human responses are considered
+     * slow.
      *
      * @param elapsedTime specifies the elapsed time since the mode started.
      */
@@ -363,10 +393,9 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
     }   //runPeriodic
 
     /**
-     * This method is called periodically as fast as the control system allows. Typically,
-     * you put code that requires servicing at a higher frequency here. To make the robot
-     * as responsive and as accurate as possible especially in autonomous mode, you will
-     * typically put that code here.
+     * This method is called periodically as fast as the control system allows. Typically, you put code that requires
+     * servicing at a higher frequency here. To make the robot as responsive and as accurate as possible especially
+     * in autonomous mode, you will typically put that code here.
      *
      * @param elapsedTime specifies the elapsed time since the mode started.
      */

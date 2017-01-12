@@ -26,18 +26,29 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import trclib.TrcDbgTrace;
 import trclib.TrcSensor;
-import trclib.TrcSensorDataSource;
 import trclib.TrcUtil;
 
 /**
- * This class implements the Modern Robotics Color Sensor extending FtcMRI2cDevice that implements
- * the common features of all Modern Robotics I2C devices.
+ * This class implements the Modern Robotics Color Sensor extending FtcMRI2cDevice that implements the common
+ * features of all Modern Robotics I2C devices.
  */
-public class FtcMRI2cColorSensor extends FtcMRI2cDevice implements TrcSensorDataSource
+public class FtcMRI2cColorSensor extends FtcMRI2cDevice implements TrcSensor.DataSource<FtcMRI2cColorSensor.DataType>
 {
     private static final String moduleName = "FtcMRI2cColorSensor";
     private static final boolean debugEnabled = false;
+    private static final boolean tracingEnabled = false;
+    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
+
+    public enum DataType
+    {
+        COLOR_NUMBER,
+        RED,
+        GREEN,
+        BLUE,
+        WHITE
+    }   //enum DataType
 
     public static final int DEF_I2CADDRESS          = 0x3c;
 
@@ -101,11 +112,7 @@ public class FtcMRI2cColorSensor extends FtcMRI2cDevice implements TrcSensorData
 
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(
-                    moduleName + "." + instanceName,
-                    false,
-                    TrcDbgTrace.TraceLevel.API,
-                    TrcDbgTrace.MsgLevel.INFO);
+            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         readerId = addReader(instanceName, READ_START, READ_LENGTH);
@@ -134,8 +141,8 @@ public class FtcMRI2cColorSensor extends FtcMRI2cDevice implements TrcSensorData
     }   //FtcMRI2cColorSensor
 
     /**
-     * This method turns on the internal LED to illuminate the target surface or turns off
-     * the internal LED and reads from external light sources.
+     * This method turns on the internal LED to illuminate the target surface or turns off the internal LED and reads
+     * from external light sources.
      *
      * @param enabled specifies true to turn on internal LED, false otherwise.
      */
@@ -145,11 +152,10 @@ public class FtcMRI2cColorSensor extends FtcMRI2cDevice implements TrcSensorData
     }   //setLEDEnabled
 
     /**
-     * This method sets the operating frequency to 50Hz. This setting is saved in EEPROM.
-     * This function is provided to enable the sampling to coincide with the normal flickering
-     * associated with mains electrical A/C artificial lighting, and helps minimize signal
-     * noise issues. Call this method when used in countries with 50Hz A/C electric current
-     * frequency. When Frequency Mode set is complete, the LED will blink off briefly and then
+     * This method sets the operating frequency to 50Hz. This setting is saved in EEPROM. This function is provided
+     * to enable the sampling to coincide with the normal flickering associated with mains electrical A/C artificial
+     * lighting, and helps minimize signal noise issues. Call this method when used in countries with 50Hz A/C
+     * electric current frequency. When Frequency Mode set is complete, the LED will blink off briefly and then
      * the previous measurement mode will resume.
      */
     public void set50HzMode()
@@ -158,11 +164,10 @@ public class FtcMRI2cColorSensor extends FtcMRI2cDevice implements TrcSensorData
     }   //set50HzMode
 
     /**
-     * This method sets the operating frequency to 60Hz. This setting is saved in EEPROM.
-     * This function is provided to enable the sampling to coincide with the normal flickering
-     * associated with mains electrical A/C artificial lighting, and helps minimize signal
-     * noise issues. Call this method when used in countries with 60Hz A/C electric current
-     * frequency. When Frequency Mode set is complete, the LED will blink off briefly and then
+     * This method sets the operating frequency to 60Hz. This setting is saved in EEPROM. This function is provided
+     * to enable the sampling to coincide with the normal flickering associated with mains electrical A/C artificial
+     * lighting, and helps minimize signal noise issues. Call this method when used in countries with 60Hz A/C
+     * electric current frequency. When Frequency Mode set is complete, the LED will blink off briefly and then
      * the previous measurement mode will resume.
      */
     public void set60HzMode()
@@ -171,13 +176,11 @@ public class FtcMRI2cColorSensor extends FtcMRI2cDevice implements TrcSensorData
     }   //set60HzMode
 
     /**
-     * This method calibrates the black level. It runs 64 measurement cycles to obtain an
-     * average value for each of the 3 color channels. The three values obtained are stored
-     * in EEPROM and will subsequently be subtracted from all future measurements. When the
-     * black level calibration is complete, the LED will blink off briefly and then the previous
-     * measurement mode will resume with the command byte being set to 00H or 01H. During the
-     * black level calibration, the sensor should be placed such that no surface is within 5 feet
-     * (1.5m) of the sensor element.
+     * This method calibrates the black level. It runs 64 measurement cycles to obtain an average value for each of
+     * the 3 color channels. The three values obtained are stored in EEPROM and will subsequently be subtracted from
+     * all future measurements. When the black level calibration is complete, the LED will blink off briefly and then
+     * the previous measurement mode will resume with the command byte being set to 00H or 01H. During the black level
+     * calibration, the sensor should be placed such that no surface is within 5 feet (1.5m) of the sensor element.
      */
     public void calibrateBlackLevel()
     {
@@ -185,13 +188,12 @@ public class FtcMRI2cColorSensor extends FtcMRI2cDevice implements TrcSensorData
     }   //calibrateBlackLevel
 
     /**
-     * This method calibrates the white balance. It runs 64 measurement cycles to obtain an
-     * average value for each of the 3 color channels. The values obtained are adjusted according
-     * to the stored black level calibration values and stored in EEPROM. When the white balance
-     * calibration is complete, the LED will blink off briefly and then previous measurement mode
-     * will resume. During white balance calibration, the sensor must be placed approximately 2
-     * inches (5cm) from a white target. This target must be as white as possible. At least 3
-     * layers of high quality copy paper make a good white target.
+     * This method calibrates the white balance. It runs 64 measurement cycles to obtain an average value for each
+     * of the 3 color channels. The values obtained are adjusted according to the stored black level calibration
+     * values and stored in EEPROM. When the white balance calibration is complete, the LED will blink off briefly
+     * and then previous measurement mode will resume. During white balance calibration, the sensor must be placed
+     * approximately 2 inches (5cm) from a white target. This target must be as white as possible. At least 3 layers
+     * of high quality copy paper make a good white target.
      */
     public void calibrateWhiteBalance()
     {
@@ -203,18 +205,18 @@ public class FtcMRI2cColorSensor extends FtcMRI2cDevice implements TrcSensorData
      *
      * @return color number.
      */
-    public TrcSensor.SensorData getColorNumber()
+    public TrcSensor.SensorData<Double> getColorNumber()
     {
         final String funcName = "getColorNumber";
         byte[] regData = getData(readerId);
-        TrcSensor.SensorData data = new TrcSensor.SensorData(
-                getDataTimestamp(readerId), TrcUtil.bytesToInt(regData[REG_COLOR_NUMBER - READ_START]));
+        TrcSensor.SensorData<Double> data = new TrcSensor.SensorData<>(
+                getDataTimestamp(readerId), (double)TrcUtil.bytesToInt(regData[REG_COLOR_NUMBER - READ_START]));
 
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
-                               "=(timestamp=%.3f,value=%d)", data.timestamp, (Integer)data.value);
+                               "=(timestamp=%.3f,value=%.0f)", data.timestamp, data.value);
         }
 
         return data;
@@ -225,18 +227,18 @@ public class FtcMRI2cColorSensor extends FtcMRI2cDevice implements TrcSensorData
      *
      * @return red value.
      */
-    public TrcSensor.SensorData getRedValue()
+    public TrcSensor.SensorData<Double> getRedValue()
     {
         final String funcName = "getRedValue";
         byte[] regData = getData(readerId);
-        TrcSensor.SensorData data = new TrcSensor.SensorData(
-                getDataTimestamp(readerId), TrcUtil.bytesToInt(regData[REG_RED - READ_START]));
+        TrcSensor.SensorData<Double> data = new TrcSensor.SensorData<>(
+                getDataTimestamp(readerId), (double)TrcUtil.bytesToInt(regData[REG_RED - READ_START]));
 
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
-                               "=(timestamp=%.3f,value=%d)", data.timestamp, (Integer)data.value);
+                               "=(timestamp=%.3f,value=%.0f)", data.timestamp, data.value);
         }
 
         return data;
@@ -247,18 +249,18 @@ public class FtcMRI2cColorSensor extends FtcMRI2cDevice implements TrcSensorData
      *
      * @return green value.
      */
-    public TrcSensor.SensorData getGreenValue()
+    public TrcSensor.SensorData<Double> getGreenValue()
     {
         final String funcName = "getGreenValue";
         byte[] regData = getData(readerId);
-        TrcSensor.SensorData data = new TrcSensor.SensorData(
-                getDataTimestamp(readerId), TrcUtil.bytesToInt(regData[REG_GREEN - READ_START]));
+        TrcSensor.SensorData<Double> data = new TrcSensor.SensorData<>(
+                getDataTimestamp(readerId), (double)TrcUtil.bytesToInt(regData[REG_GREEN - READ_START]));
 
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
-                               "=(timestamp=%.3f,value=%d)", data.timestamp, (Integer)data.value);
+                               "=(timestamp=%.3f,value=%.0f)", data.timestamp, data.value);
         }
 
         return data;
@@ -269,18 +271,18 @@ public class FtcMRI2cColorSensor extends FtcMRI2cDevice implements TrcSensorData
      *
      * @return blue value.
      */
-    public TrcSensor.SensorData getBlueValue()
+    public TrcSensor.SensorData<Double> getBlueValue()
     {
         final String funcName = "getBlueValue";
         byte[] regData = getData(readerId);
-        TrcSensor.SensorData data = new TrcSensor.SensorData(
-                getDataTimestamp(readerId), TrcUtil.bytesToInt(regData[REG_BLUE - READ_START]));
+        TrcSensor.SensorData<Double> data = new TrcSensor.SensorData<>(
+                getDataTimestamp(readerId), (double)TrcUtil.bytesToInt(regData[REG_BLUE - READ_START]));
 
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
-                               "=(timestamp=%.3f,value=%d)", data.timestamp, (Integer)data.value);
+                               "=(timestamp=%.3f,value=%.0f)", data.timestamp, data.value);
         }
 
         return data;
@@ -291,58 +293,59 @@ public class FtcMRI2cColorSensor extends FtcMRI2cDevice implements TrcSensorData
      *
      * @return white value.
      */
-    public TrcSensor.SensorData getWhiteValue()
+    public TrcSensor.SensorData<Double> getWhiteValue()
     {
         final String funcName = "getWhiteValue";
         byte[] regData = getData(readerId);
-        TrcSensor.SensorData data = new TrcSensor.SensorData(
-                getDataTimestamp(readerId), TrcUtil.bytesToInt(regData[REG_WHITE - READ_START]));
+        TrcSensor.SensorData<Double> data = new TrcSensor.SensorData<>(
+                getDataTimestamp(readerId), (double)TrcUtil.bytesToInt(regData[REG_WHITE - READ_START]));
 
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
-                               "=(timestamp=%.3f,value=%d)", data.timestamp, (Integer)data.value);
+                               "=(timestamp=%.3f,value=%.0f)", data.timestamp, data.value);
         }
 
         return data;
     }   //getWhiteValue
 
     //
-    // Implements TrcSensorDataSource interface.
+    // Implements TrcSensor.DataSource<DataType> interface.
     //
 
     /**
      * This method returns the sensor data of the specified index.
      *
      * @param index specifies the data index.
-     * @return sensor data of the specified index.
+     * @param dataType specifies the data type.
+     * @return sensor data of the specified index and type.
      */
     @Override
-    public TrcSensor.SensorData getSensorData(int index)
+    public TrcSensor.SensorData<Double> getRawData(int index, DataType dataType)
     {
-        final String funcName = "getSensorData";
-        TrcSensor.SensorData data = null;
+        final String funcName = "getRawData";
+        TrcSensor.SensorData<Double> data = null;
 
-        switch (index)
+        switch (dataType)
         {
-            case 0:
+            case COLOR_NUMBER:
                 data = getColorNumber();
                 break;
 
-            case 1:
+            case RED:
                 data = getRedValue();
                 break;
 
-            case 2:
+            case GREEN:
                 data = getGreenValue();
                 break;
 
-            case 3:
+            case BLUE:
                 data = getBlueValue();
                 break;
 
-            case 4:
+            case WHITE:
                 data = getWhiteValue();
                 break;
         }
@@ -351,10 +354,10 @@ public class FtcMRI2cColorSensor extends FtcMRI2cDevice implements TrcSensorData
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "index=%d", index);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
-                               "=(time=%.3f,value=%d)", data.timestamp, data.value);
+                               "=(time=%.3f,value=%.0f)", data.timestamp, data.value);
         }
 
         return data;
-    }   //getSensorData
+    }   //getRawData
 
 }   //class FtcMRI2cColorSensor

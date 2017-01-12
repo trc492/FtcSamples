@@ -23,16 +23,17 @@
 package trclib;
 
 /**
- * This class implements a platform independent servo motor. Typically,
- * this class is to be extended by a platform dependent servo class.
- * Whoever extends this class must provide a set of abstract methods.
- * This makes sure the rest of the TrcLib classes can access the servo
- * without any knowledge of platform dependent implementations.
+ * This class implements a platform independent servo motor. Typically, this class is to be extended by a platform
+ * dependent servo class. Whoever extends this class must provide a set of abstract methods. This makes sure the rest
+ * of the TrcLib classes can access the servo without any knowledge of platform dependent implementations.
  */
 public abstract class TrcServo
 {
     private static final String moduleName = "TrcServo";
     private static final boolean debugEnabled = false;
+    private static final boolean tracingEnabled = false;
+    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
 
     /**
@@ -50,21 +51,18 @@ public abstract class TrcServo
     public abstract boolean getInverted();
 
     /**
-     * This method sets the servo position. On a 180-degree servo, 0.0 is at 0-degree
-     * and 1.0 is at 180-degree. If servo direction is inverted, then 0.0 is at
-     * 180-degree and 1.0 is at 0-degree. On a continuous servo, 0.0 is rotating
-     * full speed in reverse, 0.5 is to stop the motor and 1.0 is rotating the
-     * motor full speed forward. Again, motor direction can be inverted if
-     * setInverted is called.
+     * This method sets the servo position. On a 180-degree servo, 0.0 is at 0-degree and 1.0 is at 180-degree.
+     * If servo direction is inverted, then 0.0 is at 180-degree and 1.0 is at 0-degree. On a continuous servo,
+     * 0.0 is rotating full speed in reverse, 0.5 is to stop the motor and 1.0 is rotating the motor full speed
+     * forward. Again, motor direction can be inverted if setInverted is called.
      *
      * @param position specifies the motor position value.
      */
     public abstract void setPosition(double position);
 
     /**
-     * This method returns the position value set by the last setPosition call.
-     * Note that servo motors do not provide real time position feedback. So
-     * getPosition doesn't actually return the current position.
+     * This method returns the position value set by the last setPosition call. Note that servo motors do not provide
+     * real time position feedback. So getPosition doesn't actually return the current position.
      *
      * @return motor position value set by the last setPosition call.
      */
@@ -86,7 +84,7 @@ public abstract class TrcServo
     private double logicalMax = DEF_LOGICAL_MAX;
 
     /**
-     * Constructor: Creates an instance of the servo with the given name.
+     * Constructor: Creates an instance of the object.
      *
      * @param instanceName specifies the instance name of the servo.
      */
@@ -94,11 +92,7 @@ public abstract class TrcServo
     {
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(
-                    moduleName + "." + instanceName,
-                    false,
-                    TrcDbgTrace.TraceLevel.API,
-                    TrcDbgTrace.MsgLevel.INFO);
+            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         this.instanceName = instanceName;
@@ -128,8 +122,7 @@ public abstract class TrcServo
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
-                                "phyMin=%f,phyMax=%f", physicalMin, physicalMax);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "phyMin=%f,phyMax=%f", physicalMin, physicalMax);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
@@ -143,9 +136,8 @@ public abstract class TrcServo
     }   //setPhysicalRange
 
     /**
-     * This method sets the logical range of the servo motor. This is typically
-     * used to limit the logical range of the servo to less than the 0.0 to 1.0
-     * range. For example, one may limit the logical range to 0.2 to 0.8.
+     * This method sets the logical range of the servo motor. This is typically used to limit the logical range
+     * of the servo to less than the 0.0 to 1.0 range. For example, one may limit the logical range to 0.2 to 0.8.
      *
      * @param logicalMin specifies the minimum value of the logical range.
      * @param logicalMax specifies the maximum value of the logical range.
@@ -171,10 +163,9 @@ public abstract class TrcServo
     }   //setLogicalRange
 
     /**
-     * This method is called to convert a physical position to a logical position.
-     * It will make sure the physical position is within the physical range and
-     * scale it to the logical range.
-     * Note: this method is only callable by classes extending this class.
+     * This method is called to convert a physical position to a logical position. It will make sure the physical
+     * position is within the physical range and scale it to the logical range. Note: this method is only callable
+     * by classes extending this class.
      *
      * @param physicalPosition specifies the physical position to be converted
      * @return converted logical position.
@@ -182,14 +173,12 @@ public abstract class TrcServo
     protected double toLogicalPosition(double physicalPosition)
     {
         final String funcName = "toLogicalPosition";
-        physicalPosition = TrcUtil.limit(physicalPosition, physicalMin, physicalMax);
-        double logicalPosition = TrcUtil.scaleRange(
-                physicalPosition, physicalMin, physicalMax, logicalMin, logicalMax);
+        physicalPosition = TrcUtil.clipRange(physicalPosition, physicalMin, physicalMax);
+        double logicalPosition = TrcUtil.scaleRange(physicalPosition, physicalMin, physicalMax, logicalMin, logicalMax);
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC,
-                                "phyPos=%f", physicalPosition);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC, "phyPos=%f", physicalPosition);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC, "=%f", logicalPosition);
         }
 
@@ -209,14 +198,12 @@ public abstract class TrcServo
     {
         final String funcName = "toPhysicalPosition";
 
-        logicalPosition = TrcUtil.limit(logicalPosition, logicalMin, logicalMax);
-        double physicalPosition = TrcUtil.scaleRange(
-                logicalPosition, logicalMin, logicalMax, physicalMin, physicalMax);
+        logicalPosition = TrcUtil.clipRange(logicalPosition, logicalMin, logicalMax);
+        double physicalPosition = TrcUtil.scaleRange(logicalPosition, logicalMin, logicalMax, physicalMin, physicalMax);
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC,
-                                "logPos=%f", logicalPosition);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC, "logPos=%f", logicalPosition);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC, "=%f", physicalPosition);
         }
 

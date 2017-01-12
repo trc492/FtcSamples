@@ -23,11 +23,16 @@
 package trclib;
 
 import hallib.HalDbgLog;
-import hallib.HalUtil;
 
+/**
+ * This class implements the Debug Tracer.
+ */
 public class TrcDbgTrace
 {
-    public static enum TraceLevel
+    /**
+     * This enum specifies the different debug tracing levels. They are used in the traceEnter and traceExit methods.
+     */
+    public enum TraceLevel
     {
         QUIET(0),
         INIT(1),
@@ -53,7 +58,10 @@ public class TrcDbgTrace
 
     }   //enum TraceLevel
 
-    public static enum MsgLevel
+    /**
+     * This enum specifies the different debug message levels. They are used in the traceMsg methods.
+     */
+    public enum MsgLevel
     {
         FATAL(1),
         ERR(2),
@@ -83,149 +91,212 @@ public class TrcDbgTrace
     private MsgLevel msgLevel;
     private double nextTraceTime;
 
-    public void setDbgTraceConfig(
-            boolean traceEnabled,
-            TraceLevel traceLevel,
-            MsgLevel msgLevel)
+    /**
+     * Constructor: Create an instance of the object.
+     *
+     * @param instanceName specifies the instance name.
+     * @param traceEnabled specifies true to enable debug tracing, false to disable.
+     * @param traceLevel specifies the trace level.
+     * @param msgLevel specifies the message level.
+     */
+    public TrcDbgTrace(final String instanceName, boolean traceEnabled, TraceLevel traceLevel, MsgLevel msgLevel)
+    {
+        this.instanceName = instanceName;
+        setDbgTraceConfig(traceEnabled, traceLevel, msgLevel);
+        this.nextTraceTime = TrcUtil.getCurrentTime();
+    }   //TrcDbgTrace
+
+    /**
+     * This method sets the trace level, message level of the debug tracer. It can also enables/disables function
+     * tracing.
+     *
+     * @param traceEnabled specifies true to enable function tracing, false to disable.
+     * @param traceLevel specifies the trace level.
+     * @param msgLevel specifies the message level.
+     */
+    public void setDbgTraceConfig(boolean traceEnabled, TraceLevel traceLevel, MsgLevel msgLevel)
     {
         this.traceEnabled = traceEnabled;
         this.traceLevel = traceLevel;
         this.msgLevel = msgLevel;
     }   //setDbgTraceConfig
 
-    public TrcDbgTrace(
-            final String instanceName,
-            boolean traceEnabled,
-            TraceLevel traceLevel,
-            MsgLevel msgLevel)
+    /**
+     * This method is typically called at the beginning of a method to trace the entry parameters of the method.
+     *
+     * @param funcName specifies the calling method name.
+     * @param funcLevel specifies the trace level.
+     * @param format specifies the format string of the message.
+     * @param args specifies the message arguments.
+     */
+    public void traceEnter(final String funcName, final TraceLevel funcLevel, final String format, Object... args)
     {
-        this.instanceName = instanceName;
-        setDbgTraceConfig(traceEnabled, traceLevel, msgLevel);
-        this.nextTraceTime = HalUtil.getCurrentTime();
-    }   //TrcDbgTrace
-
-    public void traceEnter(
-            final String funcName,
-            final TraceLevel funcLevel,
-            final String format,
-            Object... args)
-    {
-        if (traceEnabled &&
-            funcLevel.getValue() <= traceLevel.getValue())
+        if (traceEnabled && funcLevel.getValue() <= traceLevel.getValue())
         {
-            HalDbgLog.traceMsg(
-                    tracePrefix(funcName, true, false) + String.format(format, args) + ")\n");
+            HalDbgLog.traceMsg(tracePrefix(funcName, true, false) + String.format(format, args) + ")\n");
         }
     }   //traceEnter
 
-    public void traceEnter(
-            final String funcName,
-            final TraceLevel funcLevel)
+    /**
+     * This method is typically called at the beginning of a method.
+     *
+     * @param funcName specifies the calling method name.
+     * @param funcLevel specifies the trace level.
+     */
+    public void traceEnter(final String funcName, final TraceLevel funcLevel)
     {
-        if (traceEnabled &&
-            funcLevel.getValue() <= traceLevel.getValue())
+        if (traceEnabled && funcLevel.getValue() <= traceLevel.getValue())
         {
             HalDbgLog.traceMsg(tracePrefix(funcName, true, true));
         }
     }   //traceEnter
 
-    public void traceExit(
-            final String funcName,
-            final TraceLevel funcLevel,
-            final String format,
-            Object... args)
+    /**
+     * This method is typically called at the end of a method to trace the return value of the method.
+     *
+     * @param funcName specifies the calling method name.
+     * @param funcLevel specifies the trace level.
+     * @param format specifies the format string of the message.
+     * @param args specifies the message arguments.
+     */
+    public void traceExit(final String funcName, final TraceLevel funcLevel, final String format, Object... args)
     {
-        if (traceEnabled &&
-            funcLevel.getValue() <= traceLevel.getValue())
+        if (traceEnabled && funcLevel.getValue() <= traceLevel.getValue())
         {
-            HalDbgLog.traceMsg(
-                    tracePrefix(funcName, false, false) + String.format(format, args) + "\n");
+            HalDbgLog.traceMsg(tracePrefix(funcName, false, false) + String.format(format, args) + "\n");
         }
     }   //traceExitMsg
 
-    public void traceExit(
-            final String funcName,
-            final TraceLevel funcLevel)
+    /**
+     * This method is typically called at the end of a method.
+     * @param funcName specifies the calling method name.
+     * @param funcLevel specifies the trace level.
+     */
+    public void traceExit(final String funcName, final TraceLevel funcLevel)
     {
-        if (traceEnabled &&
-            funcLevel.getValue() <= traceLevel.getValue())
+        if (traceEnabled && funcLevel.getValue() <= traceLevel.getValue())
         {
             HalDbgLog.traceMsg(tracePrefix(funcName, false, true));
         }
     }   //traceExit
 
-    public void traceFatal(
-            final String funcName,
-            final String format,
-            Object... args)
+    /**
+     * This method is called to print a fatal message.
+     *
+     * @param funcName specifies the calling method name.
+     * @param format specifies the format string of the message.
+     * @param args specifies the message arguments.
+     */
+    public void traceFatal(final String funcName, final String format, Object... args)
     {
         traceMsg(funcName, MsgLevel.FATAL, 0.0, format, args);
     }   //traceFatal
 
-    public void traceErr(
-            final String funcName,
-            final String format,
-            Object... args)
+    /**
+     * This method is called to print an error message.
+     *
+     * @param funcName specifies the calling method name.
+     * @param format specifies the format string of the message.
+     * @param args specifies the message arguments.
+     */
+    public void traceErr(final String funcName, final String format, Object... args)
     {
         traceMsg(funcName, MsgLevel.ERR, 0.0, format, args);
     }   //traceErr
 
-    public void traceWarn(
-            final String funcName,
-            final String format,
-            Object... args)
+    /**
+     * This method is called to print a warning message.
+     *
+     * @param funcName specifies the calling method name.
+     * @param format specifies the format string of the message.
+     * @param args specifies the message arguments.
+     */
+    public void traceWarn(final String funcName, final String format, Object... args)
     {
         traceMsg(funcName, MsgLevel.WARN, 0.0, format, args);
     }   //traceWarn
 
-    public void traceInfo(
-            final String funcName,
-            final String format,
-            Object... args)
+    /**
+     * This method is called to print an information message.
+     *
+     * @param funcName specifies the calling method name.
+     * @param format specifies the format string of the message.
+     * @param args specifies the message arguments.
+     */
+    public void traceInfo(final String funcName, final String format, Object... args)
     {
         traceMsg(funcName, MsgLevel.INFO, 0.0, format, args);
     }   //traceInfo
 
-    public void traceVerbose(
-            final String funcName,
-            final String format,
-            Object... args)
+    /**
+     * This method is called to print a verbose message.
+     *
+     * @param funcName specifies the calling method name.
+     * @param format specifies the format string of the message.
+     * @param args specifies the message arguments.
+     */
+    public void traceVerbose(final String funcName, final String format, Object... args)
     {
         traceMsg(funcName, MsgLevel.VERBOSE, 0.0, format, args);
     }   //traceVerbose
 
-    public void tracePeriodic(
-            final String funcName,
-            double traceInterval,
-            final String format,
-            Object... args)
+    /**
+     * This method is called to print a message only if the given time interval has been passed since the last
+     * periodic message. This is useful to print out periodic status without overwhelming the debug console.
+     *
+     * @param funcName specifies the calling method name.
+     * @param format specifies the format string of the message.
+     * @param args specifies the message arguments.
+     */
+    public void tracePeriodic(final String funcName, double traceInterval, final String format, Object... args)
     {
         traceMsg(funcName, MsgLevel.INFO, traceInterval, format, args);
     }   //tracePeriodic
 
+    /**
+     * This method prints a debug message to the debug console.
+     *
+     * @param format specifies the format string of the message.
+     * @param args specifies the message arguments.
+     */
+    public void tracePrintf(String format, Object... args)
+    {
+        HalDbgLog.traceMsg(String.format(format, args));
+    }   //tracePrintf
+
+    /**
+     * This method is the common worker for all the trace message methods.
+     *
+     * @param funcName specifies the calling method name.
+     * @param level specifies the message level.
+     * @param traceInterval specifies the tracing interval. If not periodic, this must be set to zero.
+     * @param format specifies the format string of the message.
+     * @param args specifies the message arguments.
+     */
     private void traceMsg(
-            final String funcName,
-            MsgLevel level,
-            double traceInterval,
-            final String format,
-            Object... args)
+            final String funcName, MsgLevel level, double traceInterval, final String format, Object... args)
     {
         if (level.getValue() <= msgLevel.getValue())
         {
-            double currTime = HalUtil.getCurrentTime();
+            double currTime = TrcUtil.getCurrentTime();
             if (currTime >= nextTraceTime)
             {
                 nextTraceTime = currTime + traceInterval;
-                HalDbgLog.msg(level,
-                              msgPrefix(funcName, level) + String.format(format, args) + "\n");
+                HalDbgLog.msg(level, msgPrefix(funcName, level) + String.format(format, args) + "\n");
             }
         }
     }   //traceMsg
 
-    private String tracePrefix(
-            final String funcName,
-            boolean enter,
-            boolean newline)
+    /**
+     * This method returns a trace prefix string. The trace prefix includes the indentation, the instance name and
+     * calling method name.
+     *
+     * @param funcName specifies the calling method name.
+     * @param enter specifies true if it is a traceEnter call, false if it is a traceExit call.
+     * @param newline specifies true if it should print a newline, false otherwise.
+     * @return trace prefix string.
+     */
+    private String tracePrefix(final String funcName, boolean enter, boolean newline)
     {
         String prefix = "";
 
@@ -254,37 +325,42 @@ public class TrcDbgTrace
         return prefix;
     }   //tracePrefix
 
-    private String msgPrefix(
-            final String funcName,
-            MsgLevel level)
+    /**
+     * This method returns a message prefix string.
+     *
+     * @param funcName specifies the calling method name.
+     * @param level specifies the message level.
+     * @return message prefix string.
+     */
+    private String msgPrefix(final String funcName, MsgLevel level)
     {
         String prefix = instanceName + "." + funcName;
 
         switch (level)
         {
-        case FATAL:
-            prefix += "_Fatal: ";
-            break;
+            case FATAL:
+                prefix += "_Fatal: ";
+                break;
 
-        case ERR:
-            prefix += "_Err: ";
-            break;
+            case ERR:
+                prefix += "_Err: ";
+                break;
 
-        case WARN:
-            prefix += "_Warn: ";
-            break;
+            case WARN:
+                prefix += "_Warn: ";
+                break;
 
-        case INFO:
-            prefix += "_Info: ";
-            break;
+            case INFO:
+                prefix += "_Info: ";
+                break;
 
-        case VERBOSE:
-            prefix += "_Verbose: ";
-            break;
+            case VERBOSE:
+                prefix += "_Verbose: ";
+                break;
 
-        default:
-            prefix += "_Unk: ";
-            break;
+            default:
+                prefix += "_Unk: ";
+                break;
         }
 
         return prefix;

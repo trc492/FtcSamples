@@ -22,62 +22,90 @@
 
 package trclib;
 
+/**
+ * This class implements the Infinite Impulse Response filter. It is useful for filtering noise from the sensor data.
+ */
 public class TrcIIRFilter extends TrcFilter
 {
     private static final String moduleName = "TrcIIRFilter";
     private static final boolean debugEnabled = false;
+    private static final boolean tracingEnabled = false;
+    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
 
+    private static final double DEF_WEIGHT = 0.9;
+
+    private final String instanceName;
     private double weight;
     private double filteredData;
 
-    public TrcIIRFilter(String instanceName, double weight)
+    /**
+     * Constructor: Create an instance of the object.
+     *
+     * @param instanceName specifies the instance name.
+     * @param weight specifies the weight of the current data point.
+     */
+    public TrcIIRFilter(final String instanceName, double weight)
     {
         super(instanceName);
 
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(
-                    moduleName,
-                    false,
-                    TrcDbgTrace.TraceLevel.API,
-                    TrcDbgTrace.MsgLevel.INFO);
+            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         if (weight < 0.0 || weight > 1.0)
         {
-            throw new IllegalArgumentException(
-                    "Weight must be a positive fraction within 1.0.");
+            throw new IllegalArgumentException("Weight must be a positive fraction within 1.0.");
         }
 
+        this.instanceName = instanceName;
         this.weight = weight;
         filteredData = 0.0;
     }   //TrcIIRFilter
 
-    public TrcIIRFilter(String instanceName)
+    /**
+     * Constructor: Create an instance of the object.
+     *
+     * @param instanceName specifies the instance name.
+     */
+    public TrcIIRFilter(final String instanceName)
     {
-        this(instanceName, 0.9);
+        this(instanceName, DEF_WEIGHT);
     }   //TrcIIRFilter
+
+    /**
+     * This method returns the instance name.
+     *
+     * @return instance name.
+     */
+    public String toString()
+    {
+        return instanceName;
+    }   //toString
 
     //
     // Implements TrcFilter abstract methods.
     //
 
+    /**
+     * This method returns the filtered data.
+     *
+     * @param data specifies the data value to be filtered.
+     * @return filtered data.
+     */
     @Override
     public double filterData(double data)
     {
-        final String funcName = "filter";
+        final String funcName = "filterData";
 
         filteredData = filteredData*(1.0 - weight) + data*weight;
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(
-                    funcName, TrcDbgTrace.TraceLevel.API,
-                    "data=%f", data);
-            dbgTrace.traceEnter(
-                    funcName, TrcDbgTrace.TraceLevel.API,
-                    "=%f", filteredData);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "data=%f", data);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "=%f", filteredData);
         }
 
         return filteredData;

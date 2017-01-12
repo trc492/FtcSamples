@@ -37,9 +37,12 @@ public class FtcAndroidTone extends TrcTone implements AudioTrack.OnPlaybackPosi
 {
     private static final String moduleName = "FtcAndroidTone";
     private static final boolean debugEnabled = false;
+    private static final boolean tracingEnabled = false;
+    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
 
-    private static final Waveform DEF_WAVEFORM = Waveform.TriangleWave;
+    private static final Waveform DEF_WAVEFORM = Waveform.TRIANGLE_WAVE;
     private static final int DEF_SAMPLERATE = 16*1024;  //approx. 16kHz
 
     private int sampleRate;
@@ -64,11 +67,7 @@ public class FtcAndroidTone extends TrcTone implements AudioTrack.OnPlaybackPosi
 
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(
-                    moduleName + "." + instanceName,
-                    false,
-                    TrcDbgTrace.TraceLevel.API,
-                    TrcDbgTrace.MsgLevel.INFO);
+            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         if (sampleRate <= 0)
@@ -101,9 +100,9 @@ public class FtcAndroidTone extends TrcTone implements AudioTrack.OnPlaybackPosi
     }   //FtcAndroidTone
 
     /**
-     * This method sets the sound envelope parameters ADSR (Attack, Decay, Sustain, Release).
-     * Attack, Decay and Release are time parameters in seconds. Sustain is a level parameter ranged from
-     * 0.0 to 1.0 (i.e. percentage of maximum volume).
+     * This method sets the sound envelope parameters ADSR (Attack, Decay, Sustain, Release). Attack, Decay and
+     * Release are time parameters in seconds. Sustain is a level parameter ranged from 0.0 to 1.0 (i.e. percentage
+     * of maximum volume).
      *
      * @param attack specifies attack time in seconds.
      * @param decay specifies decay time in seconds.
@@ -117,9 +116,8 @@ public class FtcAndroidTone extends TrcTone implements AudioTrack.OnPlaybackPosi
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(
-                    funcName, TrcDbgTrace.TraceLevel.API,
-                    "attack=%.3f,decay=%.3f,sustain=%.3f,release=%.3f", attack, decay, sustain, release);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
+                                "attack=%.3f,decay=%.3f,sustain=%.3f,release=%.3f", attack, decay, sustain, release);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
@@ -193,9 +191,9 @@ public class FtcAndroidTone extends TrcTone implements AudioTrack.OnPlaybackPosi
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(
-                    funcName, TrcDbgTrace.TraceLevel.API,
-                    "waveform=%s,freq=%.0f,dur=%.3f,vol=%.1f", waveform.toString(), frequency, duration, volume);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
+                                "waveform=%s,freq=%.0f,dur=%.3f,vol=%.1f",
+                                waveform.toString(), frequency, duration, volume);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
@@ -218,15 +216,15 @@ public class FtcAndroidTone extends TrcTone implements AudioTrack.OnPlaybackPosi
 
         switch (waveform)
         {
-            case SineWave:
+            case SINE_WAVE:
                 genSineWave(buffer, sampleRate, frequency, volume);
                 break;
 
-            case SquareWave:
+            case SQUARE_WAVE:
                 genSquareWave(buffer, sampleRate, frequency, volume);
                 break;
 
-            case TriangleWave:
+            case TRIANGLE_WAVE:
                 genTriangleWave(buffer, sampleRate, frequency, volume);
                 break;
         }

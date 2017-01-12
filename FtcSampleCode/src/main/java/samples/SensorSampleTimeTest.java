@@ -8,6 +8,8 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
+import java.util.Locale;
+
 @TeleOp(name="Test: Simple Sensor Sample Time", group="3543TestSamples")
 @Disabled
 public class SensorSampleTimeTest extends LinearOpMode
@@ -79,8 +81,8 @@ public class SensorSampleTimeTest extends LinearOpMode
                 {
                     maxLoopInterval = loopInterval;
                 }
-                runRobot(String.format("[%4d:%7.3f] LoopInterval=%7.3f, ",
-                        loopCount, (currTime - startTime)/1000000.0, loopInterval/1000000.0));
+                runRobot(String.format(Locale.US, "[%4d:%7.3f] LoopInterval=%7.3f, ",
+                                       loopCount, (currTime - startTime)/1000000.0, loopInterval/1000000.0));
             }
 
             prevLoopTime = currTime;

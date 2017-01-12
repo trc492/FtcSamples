@@ -29,13 +29,18 @@ import trclib.TrcRobot;
 import trclib.TrcTaskMgr;
 
 /**
- * This class implements the platform dependent gamepad. It provides
- * monitoring of the gamepad buttons. If the caller of this class
- * provides a button notification handler, it will call it when
- * there are button events.
+ * This class implements the platform dependent gamepad. It provides monitoring of the gamepad buttons. If the caller
+ * of this class provides a button notification handler, it will call it when there are button events.
  */
 public class FtcGamepad implements TrcTaskMgr.Task
 {
+    private static final String moduleName = "FtcGamepad";
+    private static final boolean debugEnabled = false;
+    private static final boolean tracingEnabled = false;
+    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
+    private TrcDbgTrace dbgTrace = null;
+
     public static final int GAMEPAD_A           = ((int)1 << 0);
     public static final int GAMEPAD_B           = ((int)1 << 1);
     public static final int GAMEPAD_X           = ((int)1 << 2);
@@ -52,8 +57,7 @@ public class FtcGamepad implements TrcTaskMgr.Task
     public static final int GAMEPAD_DPAD_DOWN   = ((int)1 << 13);
 
     /**
-     * This interface if provided will allow this class to do a
-     * notification callback when there are button activities.
+     * This interface if provided will allow this class to do a notification callback when there are button activities.
      */
     public interface ButtonHandler
     {
@@ -65,11 +69,8 @@ public class FtcGamepad implements TrcTaskMgr.Task
          * @param pressed specifies true if the button is pressed, false otherwise.
          */
         public void gamepadButtonEvent(FtcGamepad gamepad, int button, boolean pressed);
-    }   //interface ButonHandler
 
-    private static final String moduleName = "FtcGamepad";
-    private static final boolean debugEnabled = false;
-    private TrcDbgTrace dbgTrace = null;
+    }   //interface ButonHandler
 
     private String instanceName;
     private Gamepad gamepad;
@@ -82,18 +83,14 @@ public class FtcGamepad implements TrcTaskMgr.Task
      *
      * @param instanceName specifies the instance name.
      * @param gamepad specifies the gamepad associated with this instance.
-     * @param buttonHandler specifies the object that will handle the button events.
-     *                      If none provided, it is set to null.
+     * @param buttonHandler specifies the object that will handle the button events. If none provided, it is set to
+     *                      null.
      */
     public FtcGamepad(final String instanceName, Gamepad gamepad, ButtonHandler buttonHandler)
     {
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(
-                    moduleName + "." + instanceName,
-                    false,
-                    TrcDbgTrace.TraceLevel.API,
-                    TrcDbgTrace.MsgLevel.INFO);
+            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         if (instanceName == null || gamepad == null)
@@ -109,10 +106,7 @@ public class FtcGamepad implements TrcTaskMgr.Task
 
         if (buttonHandler != null)
         {
-            TrcTaskMgr.getInstance().registerTask(
-                    instanceName,
-                    this,
-                    TrcTaskMgr.TaskType.PREPERIODIC_TASK);
+            TrcTaskMgr.getInstance().registerTask(instanceName, this, TrcTaskMgr.TaskType.PREPERIODIC_TASK);
         }
     }   //FtcGamepad
 
@@ -133,14 +127,11 @@ public class FtcGamepad implements TrcTaskMgr.Task
      * @param instanceName specifies the instance name.
      * @param gamepad specifies the gamepad associated with this instance.
      * @param deadbandThreshold specifies the deadband of the gamepad analog sticks.
-     * @param buttonHandler specifies the object that will handle the button events.
-     *                      If none provided, it is set to null.
+     * @param buttonHandler specifies the object that will handle the button events. If none provided, it is set
+     *                      to null.
      */
     public FtcGamepad(
-            final String instanceName,
-            Gamepad gamepad,
-            final double deadbandThreshold,
-            ButtonHandler buttonHandler)
+            final String instanceName, Gamepad gamepad, final double deadbandThreshold, ButtonHandler buttonHandler)
     {
         this(instanceName, gamepad, buttonHandler);
         gamepad.setJoystickDeadzone((float)deadbandThreshold);
@@ -153,10 +144,7 @@ public class FtcGamepad implements TrcTaskMgr.Task
      * @param gamepad specifies the gamepad associated with this instance.
      * @param deadbandThreshold specifies the deadband of the gamepad analog sticks.
      */
-    public FtcGamepad(
-            final String instanceName,
-            Gamepad gamepad,
-            final double deadbandThreshold)
+    public FtcGamepad(final String instanceName, Gamepad gamepad, final double deadbandThreshold)
     {
         this(instanceName, gamepad, deadbandThreshold, null);
     }   //FtcGamepad
@@ -172,11 +160,10 @@ public class FtcGamepad implements TrcTaskMgr.Task
     }   //toString
 
     /**
-     * This method sets the gamepad association. Normally, this method should not exist.
-     * However, there is an issue with the FIRST SDK where the gamepad objects passed
-     * into our constructor could be invalid after "Init" and before the competition
-     * starts. Therefore, we provide this method so one can call to re-associate the
-     * gamepad instances in the startMode() method.
+     * This method sets the gamepad association. Normally, this method should not exist. However, there is an issue
+     * with the FIRST SDK where the gamepad objects passed into our constructor could be invalid after "Init" and
+     * before the competition starts. Therefore, we provide this method so one can call to re-associate the gamepad
+     * instances in the startMode() method.
      *
      * @param gamepad specifies the gamepad associated with this instance.
      */
@@ -186,10 +173,9 @@ public class FtcGamepad implements TrcTaskMgr.Task
     }   //setGamepad
 
     /**
-     * This method returns the button states in an integer by combining all
-     * the button states.
+     * This method returns the button states in an integer by combining all the button states.
      *
-     * @return buttoh states.
+     * @return button states.
      */
     public int getButtons()
     {
@@ -214,8 +200,7 @@ public class FtcGamepad implements TrcTaskMgr.Task
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC,
-                    "=%x", buttons);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC, "=%x", buttons);
         }
 
         return buttons;
@@ -234,10 +219,7 @@ public class FtcGamepad implements TrcTaskMgr.Task
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(
-                    funcName, TrcDbgTrace.TraceLevel.API,
-                    "inverted=%s",
-                    Boolean.toString(inverted));
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "inverted=%s", Boolean.toString(inverted));
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
     }   //setYInverted
@@ -245,9 +227,8 @@ public class FtcGamepad implements TrcTaskMgr.Task
     /**
      * This method returns the x-axis value of the left stick.
      *
-     * @param squared specifies true if the value should be squared, false otherwise.
-     *                If the value is squared, it gives you more precise control on
-     *                the low end values.
+     * @param squared specifies true if the value should be squared, false otherwise. If the value is squared, it
+     *                gives you more precise control on the low end values.
      *
      * @return x-axis value of the left stick.
      */
@@ -258,12 +239,8 @@ public class FtcGamepad implements TrcTaskMgr.Task
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(
-                    funcName, TrcDbgTrace.TraceLevel.API,
-                    "squared=%s",
-                    Boolean.toString(squared));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
-                    "=%f", value);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "squared=%s", Boolean.toString(squared));
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", value);
         }
 
         return value;
@@ -282,9 +259,8 @@ public class FtcGamepad implements TrcTaskMgr.Task
     /**
      * This method returns the y-axis value of the left stick.
      *
-     * @param squared specifies true if the value should be squared, false otherwise.
-     *                If the value is squared, it gives you more precise control on
-     *                the low end values.
+     * @param squared specifies true if the value should be squared, false otherwise. If the value is squared, it
+     *                gives you more precise control on the low end values.
      *
      * @return y-axis value of the left stick.
      */
@@ -295,12 +271,8 @@ public class FtcGamepad implements TrcTaskMgr.Task
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(
-                    funcName, TrcDbgTrace.TraceLevel.API,
-                    "squared=%s",
-                    Boolean.toString(squared));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
-                    "=%f", value);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "squared=%s", Boolean.toString(squared));
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", value);
         }
 
         return value;
@@ -319,9 +291,8 @@ public class FtcGamepad implements TrcTaskMgr.Task
     /**
      * This method returns the x-axis value of the right stick.
      *
-     * @param squared specifies true if the value should be squared, false otherwise.
-     *                If the value is squared, it gives you more precise control on
-     *                the low end values.
+     * @param squared specifies true if the value should be squared, false otherwise. If the value is squared, it
+     *                gives you more precise control on the low end values.
      *
      * @return x-axis value of the right stick.
      */
@@ -332,12 +303,8 @@ public class FtcGamepad implements TrcTaskMgr.Task
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(
-                    funcName, TrcDbgTrace.TraceLevel.API,
-                    "squared=%s",
-                    Boolean.toString(squared));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
-                    "=%f", value);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "squared=%s", Boolean.toString(squared));
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", value);
         }
 
         return value;
@@ -356,9 +323,8 @@ public class FtcGamepad implements TrcTaskMgr.Task
     /**
      * This method returns the y-axis value of the right stick.
      *
-     * @param squared specifies true if the value should be squared, false otherwise.
-     *                If the value is squared, it gives you more precise control on
-     *                the low end values.
+     * @param squared specifies true if the value should be squared, false otherwise. If the value is squared, it
+     *                gives you more precise control on the low end values.
      *
      * @return y-axis value of the right stick.
      */
@@ -369,12 +335,8 @@ public class FtcGamepad implements TrcTaskMgr.Task
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(
-                    funcName, TrcDbgTrace.TraceLevel.API,
-                    "squared=%s",
-                    Boolean.toString(squared));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
-                    "=%f", value);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "squared=%s", Boolean.toString(squared));
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", value);
         }
 
         return value;
@@ -393,9 +355,8 @@ public class FtcGamepad implements TrcTaskMgr.Task
     /**
      * This method returns the left trigger value.
      *
-     * @param squared specifies true if the value should be squared, false otherwise.
-     *                If the value is squared, it gives you more precise control on
-     *                the low end values.
+     * @param squared specifies true if the value should be squared, false otherwise. If the value is squared, it
+     *                gives you more precise control on the low end values.
      *
      * @return left trigger value.
      */
@@ -406,12 +367,8 @@ public class FtcGamepad implements TrcTaskMgr.Task
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(
-                    funcName, TrcDbgTrace.TraceLevel.API,
-                    "squared=%s",
-                    Boolean.toString(squared));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
-                    "=%f", value);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "squared=%s", Boolean.toString(squared));
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", value);
         }
 
         return value;
@@ -430,9 +387,8 @@ public class FtcGamepad implements TrcTaskMgr.Task
     /**
      * This method returns the right trigger value.
      *
-     * @param squared specifies true if the value should be squared, false otherwise.
-     *                If the value is squared, it gives you more precise control on
-     *                the low end values.
+     * @param squared specifies true if the value should be squared, false otherwise. If the value is squared, it
+     *                gives you more precise control on the low end values.
      *
      * @return right trigger value.
      */
@@ -443,12 +399,8 @@ public class FtcGamepad implements TrcTaskMgr.Task
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(
-                    funcName, TrcDbgTrace.TraceLevel.API,
-                    "squared=%s",
-                    Boolean.toString(squared));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
-                    "=%f", value);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "squared=%s", Boolean.toString(squared));
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", value);
         }
 
         return value;
@@ -467,9 +419,8 @@ public class FtcGamepad implements TrcTaskMgr.Task
     /**
      * This method returns the left stick magnitude combining the x and y axes.
      *
-     * @param squared specifies true if both x and y should be squared, false otherwise.
-     *                If the value is squared, it gives you more precise control on
-     *                the low end values.
+     * @param squared specifies true if both x and y should be squared, false otherwise. If the value is squared,
+     *                it gives you more precise control on the low end values.
      *
      * @return left stick magnitude.
      */
@@ -491,9 +442,8 @@ public class FtcGamepad implements TrcTaskMgr.Task
     /**
      * This method returns the right stick magnitude combining the x and y axes.
      *
-     * @param squared specifies true if both x and y should be squared, false otherwise.
-     *                If the value is squared, it gives you more precise control on
-     *                the low end values.
+     * @param squared specifies true if both x and y should be squared, false otherwise. If the value is squared,
+     *                it gives you more precise control on the low end values.
      *
      * @return right stick magnitude.
      */
@@ -515,9 +465,8 @@ public class FtcGamepad implements TrcTaskMgr.Task
     /**
      * This method returns the left stick direction in radians combining the x and y axes.
      *
-     * @param squared specifies true if both x and y should be squared, false otherwise.
-     *                If the value is squared, it gives you more precise control on
-     *                the low end values.
+     * @param squared specifies true if both x and y should be squared, false otherwise. If the value is squared,
+     *                it gives you more precise control on the low end values.
      *
      * @return left stick direction in radians.
      */
@@ -528,12 +477,8 @@ public class FtcGamepad implements TrcTaskMgr.Task
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(
-                    funcName, TrcDbgTrace.TraceLevel.API,
-                    "squared=%s",
-                    Boolean.toString(squared));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
-                    "=%f", value);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "squared=%s", Boolean.toString(squared));
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", value);
         }
 
         return value;
@@ -552,9 +497,8 @@ public class FtcGamepad implements TrcTaskMgr.Task
     /**
      * This method returns the right stick direction in radians combining the x and y axes.
      *
-     * @param squared specifies true if both x and y should be squared, false otherwise.
-     *                If the value is squared, it gives you more precise control on
-     *                the low end values.
+     * @param squared specifies true if both x and y should be squared, false otherwise. If the value is squared,
+     *                it gives you more precise control on the low end values.
      *
      * @return right stick direction in radians.
      */
@@ -565,12 +509,8 @@ public class FtcGamepad implements TrcTaskMgr.Task
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(
-                    funcName, TrcDbgTrace.TraceLevel.API,
-                    "squared=%s",
-                    Boolean.toString(squared));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
-                    "=%f", value);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "squared=%s", Boolean.toString(squared));
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", value);
         }
 
         return value;
@@ -589,9 +529,8 @@ public class FtcGamepad implements TrcTaskMgr.Task
     /**
      * This method returns the left stick direction in degrees combining the x and y axes.
      *
-     * @param squared specifies true if both x and y should be squared, false otherwise.
-     *                If the value is squared, it gives you more precise control on
-     *                the low end values.
+     * @param squared specifies true if both x and y should be squared, false otherwise. If the value is squared,
+     *                it gives you more precise control on the low end values.
      *
      * @return left stick direction in degrees.
      */
@@ -613,9 +552,8 @@ public class FtcGamepad implements TrcTaskMgr.Task
     /**
      * This method returns the right stick direction in degrees combining the x and y axes.
      *
-     * @param squared specifies true if both x and y should be squared, false otherwise.
-     *                If the value is squared, it gives you more precise control on
-     *                the low end values.
+     * @param squared specifies true if both x and y should be squared, false otherwise. If the value is squared,
+     *                it gives you more precise control on the low end values.
      *
      * @return right stick direction in degrees.
      */
@@ -652,9 +590,8 @@ public class FtcGamepad implements TrcTaskMgr.Task
     }   //squareValue
 
     /**
-     * This method returns the magnitude value combining the x and y values.
-     * The magnitude is calculated by squaring both x and y, sum them and take
-     * the square root.
+     * This method returns the magnitude value combining the x and y values. The magnitude is calculated by squaring
+     * both x and y, sum them and take the square root.
      *
      * @param x specifies the x value.
      * @param y specifies the y value.
@@ -667,11 +604,8 @@ public class FtcGamepad implements TrcTaskMgr.Task
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(
-                    funcName, TrcDbgTrace.TraceLevel.FUNC,
-                    "x=%f,y=%f", x, y);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC,
-                    "=%f", value);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC, "x=%f,y=%f", x, y);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC, "=%f", value);
         }
 
         return value;
@@ -692,8 +626,8 @@ public class FtcGamepad implements TrcTaskMgr.Task
     }   //stopTask
 
     /**
-     * This method runs periodically and checks for changes in the button states.
-     * If any button changed state, the button handler is called if one exists.
+     * This method runs periodically and checks for changes in the button states. If any button changed state,
+     * the button handler is called if one exists.
      *
      * @param runMode specifies the current robot run mode.
      */
@@ -704,9 +638,7 @@ public class FtcGamepad implements TrcTaskMgr.Task
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(
-                    funcName, TrcDbgTrace.TraceLevel.TASK,
-                    "mode=%s", runMode.toString());
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "mode=%s", runMode.toString());
         }
 
         int currButtons = getButtons();
@@ -726,13 +658,9 @@ public class FtcGamepad implements TrcTaskMgr.Task
                 //
                 if (debugEnabled)
                 {
-                    dbgTrace.traceInfo(
-                            funcName,
-                            "Button %x pressed",
-                            buttonMask);
+                    dbgTrace.traceInfo(funcName, "Button %x pressed", buttonMask);
                 }
-                buttonHandler.gamepadButtonEvent(
-                        this, buttonMask, true);
+                buttonHandler.gamepadButtonEvent(this, buttonMask, true);
             }
             else
             {
@@ -741,10 +669,7 @@ public class FtcGamepad implements TrcTaskMgr.Task
                 //
                 if (debugEnabled)
                 {
-                    dbgTrace.traceInfo(
-                            funcName,
-                            "Button %x released",
-                            buttonMask);
+                    dbgTrace.traceInfo(funcName, "Button %x released", buttonMask);
                 }
                 buttonHandler.gamepadButtonEvent(
                         this, buttonMask, false);

@@ -25,42 +25,47 @@ package ftclib;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.OpticalDistanceSensor;
 
-import hallib.HalUtil;
-import trclib.TrcAnalogInput;
 import trclib.TrcDbgTrace;
 import trclib.TrcFilter;
+import trclib.TrcSensor;
+import trclib.TrcUtil;
 
 /**
- * This class implements the Modern Robotics Optical Distance sensor
- * extending TrcAnalogInput. It provides implementation of the abstract
- * methods in TrcAnalogInput.
+ * This class implements the Modern Robotics Optical Distance sensor extending TrcAnalogInput. It provides
+ * implementation of the abstract methods in TrcAnalogInput.
  */
-public class FtcOpticalDistanceSensor extends TrcAnalogInput
+public class FtcOpticalDistanceSensor extends TrcSensor<FtcOpticalDistanceSensor.DataType>
 {
     private static final String moduleName = "FtcOpticalDistanceSensor";
     private static final boolean debugEnabled = false;
     private static final boolean tracingEnabled = false;
+    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
 
-    private OpticalDistanceSensor sensor;
+    public enum DataType
+    {
+        RAW_LIGHT_DETECTED,
+        LIGHT_DETECTED
+    }   //DataType
+
+    public OpticalDistanceSensor sensor;
 
     /**
      * Constructor: Creates an instance of the object.
      *
      * @param hardwareMap specifies the global hardware map.
      * @param instanceName specifies the instance name.
-     * @param filters specifies an array of filter objects, one for each axis, to filter
-     *                sensor data. If no filter is used, this can be set to null.
+     * @param filters specifies an array of filter objects, one for each axis, to filter sensor data. If no filter
+     *                is used, this can be set to null.
      */
-    public FtcOpticalDistanceSensor(
-            HardwareMap hardwareMap, String instanceName, TrcFilter[] filters)
+    public FtcOpticalDistanceSensor(HardwareMap hardwareMap, String instanceName, TrcFilter[] filters)
     {
-        super(instanceName, 1, 0, filters);
+        super(instanceName, 1, filters);
 
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled,
-                                       TrcDbgTrace.TraceLevel.API, TrcDbgTrace.MsgLevel.INFO);
+            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         sensor = hardwareMap.opticalDistanceSensor.get(instanceName);
@@ -70,8 +75,8 @@ public class FtcOpticalDistanceSensor extends TrcAnalogInput
      * Constructor: Creates an instance of the object.
      *
      * @param instanceName specifies the instance name.
-     * @param filters specifies an array of filter objects, one for each axis, to filter
-     *                sensor data. If no filter is used, this can be set to null.
+     * @param filters specifies an array of filter objects, one for each axis, to filter sensor data. If no filter
+     *                is used, this can be set to null.
      */
     public FtcOpticalDistanceSensor(String instanceName, TrcFilter[] filters)
     {
@@ -93,7 +98,7 @@ public class FtcOpticalDistanceSensor extends TrcAnalogInput
      */
     public void calibrate()
     {
-        calibrate(DataType.INPUT_DATA);
+        calibrate(DataType.RAW_LIGHT_DETECTED);
     }   //calibrate
 
     //
@@ -104,38 +109,24 @@ public class FtcOpticalDistanceSensor extends TrcAnalogInput
      * This method returns the raw sensor data of the specified type.
      *
      * @param index specifies the data index.
+     * @param dataType specifies the data type.
      * @return raw sensor data of the specified type.
      */
     @Override
-    public SensorData getRawData(int index, DataType dataType)
+    public SensorData<Double> getRawData(int index, DataType dataType)
     {
         final String funcName = "getRawData";
-        SensorData data = null;
+        SensorData<Double> data = null;
 
-        //
-        // Ultrasonic sensor supports only INPUT_DATA type.
-        //
-        if (dataType == DataType.INPUT_DATA)
+        switch (dataType)
         {
-            if (index == 0)
-            {
-                data = new SensorData(
-                        HalUtil.getCurrentTime(), (double)sensor.getRawLightDetected());
-            }
-            else if (index == 1)
-            {
-                data = new SensorData(
-                        HalUtil.getCurrentTime(), (double)sensor.getLightDetected());
-            }
-            else
-            {
-                throw new IllegalArgumentException("Invalid data index.");
-            }
-        }
-        else
-        {
-            throw new UnsupportedOperationException(
-                    "Optical Distance sensor only support INPUT_DATA type.");
+            case RAW_LIGHT_DETECTED:
+                data = new SensorData<>(TrcUtil.getCurrentTime(), sensor.getRawLightDetected());
+                break;
+
+            case LIGHT_DETECTED:
+                data = new SensorData<>(TrcUtil.getCurrentTime(), sensor.getLightDetected());
+                break;
         }
 
         if (debugEnabled)

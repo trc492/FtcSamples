@@ -68,16 +68,14 @@ public class FtcTestAndroidSensors extends FtcOpMode
         //
         // Enumerates all Android sensors.
         //
-        SensorManager sensorManager =
-                (SensorManager)activity.getSystemService(Context.SENSOR_SERVICE);
+        SensorManager sensorManager = (SensorManager)activity.getSystemService(Context.SENSOR_SERVICE);
         List<Sensor> sensorList = sensorManager.getSensorList(Sensor.TYPE_ALL);
         dashboard.displayPrintf(0, "Android Sensors:");
         int lineNum = 1;
         for (Sensor sensor: sensorList)
         {
             dashboard.displayPrintf(lineNum, "%02d->%s, %s, %d",
-                                    sensor.getType(), sensor.getVendor(),
-                                    sensor.getName(), sensor.getVersion());
+                                    sensor.getType(), sensor.getVendor(), sensor.getName(), sensor.getVersion());
             lineNum++;
             if (lineNum >= HalDashboard.MAX_NUM_TEXTLINES)
             {
@@ -91,8 +89,7 @@ public class FtcTestAndroidSensors extends FtcOpMode
         accel = FtcAndroidSensor.createInstance("accel", Sensor.TYPE_ACCELEROMETER, 3);
         gravity = FtcAndroidSensor.createInstance("gravity", Sensor.TYPE_GRAVITY, 3);
         gyro = FtcAndroidSensor.createInstance("gyro", Sensor.TYPE_GYROSCOPE, 3);
-        linearAccel = FtcAndroidSensor.createInstance(
-                "linearAccel", Sensor.TYPE_LINEAR_ACCELERATION, 3);
+        linearAccel = FtcAndroidSensor.createInstance("linearAccel", Sensor.TYPE_LINEAR_ACCELERATION, 3);
         rotation = FtcAndroidSensor.createInstance("rotation", Sensor.TYPE_ROTATION_VECTOR, 4);
         magnetic = FtcAndroidSensor.createInstance("magnetic", Sensor.TYPE_MAGNETIC_FIELD, 3);
 //        orientation = FtcAndroidSensor.createInstance("orientation", Sensor.TYPE_ORIENTATION, 3);
@@ -142,7 +139,7 @@ public class FtcTestAndroidSensors extends FtcOpMode
         /*
         if (orientation != null)
         {
-            orientation.setEnabled(true);
+            orientation.setTaskEnabled(true);
         }
         */
 
@@ -193,7 +190,7 @@ public class FtcTestAndroidSensors extends FtcOpMode
         /*
         if (orientation != null)
         {
-            orientation.setEnabled(false);
+            orientation.setTaskEnabled(false);
         }
         */
 
@@ -215,9 +212,9 @@ public class FtcTestAndroidSensors extends FtcOpMode
         if (accel != null)
         {
             dashboard.displayPrintf(1, LABEL_WIDTH, "Accel: ", "x=%.2f,y=%.2f,z=%.2f (m/s2)",
-                                    accel.getData(0, null).value,
-                                    accel.getData(1, null).value,
-                                    accel.getData(2, null).value);
+                                    accel.getProcessedData(0, null).value,
+                                    accel.getProcessedData(1, null).value,
+                                    accel.getProcessedData(2, null).value);
         }
         else
         {
@@ -227,9 +224,9 @@ public class FtcTestAndroidSensors extends FtcOpMode
         if (gravity != null)
         {
             dashboard.displayPrintf(2, LABEL_WIDTH, "Gravity: ", "x=%.2f,y=%.2f,z=%.2f (m/s2)",
-                                    gravity.getData(0, null).value,
-                                    gravity.getData(1, null).value,
-                                    gravity.getData(2, null).value);
+                                    gravity.getProcessedData(0, null).value,
+                                    gravity.getProcessedData(1, null).value,
+                                    gravity.getProcessedData(2, null).value);
         }
         else
         {
@@ -239,9 +236,9 @@ public class FtcTestAndroidSensors extends FtcOpMode
         if (gyro != null)
         {
             dashboard.displayPrintf(3, LABEL_WIDTH, "Gyro: ", "x=%.2f,y=%.2f,z=%.2f (deg/s)",
-                                    (Double)gyro.getData(0, null).value*180.0/Math.PI,
-                                    (Double)gyro.getData(1, null).value*180.0/Math.PI,
-                                    (Double)gyro.getData(2, null).value*180.0/Math.PI);
+                                    (Double)gyro.getProcessedData(0, null).value * 180.0 / Math.PI,
+                                    (Double)gyro.getProcessedData(1, null).value * 180.0 / Math.PI,
+                                    (Double)gyro.getProcessedData(2, null).value * 180.0 / Math.PI);
         }
         else
         {
@@ -251,9 +248,9 @@ public class FtcTestAndroidSensors extends FtcOpMode
         if (linearAccel != null)
         {
             dashboard.displayPrintf(4, LABEL_WIDTH, "LinearAccel: ", "x=%.2f,y=%.2f,z=%.2f (m/s2)",
-                                    linearAccel.getData(0, null).value,
-                                    linearAccel.getData(1, null).value,
-                                    linearAccel.getData(2, null).value);
+                                    linearAccel.getProcessedData(0, null).value,
+                                    linearAccel.getProcessedData(1, null).value,
+                                    linearAccel.getProcessedData(2, null).value);
         }
         else
         {
@@ -263,10 +260,10 @@ public class FtcTestAndroidSensors extends FtcOpMode
         if (rotation != null)
         {
             dashboard.displayPrintf(5, LABEL_WIDTH, "Rotation: ", "x=%.2f,y=%.2f,z=%.2f,s=%.2f",
-                                    rotation.getData(0, null).value,
-                                    rotation.getData(1, null).value,
-                                    rotation.getData(2, null).value,
-                                    rotation.getData(3, null).value);
+                                    rotation.getProcessedData(0, null).value,
+                                    rotation.getProcessedData(1, null).value,
+                                    rotation.getProcessedData(2, null).value,
+                                    rotation.getProcessedData(3, null).value);
         }
         else
         {
@@ -276,9 +273,9 @@ public class FtcTestAndroidSensors extends FtcOpMode
         if (magnetic != null)
         {
             dashboard.displayPrintf(6, LABEL_WIDTH, "Magnetic: ", "x=%.2f,y=%.2f,z=%.2f (uT)",
-                                    magnetic.getData(0, null).value,
-                                    magnetic.getData(1, null).value,
-                                    magnetic.getData(2, null).value);
+                                    magnetic.getProcessedData(0, null).value,
+                                    magnetic.getProcessedData(1, null).value,
+                                    magnetic.getProcessedData(2, null).value);
         }
         else
         {
@@ -289,9 +286,9 @@ public class FtcTestAndroidSensors extends FtcOpMode
         if (orientation != null)
         {
             dashboard.displayPrintf(7, LABEL_WIDTH, "Orientation: ", "Azimuth=%.2f,Pitch=%.2f,Roll=%.2f (deg)",
-                                    orientation.getData(0, null).value,
-                                    orientation.getData(1, null).value,
-                                    orientation.getData(2, null).value);
+                                    orientation.getProcessedData(0, null).value,
+                                    orientation.getProcessedData(1, null).value,
+                                    orientation.getProcessedData(2, null).value);
         }
         else
         {
@@ -301,7 +298,7 @@ public class FtcTestAndroidSensors extends FtcOpMode
 
         if (proximity != null)
         {
-            dashboard.displayPrintf(8, LABEL_WIDTH, "Proximity: ", "%.0f cm", proximity.getData(0, null).value);
+            dashboard.displayPrintf(8, LABEL_WIDTH, "Proximity: ", "%.0f cm", proximity.getProcessedData(0, null).value);
         }
         else
         {
@@ -310,7 +307,7 @@ public class FtcTestAndroidSensors extends FtcOpMode
 
         if (light != null)
         {
-            dashboard.displayPrintf(9, LABEL_WIDTH, "Light: ", "%.0f lux", light.getData(0, null).value);
+            dashboard.displayPrintf(9, LABEL_WIDTH, "Light: ", "%.0f lux", light.getProcessedData(0, null).value);
         }
         else
         {

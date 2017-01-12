@@ -22,36 +22,38 @@
 
 package trclib;
 
+import java.util.Arrays;
+
 /**
- * This class unwraps data for sensors that have one or more axes. Some value
- * sensors such as the Modern Robotics gyro returns the heading values between
- * 0.0 and 360.0. When the gyro crosses the value range boundary, it wraps around.
- * For example, if the current heading is 0.0 and the gyro turns 1 degree to the
- * left, instead of giving you a value of -1.0, it wraps to the value of 359.0.
- * Similarly, if the current heading is 359.0 and the gyro turns 1, 2, ... degrees
- * to the right, instead of giving you a value of 360.0, 361.0, ... etc, it gives
- * you 0.0, 1.0, ... This is undesirable especially when the heading value is used
- * in PID controlled driving. For example, if the robot wants to go straight and
- * maintain the heading of zero and the robot turned left slightly with a heading
- * of 358.0, instead of turning right 2 degrees to get back to zero heading, the
- * robot will turn left all the way around to get back to zero.
- * This class implements a periodic task that monitor the sensor data. If it
- * crosses the value range boundary, it will keep track of the number of crossovers
- * and will adjust the value so it doesn't wrap.
+ * This class converts cardinal data to cartesian data for sensors such as gyro or compass. It can handle sensors
+ * that have one or more axes. Some value sensors such as the Modern Robotics gyro returns cardinal heading values
+ * between 0.0 and 360.0. When the gyro crosses the value range boundary, it wraps around. For example, if the
+ * current heading is 0.0 and the gyro turns 1 degree to the left, instead of giving you a value of -1.0, it wraps
+ * to the value of 359.0. Similarly, if the current heading is 359.0 and the gyro turns 1, 2, ... degrees to the
+ * right, instead of giving you a value of 360.0, 361.0, ... etc, it gives you 0.0, 1.0, ... This is undesirable
+ * especially when the heading value is used in PID controlled driving. For example, if the robot wants to go
+ * straight and maintain the heading of zero and the robot turned left slightly with a heading of 358.0, instead
+ * of turning right 2 degrees to get back to zero heading, the robot will turn left all the way around to get back
+ * to zero. This class implements a periodic task that monitor the sensor data. If it crosses the value range
+ * boundary, it will keep track of the number of crossovers and will adjust the value so it doesn't wrap in effect
+ * converting cardinal heading back to cartesian heading.
  */
-public class TrcDataUnwrapper implements TrcTaskMgr.Task
+public class TrcCardinalConverter<D> implements TrcTaskMgr.Task
 {
-    private static final String moduleName = "TrcDataUnwrapper";
+    private static final String moduleName = "TrcCardinalConverter";
     private static final boolean debugEnabled = false;
+    private static final boolean tracingEnabled = false;
+    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
 
     private final String instanceName;
-    private TrcSensor sensor;
-    private Object dataType;
+    private TrcSensor<D> sensor;
+    private D dataType;
     private int numAxes;
-    private double[] valueRangeLows;
-    private double[] valueRangeHighs;
-    private TrcSensor.SensorData[] prevData;
+    private double[] cardinalRangeLows;
+    private double[] cardinalRangeHighs;
+    private TrcSensor.SensorData<Double>[] prevData;
     private int[] numCrossovers;
 
     /**
@@ -61,15 +63,11 @@ public class TrcDataUnwrapper implements TrcTaskMgr.Task
      * @param sensor specifies the sensor object that needs data unwrapping.
      * @param dataType specifies the data type to be unwrapped.
      */
-    public TrcDataUnwrapper(final String instanceName, TrcSensor sensor, Object dataType)
+    public TrcCardinalConverter(final String instanceName, TrcSensor<D> sensor, D dataType)
     {
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(
-                    moduleName + "." + instanceName,
-                    false,
-                    TrcDbgTrace.TraceLevel.API,
-                    TrcDbgTrace.MsgLevel.INFO);
+            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         if (sensor == null)
@@ -82,19 +80,19 @@ public class TrcDataUnwrapper implements TrcTaskMgr.Task
         this.dataType = dataType;
         numAxes = sensor.getNumAxes();
 
-        valueRangeLows = new double[numAxes];
-        valueRangeHighs = new double[numAxes];
+        cardinalRangeLows = new double[numAxes];
+        cardinalRangeHighs = new double[numAxes];
         prevData = new TrcSensor.SensorData[numAxes];
         numCrossovers = new int[numAxes];
 
         for (int i = 0; i < numAxes; i++)
         {
-            valueRangeLows[i] = 0.0;
-            valueRangeHighs[i] = 0.0;
-            prevData[i] = null;
+            cardinalRangeLows[i] = 0.0;
+            cardinalRangeHighs[i] = 0.0;
+            prevData[i] = new TrcSensor.SensorData<>(0.0, 0.0);
             numCrossovers[i] = 0;
         }
-    }   //TrcDataUnwrapper
+    }   //TrcCardinalConverter
 
     /**
      * This method returns the instance name.
@@ -107,11 +105,10 @@ public class TrcDataUnwrapper implements TrcTaskMgr.Task
     }   //toString
 
     /**
-     * This method enables the data unwrapper. The data unwrapper is not
-     * automatically enabled when created. You must explicitly call this
-     * method to enable the data unwrapper.
+     * This method enables/disables the converter task. It is not automatically enabled when created. You must
+     * explicitly call this method to enable the converter.
      *
-     * @param enabled specifies true for enabling the data unwrapper, disabling it otherwise.
+     * @param enabled specifies true for enabling the converter, disabling it otherwise.
      */
     public void setEnabled(boolean enabled)
     {
@@ -119,16 +116,14 @@ public class TrcDataUnwrapper implements TrcTaskMgr.Task
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
-                                "enabled=%s", Boolean.toString(enabled));
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "enabled=%s", Boolean.toString(enabled));
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
         if (enabled)
         {
             reset();
-            TrcTaskMgr.getInstance().registerTask(
-                    instanceName, this, TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            TrcTaskMgr.getInstance().registerTask(instanceName, this, TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
         }
         else
         {
@@ -137,7 +132,7 @@ public class TrcDataUnwrapper implements TrcTaskMgr.Task
     }   //setEnabled
 
     /**
-     * This method resets the indexed unwrapper.
+     * This method resets the indexed converter.
      *
      * @param index specifies the axis index.
      */
@@ -151,12 +146,12 @@ public class TrcDataUnwrapper implements TrcTaskMgr.Task
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        prevData[index] = sensor.getData(index, dataType);
+        prevData[index] = sensor.getProcessedData(index, dataType);
         numCrossovers[index] = 0;
     }   //reset
 
     /**
-     * This method resets the unwrapper of all axes.
+     * This method resets the converter of all axes.
      */
     public void reset()
     {
@@ -175,47 +170,45 @@ public class TrcDataUnwrapper implements TrcTaskMgr.Task
     }   //reset
 
     /**
-     * This method sets the value range of the indexed unwrapper.
+     * This method sets the value range of the indexed converter.
      *
-     * @param index specifes the axis index.
-     * @param valueRangeLow specifies the low value of the range.
-     * @param valueRangeHigh specifies the high value of the range.
+     * @param index specifies the axis index.
+     * @param rangeLow specifies the low value of the range.
+     * @param rangeHigh specifies the high value of the range.
      */
-    public void setValueRange(int index, double valueRangeLow, double valueRangeHigh)
+    public void setCardinalRange(int index, double rangeLow, double rangeHigh)
     {
-        final String funcName = "setValueRange";
+        final String funcName = "setCardinalRange";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
-                                "low=%f,high=%f", valueRangeLow, valueRangeHigh);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "low=%f,high=%f", rangeLow, rangeHigh);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        if (valueRangeLow > valueRangeHigh)
+        if (rangeLow > rangeHigh)
         {
-            throw new IllegalArgumentException(
-                    "valueRangeLow must not be greater than valueRangeHigh.");
+            throw new IllegalArgumentException("cardinalRangeLow must not be greater than cardinalRangeHigh.");
         }
 
-        valueRangeLows[index] = valueRangeLow;
-        valueRangeHighs[index] = valueRangeHigh;
-    }   //setValueRange
+        cardinalRangeLows[index] = rangeLow;
+        cardinalRangeHighs[index] = rangeHigh;
+    }   //setCardinalRange
 
     /**
-     * This method returns the indexed unwrapped data.
+     * This method returns the converted indexed cartesian data.
      *
      * @param index specifies the axis index.
-     * @return unwrapped data.
+     * @return converted cartesian data.
      */
-    public TrcSensor.SensorData getUnwrappedData(int index)
+    public TrcSensor.SensorData getCartesianData(int index)
     {
-        final String funcName = "getUnwrappedData";
-        TrcSensor.SensorData data =
-                new TrcSensor.SensorData(prevData[index].timestamp, prevData[index].value);
+        final String funcName = "getCartesianData";
+        TrcSensor.SensorData<Double> data = new TrcSensor.SensorData<>(
+                prevData[index].timestamp, prevData[index].value);
 
-        data.value = (valueRangeHighs[index] - valueRangeLows[index])*numCrossovers[index] +
-                     ((Double)data.value - valueRangeLows[index]);
+        data.value = (cardinalRangeHighs[index] - cardinalRangeLows[index])*numCrossovers[index] +
+                     (data.value - cardinalRangeLows[index]);
 
         if (debugEnabled)
         {
@@ -225,7 +218,7 @@ public class TrcDataUnwrapper implements TrcTaskMgr.Task
         }
 
         return data;
-    }   //getUnwrappedData
+    }   //getCartesianData
 
     //
     // Implements TrcTaskMgr.Task
@@ -263,18 +256,15 @@ public class TrcDataUnwrapper implements TrcTaskMgr.Task
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(
-                    funcName, TrcDbgTrace.TraceLevel.TASK,
-                    "mode=%s", runMode.toString());
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "mode=%s", runMode.toString());
         }
 
         for (int i = 0; i < numAxes; i++)
         {
-            TrcSensor.SensorData data = sensor.getData(i, dataType);
-            if (Math.abs((Double)data.value - (Double)prevData[i].value) >
-                (valueRangeHighs[i] - valueRangeLows[i])/2.0)
+            TrcSensor.SensorData<Double> data = sensor.getProcessedData(i, dataType);
+            if (Math.abs(data.value - prevData[i].value) > (cardinalRangeHighs[i] - cardinalRangeLows[i])/2.0)
             {
-                if ((Double)data.value > (Double)prevData[i].value)
+                if (data.value > prevData[i].value)
                 {
                     numCrossovers[i]--;
                 }
@@ -289,7 +279,7 @@ public class TrcDataUnwrapper implements TrcTaskMgr.Task
         if (debugEnabled)
         {
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK,
-                               "! (numCrossovers=%d)", numCrossovers);
+                               "! (numCrossovers=%s)", Arrays.toString(numCrossovers));
         }
     }   //preContinuousTask
 
@@ -298,4 +288,4 @@ public class TrcDataUnwrapper implements TrcTaskMgr.Task
     {
     }   //postContinuousTask
 
-}   //class TrcDataUnwrapper
+}   //class TrcCardinalConverter

@@ -81,14 +81,12 @@ public class FtcTestMRI2cGyro extends FtcOpMode
         //
         if (data.value != null)
         {
-            dashboard.displayPrintf(4, LABEL_WIDTH, "Heading: ", "%d", (Integer)gyro.getHeading().value);
-            dashboard.displayPrintf(5, LABEL_WIDTH, "IntegratedZ: ", "%d", (Integer)gyro.getIntegratedZ().value);
-            dashboard.displayPrintf(6, LABEL_WIDTH, "RawXYZ: ", "%d/%d/%d",
-                                    (Integer)gyro.getRawX().value,
-                                    (Integer)gyro.getRawY().value,
-                                    (Integer)gyro.getRawZ().value);
-            dashboard.displayPrintf(7, LABEL_WIDTH, "ZOffset: ", "%d", (Integer)gyro.getZOffset().value);
-            dashboard.displayPrintf(8, LABEL_WIDTH, "ZScaling: ", "%d", (Integer)gyro.getZScaling().value);
+            dashboard.displayPrintf(4, LABEL_WIDTH, "Heading: ", "%.0f", gyro.getHeading().value);
+            dashboard.displayPrintf(5, LABEL_WIDTH, "IntegratedZ: ", "%.0f", gyro.getIntegratedZ().value);
+            dashboard.displayPrintf(6, LABEL_WIDTH, "RawXYZ: ", "%.0f/%.0f/%.0f",
+                                    gyro.getRawX().value, gyro.getRawY().value, gyro.getRawZ().value);
+            dashboard.displayPrintf(7, LABEL_WIDTH, "ZOffset: ", "%.0f", gyro.getZOffset().value);
+            dashboard.displayPrintf(8, LABEL_WIDTH, "ZScaling: ", "%.0f", gyro.getZScaling().value);
         }
     }   //runPeriodic
 

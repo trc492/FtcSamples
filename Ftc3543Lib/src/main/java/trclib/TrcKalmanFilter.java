@@ -22,31 +22,45 @@
 
 package trclib;
 
+/**
+ * This class implements the Kalman filter. It is useful for filtering noise from the sensor data.
+ */
 public class TrcKalmanFilter extends TrcFilter
 {
     private static final String moduleName = "TrcKalmanFilter";
     private static final boolean debugEnabled = false;
+    private static final boolean tracingEnabled = false;
+    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
 
+    private static double DEF_KQ = 0.022;
+    private static double DEF_KR = 0.617;
+
+    private final String instanceName;
     private double kQ;
     private double kR;
     private double prevP;
     private double prevXEst;
     private boolean initialized;
 
-    public TrcKalmanFilter(String instanceName, double kQ, double kR)
+    /**
+     * Constructor: Create an instance of the object.
+     *
+     * @param instanceName specifies the instance name.
+     * @param kQ specifies the KQ constant.
+     * @param kR specifies the KR constant.
+     */
+    public TrcKalmanFilter(final String instanceName, double kQ, double kR)
     {
         super(instanceName);
 
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(
-                    moduleName,
-                    false,
-                    TrcDbgTrace.TraceLevel.API,
-                    TrcDbgTrace.MsgLevel.INFO);
+            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
+        this.instanceName = instanceName;
         this.kQ = kQ;
         this.kR = kR;
         prevP = 0.0;
@@ -54,19 +68,40 @@ public class TrcKalmanFilter extends TrcFilter
         initialized = false;
     }   //TrcKalmanFilter
 
-    public TrcKalmanFilter(String instanceName)
+    /**
+     * Constructor: Create an instance of the object.
+     *
+     * @param instanceName specifies the instance name.
+     */
+    public TrcKalmanFilter(final String instanceName)
     {
-        this(instanceName, 0.022, 0.617);
+        this(instanceName, DEF_KQ, DEF_KR);
     }   //TrcKalmanFilter
+
+    /**
+     * This method returns the instance name.
+     *
+     * @return instance name.
+     */
+    public String toString()
+    {
+        return instanceName;
+    }   //toString
 
     //
     // Implements TrcFilter abstract methods.
     //
 
+    /**
+     * This method returns the filtered data.
+     *
+     * @param data specifies the data value to be filtered.
+     * @return filtered data.
+     */
     @Override
     public double filterData(double data)
     {
-        final String funcName = "filter";
+        final String funcName = "filterData";
 
         if (!initialized)
         {
@@ -77,19 +112,14 @@ public class TrcKalmanFilter extends TrcFilter
         double tempP = prevP + kQ;
         double k = tempP/(tempP + kR);
         double xEst = prevXEst + k*(data - prevXEst);
-        double p = (1 - k)*tempP;
 
-        prevP = p;
+        prevP = (1 - k)*tempP;
         prevXEst = xEst;
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(
-                    funcName, TrcDbgTrace.TraceLevel.API,
-                    "data=%f", data);
-            dbgTrace.traceEnter(
-                    funcName, TrcDbgTrace.TraceLevel.API,
-                    "=%f", prevXEst);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "data=%f", data);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "=%f", prevXEst);
         }
 
         return prevXEst;

@@ -25,10 +25,10 @@ package ftclib;
 import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
-import hallib.HalUtil;
 import trclib.TrcDbgTrace;
 import trclib.TrcFilter;
 import trclib.TrcGyro;
+import trclib.TrcUtil;
 
 /**
  * This class implements an Analog gyro extending TrcGyro. It provides implementation of the abstract methods in
@@ -40,6 +40,8 @@ public class FtcAnalogGyro extends TrcGyro
     private static final String moduleName = "FtcAnalogGyro";
     private static final boolean debugEnabled = false;
     private static final boolean tracingEnabled = false;
+    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
 
     private double voltPerDegPerSec;
@@ -51,9 +53,8 @@ public class FtcAnalogGyro extends TrcGyro
      * @param hardwareMap specifies the global hardware map.
      * @param instanceName specifies the instance name.
      * @param voltPerDegPerSec specifies the rotation rate scale.
-     * @param filters specifies an array of filters to use for filtering sensor noise, one for each axis.
-     *                Since we only have 1 axis, the array should have 1 element. If no filters are used,
-     *                it can be set to null.
+     * @param filters specifies an array of filters to use for filtering sensor noise, one for each axis. Since we
+     *                only have 1 axis, the array should have 1 element. If no filters are used, it can be set to null.
      */
     public FtcAnalogGyro(HardwareMap hardwareMap, String instanceName, double voltPerDegPerSec, TrcFilter[] filters)
     {
@@ -61,8 +62,7 @@ public class FtcAnalogGyro extends TrcGyro
 
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName,
-                                       tracingEnabled, TrcDbgTrace.TraceLevel.API, TrcDbgTrace.MsgLevel.INFO);
+            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         this.voltPerDegPerSec = voltPerDegPerSec;
@@ -74,9 +74,8 @@ public class FtcAnalogGyro extends TrcGyro
      *
      * @param instanceName specifies the instance name.
      * @param voltPerDegPerSec specifies the rotation rate scale.
-     * @param filters specifies an array of filters to use for filtering sensor noise, one for each axis.
-     *                Since we only have 1 axis, the array should have 1 element. If no filters are used,
-     *                it can be set to null.
+     * @param filters specifies an array of filters to use for filtering sensor noise, one for each axis. Since we
+     *                only have 1 axis, the array should have 1 element. If no filters are used, it can be set to null.
      */
     public FtcAnalogGyro(String instanceName, double voltPerDegPerSec, TrcFilter[] filters)
     {
@@ -107,14 +106,13 @@ public class FtcAnalogGyro extends TrcGyro
     //
 
     /**
-     * This method returns the raw data of the specified type for the x-axis
-     * which is not supported.
+     * This method returns the raw data of the specified type for the x-axis which is not supported.
      *
      * @param dataType specifies the data type.
      * @return throws UnsupportedOperation exception.
      */
     @Override
-    public SensorData getRawXData(DataType dataType)
+    public SensorData<Double> getRawXData(DataType dataType)
     {
         final String funcName = "getRawXData";
 
@@ -128,14 +126,13 @@ public class FtcAnalogGyro extends TrcGyro
     }   //getRawXData
 
     /**
-     * This method returns the raw data of the specified type for the y-axis
-     * which is not supported.
+     * This method returns the raw data of the specified type for the y-axis which is not supported.
      *
      * @param dataType specifies the data type.
      * @return throws UnsupportedOperation exception.
      */
     @Override
-    public SensorData getRawYData(DataType dataType)
+    public SensorData<Double> getRawYData(DataType dataType)
     {
         final String funcName = "getRawYData";
 
@@ -155,7 +152,7 @@ public class FtcAnalogGyro extends TrcGyro
      * @return raw data of the specified type for the z-axis in degrees per second.
      */
     @Override
-    public SensorData getRawZData(DataType dataType)
+    public SensorData<Double> getRawZData(DataType dataType)
     {
         final String funcName = "getRawZData";
         double value = 0.0;
@@ -167,7 +164,7 @@ public class FtcAnalogGyro extends TrcGyro
         {
             value = gyro.getVoltage()/voltPerDegPerSec;
         }
-        SensorData data = new SensorData(HalUtil.getCurrentTime(), value);
+        SensorData<Double> data = new SensorData<>(TrcUtil.getCurrentTime(), value);
 
         if (debugEnabled)
         {

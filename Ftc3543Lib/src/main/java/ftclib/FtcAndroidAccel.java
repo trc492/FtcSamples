@@ -25,22 +25,23 @@ package ftclib;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
 
-import hallib.HalUtil;
 import trclib.TrcAccelerometer;
 import trclib.TrcDbgTrace;
 import trclib.TrcFilter;
+import trclib.TrcUtil;
 
 /**
- * This class implements the Android accelerometer extending
- * TrcAccelerometer. It provides implementation of the abstract methods
- * in TrcAccelerometer. It supports 3 axes: x, y and z. It provides
- * acceleration data for all 3 axes. However, it doesn't provide any
- * velocity or distance data.
+ * This class implements the Android accelerometer extending TrcAccelerometer. It provides implementation of the
+ * abstract methods in TrcAccelerometer. It supports 3 axes: x, y and z. It provides acceleration data for all 3
+ * axes. However, it doesn't provide any velocity or distance data.
  */
 public class FtcAndroidAccel extends TrcAccelerometer
 {
     private static final String moduleName = "FtcAndroidAccel";
     private static final boolean debugEnabled = false;
+    private static final boolean tracingEnabled = false;
+    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
 
     private FtcAndroidSensor sensor = null;
@@ -50,25 +51,18 @@ public class FtcAndroidAccel extends TrcAccelerometer
      * Constructor: Creates an instance of the object.
      *
      * @param instanceName specifies the instance name.
-     * @param filters specifies an array of filters to use for filtering
-     *                sensor noise, one for each axis. Since we have 3 axes,
-     *                the array should have 3 elements. If no filters are
-     *                used, it can be set to null.
+     * @param filters specifies an array of filters to use for filtering sensor noise, one for each axis. Since we
+     *                have 3 axes, the array should have 3 elements. If no filters are used, it can be set to null.
      */
     public FtcAndroidAccel(String instanceName, TrcFilter[] filters)
     {
-        super(instanceName,
-              3,
-              ACCEL_HAS_X_AXIS | ACCEL_HAS_Y_AXIS | ACCEL_HAS_Z_AXIS |
-              ACCEL_INTEGRATE | ACCEL_DOUBLE_INTEGRATE,
+        super(instanceName, 3,
+              ACCEL_HAS_X_AXIS | ACCEL_HAS_Y_AXIS | ACCEL_HAS_Z_AXIS | ACCEL_INTEGRATE | ACCEL_DOUBLE_INTEGRATE,
               filters);
 
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName,
-                                       false,
-                                       TrcDbgTrace.TraceLevel.API,
-                                       TrcDbgTrace.MsgLevel.INFO);
+            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         sensor = new FtcAndroidSensor(instanceName, Sensor.TYPE_LINEAR_ACCELERATION, 3);
@@ -77,8 +71,7 @@ public class FtcAndroidAccel extends TrcAccelerometer
     /**
      * This method sets the sampling period of the Android accelerometer sensor.
      *
-     * @param period specifies the period with SensorManager.SENSOR_DELAY_* constants,
-     *               or the number of microseconds.
+     * @param period specifies the period with SensorManager.SENSOR_DELAY_* constants, or the number of microseconds.
      */
     public void setSamplingPeriod(int period)
     {
@@ -116,9 +109,8 @@ public class FtcAndroidAccel extends TrcAccelerometer
     }   //setEnabled
 
     /**
-     * This method calibrates the sensor. If the sensor is not enabled,
-     * it must enable it first before starting calibration. It will disable
-     * the sensor if it was disabled before calibration.
+     * This method calibrates the sensor. If the sensor is not enabled, it must enable it first before starting
+     * calibration. It will disable the sensor if it was disabled before calibration.
      */
     public void calibrate()
     {
@@ -148,19 +140,18 @@ public class FtcAndroidAccel extends TrcAccelerometer
      * @return raw data of the specified type for the x-axis.
      */
     @Override
-    public SensorData getRawXData(DataType dataType)
+    public SensorData<Double> getRawXData(DataType dataType)
     {
         final String funcName = "getRawXData";
-        SensorData data = null;
+        SensorData<Double> data;
 
         if (dataType == DataType.ACCELERATION)
         {
-            data = new SensorData(HalUtil.getCurrentTime(), sensor.getRawData(0, dataType).value);
+            data = new SensorData<>(TrcUtil.getCurrentTime(), sensor.getRawData(0, dataType).value);
         }
         else
         {
-            throw new UnsupportedOperationException(
-                    "AndroidAccel sensor does not provide velocity or distance data.");
+            throw new UnsupportedOperationException("AndroidAccel sensor does not provide velocity or distance data.");
         }
 
         if (debugEnabled)
@@ -180,19 +171,18 @@ public class FtcAndroidAccel extends TrcAccelerometer
      * @return raw data of the specified type for the y-axis.
      */
     @Override
-    public SensorData getRawYData(DataType dataType)
+    public SensorData<Double> getRawYData(DataType dataType)
     {
         final String funcName = "getRawYData";
-        SensorData data = null;
+        SensorData<Double> data;
 
         if (dataType == DataType.ACCELERATION)
         {
-            data = new SensorData(HalUtil.getCurrentTime(), sensor.getRawData(1, dataType).value);
+            data = new SensorData<>(TrcUtil.getCurrentTime(), sensor.getRawData(1, dataType).value);
         }
         else
         {
-            throw new UnsupportedOperationException(
-                    "AndroidAccel sensor does not provide velocity or distance data.");
+            throw new UnsupportedOperationException("AndroidAccel sensor does not provide velocity or distance data.");
         }
 
         if (debugEnabled)
@@ -212,19 +202,18 @@ public class FtcAndroidAccel extends TrcAccelerometer
      * @return raw data of the specified type for the z-axis.
      */
     @Override
-    public SensorData getRawZData(DataType dataType)
+    public SensorData<Double> getRawZData(DataType dataType)
     {
         final String funcName = "getRawZData";
-        SensorData data = null;
+        SensorData<Double> data;
 
         if (dataType == DataType.ACCELERATION)
         {
-            data = new SensorData(HalUtil.getCurrentTime(), sensor.getRawData(2, dataType).value);
+            data = new SensorData<>(TrcUtil.getCurrentTime(), sensor.getRawData(2, dataType).value);
         }
         else
         {
-            throw new UnsupportedOperationException(
-                    "AndroidAccel sensor does not provide velocity or distance data.");
+            throw new UnsupportedOperationException("AndroidAccel sensor does not provide velocity or distance data.");
         }
 
         if (debugEnabled)

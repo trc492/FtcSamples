@@ -30,6 +30,7 @@ import com.qualcomm.robotcore.hardware.IrSeekerSensor;
 import org.firstinspires.ftc.robotcontroller.internal.FtcRobotControllerActivity;
 
 import ftclib.FtcDcMotor;
+import ftclib.FtcMRColorSensor;
 import ftclib.FtcMRGyro;
 import ftclib.FtcMRI2cColorSensor;
 import ftclib.FtcOpMode;
@@ -130,7 +131,7 @@ public class K9Robot implements TrcPidController.PidInput, TrcAnalogTrigger.Trig
     // Sensors.
     //
     public FtcMRGyro gyro;
-    public FtcMRI2cColorSensor colorSensor;
+    public FtcMRColorSensor colorSensor;
     public FtcOpticalDistanceSensor lightSensor;
     public IrSeekerSensor irSeeker;
     public double prevIrAngle = 0.0;
@@ -152,13 +153,13 @@ public class K9Robot implements TrcPidController.PidInput, TrcAnalogTrigger.Trig
     //
     public TrcPidController colorPidCtrl;
     public TrcPidDrive pidLineFollow;
-    public TrcAnalogTrigger colorTrigger;
+    public TrcAnalogTrigger<FtcMRColorSensor.DataType> colorTrigger;
     //
     // PID line follow using Optical Distance sensor.
     //
     public TrcPidController lightPidCtrl;
     public TrcPidDrive lineFollowDrive;
-    public TrcAnalogTrigger lightTrigger;
+    public TrcAnalogTrigger<FtcOpticalDistanceSensor.DataType> lightTrigger;
     //
     // PID seek IR.
     //
@@ -189,7 +190,7 @@ public class K9Robot implements TrcPidController.PidInput, TrcAnalogTrigger.Trig
         //
         gyro = new FtcMRGyro("gyro_sensor");
         gyro.calibrate();
-        colorSensor = new FtcMRI2cColorSensor("colorSensor");
+        colorSensor = new FtcMRColorSensor("colorSensor");
         lightSensor = new FtcOpticalDistanceSensor("light_sensor");
         irSeeker = hardwareMap.irSeekerSensor.get("irSeeker");
         //
@@ -222,7 +223,8 @@ public class K9Robot implements TrcPidController.PidInput, TrcAnalogTrigger.Trig
         colorPidCtrl.setAbsoluteSetPoint(true);
         pidLineFollow = new TrcPidDrive(
                 "lineFollow", driveBase, null, drivePidCtrl, colorPidCtrl);
-        colorTrigger = new TrcAnalogTrigger("colorTrigger", colorSensor, 0,
+        colorTrigger = new TrcAnalogTrigger<>(
+                "colorTrigger", colorSensor, 0, FtcMRColorSensor.DataType.WHITE,
                 new double[]{COLOR_BLACK, COLOR_WHITE}, this);
         //
         // PID line follow using Optical Distance sensor.
@@ -235,9 +237,9 @@ public class K9Robot implements TrcPidController.PidInput, TrcAnalogTrigger.Trig
         lineFollowDrive = new TrcPidDrive(
                 "lineFollow", driveBase, null, drivePidCtrl, lightPidCtrl);
 
-        lightTrigger = new TrcAnalogTrigger("lightTrigger", lightSensor, 0,
-                new double[]{LIGHT_DARK_LEVEL, LIGHT_WHITE_LEVEL},
-                this);
+        lightTrigger = new TrcAnalogTrigger<>(
+                "lightTrigger", lightSensor, 0, FtcOpticalDistanceSensor.DataType.RAW_LIGHT_DETECTED,
+                new double[]{LIGHT_DARK_LEVEL, LIGHT_WHITE_LEVEL}, this);
         //
         // PID IR seeking.
         //
@@ -273,14 +275,14 @@ public class K9Robot implements TrcPidController.PidInput, TrcAnalogTrigger.Trig
     {
         dashboard.clearDisplay();
         gyro.setEnabled(true);
-        colorSensor.setLEDEnabled(true);
+        colorSensor.sensor.enableLed(true);
         driveBase.resetPosition();
     }   //startMode
 
     public void stopMode(TrcRobot.RunMode runMode)
     {
         gyro.setEnabled(false);
-        colorSensor.setLEDEnabled(false);
+        colorSensor.sensor.enableLed(false);
     }   //stopMode
 
     //
@@ -302,7 +304,7 @@ public class K9Robot implements TrcPidController.PidInput, TrcAnalogTrigger.Trig
         }
         else if (pidCtrl == colorPidCtrl)
         {
-            input = (double)(Integer)colorSensor.getWhiteValue().value;
+            input = colorSensor.sensor.alpha();
             //
             // Give it a deadband to minimize fish tailing.
             //
@@ -316,7 +318,7 @@ public class K9Robot implements TrcPidController.PidInput, TrcAnalogTrigger.Trig
             //
             // Get the light sensor reading.
             //
-            input = (Double)lightSensor.getData(0).value;
+            input = lightSensor.sensor.getRawLightDetected();
         }
         else if (pidCtrl == irDrivePidCtrl)
         {
@@ -360,7 +362,7 @@ public class K9Robot implements TrcPidController.PidInput, TrcAnalogTrigger.Trig
     public void AnalogTriggerEvent(
             TrcAnalogTrigger analogTrigger, int zoneIndex, double zoneValue)
     {
-        if (analogTrigger == colorTrigger && pidDrive.isEnabled())
+        if (analogTrigger == colorTrigger && pidDrive.isActive())
         {
             //
             // Line is detected, interrupt PID drive.
@@ -370,7 +372,7 @@ public class K9Robot implements TrcPidController.PidInput, TrcAnalogTrigger.Trig
                 pidDrive.cancel();
             }
         }
-        else if (analogTrigger == lightTrigger && pidDrive.isEnabled())
+        else if (analogTrigger == lightTrigger && pidDrive.isActive())
         {
             //
             // Line is detected, interrupt PID drive.

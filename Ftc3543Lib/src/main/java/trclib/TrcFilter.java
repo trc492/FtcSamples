@@ -22,29 +22,48 @@
 
 package trclib;
 
+/**
+ * This class implements a generic filter to be extended by a specific filter class. This class cannot be
+ * instantiated by itself.
+ */
 public abstract class TrcFilter
 {
+    protected static final boolean debugEnabled = false;
+    protected static final boolean tracingEnabled = false;
+    protected static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    protected static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
+    protected TrcDbgTrace dbgTrace = null;
+
+    /**
+     * This method returns the filtered data.
+     *
+     * @param data specifies the data value to be filtered.
+     * @return filtered data.
+     */
     public abstract double filterData(double data);
 
-    private static final String moduleName = "TrcFilter";
-    private static final boolean debugEnabled = false;
-    private TrcDbgTrace dbgTrace = null;
+    private final String instanceName;
 
-    private String instanceName;
-
-    public TrcFilter(String instanceName)
+    /**
+     * Constructor: Create an instance of the object.
+     *
+     * @param instanceName specifies the instance name.
+     */
+    protected TrcFilter(final String instanceName)
     {
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName,
-                                       false,
-                                       TrcDbgTrace.TraceLevel.API,
-                                       TrcDbgTrace.MsgLevel.INFO);
+            dbgTrace = new TrcDbgTrace(instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         this.instanceName = instanceName;
     }   //TrcFilter
 
+    /**
+     * This method returns the instance name.
+     *
+     * @return instance name.
+     */
     public String toString()
     {
         return instanceName;

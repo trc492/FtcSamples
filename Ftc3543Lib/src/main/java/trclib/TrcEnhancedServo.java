@@ -22,12 +22,23 @@
 
 package trclib;
 
-import hallib.HalUtil;
+import android.os.Trace;
 
+/**
+ * This class implements a platform independent Enhanced servo. An enhanced servo is a servo with enhanced features.
+ * The enhanced servo supports both normal servo as well as continuous servo. It supports limit switches for the
+ * continuous servo just like TrcMotor. It simulates a speed controlled motor with a regular servo. It does this
+ * by stepping the servo with different step rate to make it seemed to be speed controlled. It also supports doubling
+ * two servos to handle bigger load as a single servo, equivalent to connecting two servos with a Y splitter cable
+ * except doing it with software instead.
+ */
 public class TrcEnhancedServo implements TrcTaskMgr.Task
 {
     private static final String moduleName = "TrcEnhancedServo";
     private static final boolean debugEnabled = false;
+    private static final boolean tracingEnabled = false;
+    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
 
     private static final double SERVO_CONTINUOUS_STOP = 0.5;
@@ -52,6 +63,15 @@ public class TrcEnhancedServo implements TrcTaskMgr.Task
     private TrcDigitalInput lowerLimitSwitch = null;
     private TrcDigitalInput upperLimitSwitch = null;
 
+    /**
+     * This method is called by different constructors to do common initialization.
+     *
+     * @param instanceName specifies the instance name.
+     * @param servo1 specifies the first physical servo object.
+     * @param servo2 specifies the second physical servo object.
+     * @param lowerLimitSwitch specifies the lower limit switch object.
+     * @param upperLimitSwitch specifies the high limit switch object.
+     */
     private void commonInit(
             String instanceName,
             TrcServo servo1, TrcServo servo2,
@@ -59,11 +79,7 @@ public class TrcEnhancedServo implements TrcTaskMgr.Task
     {
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(
-                    moduleName + "." + instanceName,
-                    false,
-                    TrcDbgTrace.TraceLevel.API,
-                    TrcDbgTrace.MsgLevel.INFO);
+            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         this.instanceName = instanceName;
@@ -73,6 +89,12 @@ public class TrcEnhancedServo implements TrcTaskMgr.Task
         this.upperLimitSwitch = upperLimitSwitch;
     }   //commonInit
 
+    /**
+     * Constructor: Creates an instance of the object.
+     *
+     * @param instanceName specifies the instance name.
+     * @param servo specifies the physical servo object.
+     */
     public TrcEnhancedServo(String instanceName, TrcServo servo)
     {
         if (servo == null)
@@ -83,6 +105,13 @@ public class TrcEnhancedServo implements TrcTaskMgr.Task
         commonInit(instanceName, servo, null, null, null);
     }   //TrcEnhancedServo
 
+    /**
+     * Constructor: Creates an instance of the object.
+     *
+     * @param instanceName specifies the instance name.
+     * @param servo1 specifies the first physical servo object.
+     * @param servo2 specifies the second physical servo object.
+     */
     public TrcEnhancedServo(String instanceName, TrcServo servo1, TrcServo servo2)
     {
         if (servo1 == null || servo2 == null)
@@ -93,9 +122,16 @@ public class TrcEnhancedServo implements TrcTaskMgr.Task
         commonInit(instanceName, servo1, servo2, null, null);
     }   //TrcEnhancedServo
 
+    /**
+     * Constructor: Creates an instance of the object.
+     *
+     * @param instanceName specifies the instance name.
+     * @param servo specifies the physical servo object.
+     * @param lowerLimitSwitch specifies the lower limit switch object.
+     * @param upperLimitSwitch specifies the high limit switch object.
+     */
     public TrcEnhancedServo(
-            String instanceName,
-            TrcServo servo, TrcDigitalInput lowerLimitSwitch, TrcDigitalInput upperLimitSwitch)
+            String instanceName, TrcServo servo, TrcDigitalInput lowerLimitSwitch, TrcDigitalInput upperLimitSwitch)
     {
         if (servo1 == null)
         {
@@ -106,19 +142,35 @@ public class TrcEnhancedServo implements TrcTaskMgr.Task
         continuousServo = true;
     }   //TrcEnhancedServo
 
+    /**
+     * This method returns the instance name.
+     *
+     * @return instance name.
+     */
     public String toString()
     {
         return instanceName;
     }   //toString
 
+    /**
+     * This method enables/disables the stepping feature of the regular servo making it look like a speed controlled
+     * motor.
+     *
+     * @param enabled specifies true to enable stepping, false to disable.
+     */
     private void setSteppingEnabled(boolean enabled)
     {
+        final String funcName = "setSteppingEnabled";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "enabled=%s", Boolean.toString(enabled));
+        }
+
         if (enabled && !servoStepping)
         {
-            TrcTaskMgr.getInstance().registerTask(
-                    "ServoSteppingTask", this, TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
-            TrcTaskMgr.getInstance().registerTask(
-                    "ServoSteppingTask", this, TrcTaskMgr.TaskType.STOP_TASK);
+            TrcTaskMgr.getInstance().registerTask("ServoSteppingTask", this, TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
+            TrcTaskMgr.getInstance().registerTask("ServoSteppingTask", this, TrcTaskMgr.TaskType.STOP_TASK);
         }
         else if (!enabled && servoStepping)
         {
@@ -126,10 +178,26 @@ public class TrcEnhancedServo implements TrcTaskMgr.Task
             TrcTaskMgr.getInstance().unregisterTask(this, TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
         }
         servoStepping = enabled;
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
     }   //setSteppingEnabled
 
+    /**
+     * This method stops the servo.
+     */
     public void stop()
     {
+        final String funcName = "stop";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+
         if (continuousServo)
         {
             servo1.setPosition(SERVO_CONTINUOUS_STOP);
@@ -140,8 +208,21 @@ public class TrcEnhancedServo implements TrcTaskMgr.Task
         }
     }   //stop
 
+    /**
+     * This method sets the servo position.
+     *
+     * @param position specifies the position to set.
+     */
     public void setPosition(double position)
     {
+        final String funcName = "setPosition";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "position=%f", position);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+
         if (!continuousServo)
         {
             if (servo1 != null)
@@ -156,20 +237,51 @@ public class TrcEnhancedServo implements TrcTaskMgr.Task
         }
     }   //setPosition
 
+    /**
+     * This method sets the servo to the specifies position but with the specified steprate in effect controlling
+     * the speed to get there.
+     *
+     * @param position specifies the target position.
+     * @param stepRate specifies the stepping rate to get there (degrees/sec).
+     */
     public void setPosition(double position, double stepRate)
     {
+        final String funcName = "setPosition";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "position=%f,stepRate=%f", position, stepRate);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+
         if (!continuousServo)
         {
             this.targetPosition = position;
             this.currStepRate = Math.abs(stepRate);
-            this.prevTime = HalUtil.getCurrentTime();
+            this.prevTime = TrcUtil.getCurrentTime();
             this.currPosition = servo1.getPosition();
             setSteppingEnabled(true);
         }
     }   //setPosition
 
+    /**
+     * This method sets the stepping mode characteristics.
+     *
+     * @param maxStepRate specifies the maximum stepping rate.
+     * @param minPos specifies the minimum position.
+     * @param maxPos specifies the maximum position.
+     */
     public void setStepMode(double maxStepRate, double minPos, double maxPos)
     {
+        final String funcName = "setStepMode";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
+                                "maxStepRate=%f,minPos=%f,maxPos=%f", maxStepRate, minPos, maxPos);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+
         if (!continuousServo)
         {
             this.maxStepRate = maxStepRate;
@@ -178,15 +290,27 @@ public class TrcEnhancedServo implements TrcTaskMgr.Task
         }
     }   //setStepMode
 
+    /**
+     * This method sets the power just like a regular motor but for a servo. If it is a continuous servo, it will
+     * set it running with different speed. If it is a regular servo, it will change its step rate.
+     *
+     * @param power specifies how fast the servo will turn.
+     */
     public void setPower(double power)
     {
-        power = TrcUtil.limit(power, -1.0, 1.0);
+        final String funcName = "setPower";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "power=%f", power);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+
+        power = TrcUtil.clipRange(power, -1.0, 1.0);
         if (continuousServo)
         {
-            if (lowerLimitSwitch != null &&
-                lowerLimitSwitch.isActive() ||
-                upperLimitSwitch != null &&
-                upperLimitSwitch.isActive())
+            if (lowerLimitSwitch != null && lowerLimitSwitch.isActive() ||
+                upperLimitSwitch != null && upperLimitSwitch.isActive())
             {
                 //
                 // One of the limit switches is hit, so stop!
@@ -195,9 +319,7 @@ public class TrcEnhancedServo implements TrcTaskMgr.Task
             }
             else
             {
-                power = TrcUtil.scaleRange(
-                        power, -1.0, 1.0,
-                        SERVO_CONTINUOUS_REV_MAX, SERVO_CONTINUOUS_FWD_MAX);
+                power = TrcUtil.scaleRange(power, -1.0, 1.0, SERVO_CONTINUOUS_REV_MAX, SERVO_CONTINUOUS_FWD_MAX);
                 servo1.setPosition(power);
             }
         }
@@ -246,12 +368,25 @@ public class TrcEnhancedServo implements TrcTaskMgr.Task
     {
     }   //preContinuousTask
 
+    /**
+     * This method is called periodically to check whether the servo has reached target. If not, it will calculate
+     * the next position to set the servo to according to its step rate.
+     *
+     * @param runMode specifies the competition mode that is running. (e.g. Autonomous, TeleOp, Test).
+     */
     @Override
     public void postContinuousTask(TrcRobot.RunMode runMode)
     {
+        final String funcName = "postContinuousTask";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "runMode=%s", runMode.toString());
+        }
+
         if (runMode != TrcRobot.RunMode.DISABLED_MODE)
         {
-            double currTime = HalUtil.getCurrentTime();
+            double currTime = TrcUtil.getCurrentTime();
             double deltaPos = currStepRate * (currTime - prevTime);
 
             if (currPosition < targetPosition)
@@ -288,6 +423,11 @@ public class TrcEnhancedServo implements TrcTaskMgr.Task
             {
                 servo2.setPosition(currPosition);
             }
+        }
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
         }
     }   //postContinuousTask
 

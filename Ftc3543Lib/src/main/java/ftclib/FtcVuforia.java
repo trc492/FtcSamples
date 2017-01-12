@@ -45,10 +45,9 @@ import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackables;
 public class FtcVuforia
 {
     /**
-     * This class contains information required to make a trackable target. It has two constructors.
-     * One with all the rotation/translation info for tracking the robot location on the field. If
-     * you don't need to track the robot's location, then you can use the constructor with only the
-     * target name.
+     * This class contains information required to make a trackable target. It has two constructors. One with all the
+     * rotation/translation info for tracking the robot location on the field. If you don't need to track the robot's
+     * location, then you can use the constructor with only the target name.
      */
     public static class Target
     {
@@ -199,11 +198,11 @@ public class FtcVuforia
     }   //setTargets
 
     /**
-     * This method creates a location matrix that can be used to relocate an object to its final location
-     * by rotating and translating the object from the origin of the field. It is doing the operation in
-     * the order of the parameters. In other words, it will first rotate the object on the X-axis, then
-     * rotate on the Y-axis, then rotate on the Z-axis, then translate on the X-axis, then translate on
-     * the Y-axis and finally translate on the Z-axis.
+     * This method creates a location matrix that can be used to relocate an object to its final location by rotating
+     * and translating the object from the origin of the field. It is doing the operation in the order of the
+     * parameters. In other words, it will first rotate the object on the X-axis, then rotate on the Y-axis, then
+     * rotate on the Z-axis, then translate on the X-axis, then translate on the Y-axis and finally translate on the
+     * Z-axis.
      *
      * @param rotateX specifies rotation on the X-axis.
      * @param rotateY specifies rotation on the Y-axis.

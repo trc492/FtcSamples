@@ -35,13 +35,16 @@ import trclib.TrcTaskMgr;
 import trclib.TrcTimer;
 
 /**
- * This class implements a platform dependent servo extending TrcServo.
- * It provides implementation of the abstract methods in TrcServo.
+ * This class implements a platform dependent servo extending TrcServo. It provides implementation of the abstract
+ * methods in TrcServo.
  */
 public class FtcServo extends TrcServo implements TrcTaskMgr.Task
 {
     private static final String moduleName = "FtcServo";
     private static final boolean debugEnabled = false;
+    private static final boolean tracingEnabled = false;
+    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
 
     private enum State
@@ -75,11 +78,7 @@ public class FtcServo extends TrcServo implements TrcTaskMgr.Task
 
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(
-                    moduleName + "." + instanceName,
-                    false,
-                    TrcDbgTrace.TraceLevel.API,
-                    TrcDbgTrace.MsgLevel.INFO);
+            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         this.instanceName = instanceName;
@@ -149,8 +148,7 @@ public class FtcServo extends TrcServo implements TrcTaskMgr.Task
     {
         if (enabled)
         {
-            TrcTaskMgr.getInstance().registerTask(
-                    instanceName, this, TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
+            TrcTaskMgr.getInstance().registerTask(instanceName, this, TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
         }
         else
         {
@@ -159,17 +157,14 @@ public class FtcServo extends TrcServo implements TrcTaskMgr.Task
     }   //setTaskEnabled
 
     /**
-     * This method sets the servo position but will cut power to the servo when done.
-     * Since servo motors can't really take a lot of loads, it would stress out and
-     * may burn out the servo if it is held against a heavy load for extended period
-     * of time. This method allows us to set the position and only hold it long enough
-     * for it to reach target position and then we will cut the servo controller
-     * power off. Note that by doing so, all servos on the same controller will go
-     * limp.
+     * This method sets the servo position but will cut power to the servo when done. Since servo motors can't really
+     * take a lot of loads, it would stress out and may burn out the servo if it is held against a heavy load for
+     * extended period of time. This method allows us to set the position and only hold it long enough for it to
+     * reach target position and then we will cut the servo controller power off. Note that by doing so, all servos
+     * on the same controller will go limp.
      *
      * @param pos specifies the target position.
-     * @param onTime specifies the time in seconds to wait before disabling servo
-     *               controller.
+     * @param onTime specifies the time in seconds to wait before disabling servo controller.
      */
     public void setPositionWithOnTime(double pos, double onTime)
     {
@@ -181,9 +176,9 @@ public class FtcServo extends TrcServo implements TrcTaskMgr.Task
     }   //setPositionWithOnTime
 
     /**
-     * The method eanbles/disables the servo controller. If the servo controller is disabled,
-     * all servos on the controller will go limp. This is useful for preventing the servos from
-     * burning up if it is held against a heavy load.
+     * The method eanbles/disables the servo controller. If the servo controller is disabled, all servos on the
+     * controller will go limp. This is useful for preventing the servos from burning up if it is held against
+     * a heavy load.
      *
      * @param on specifies true to enable the servo controller, false otherwise.
      */
@@ -193,8 +188,7 @@ public class FtcServo extends TrcServo implements TrcTaskMgr.Task
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
-                                "on=%s", Boolean.toString(on));
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "on=%s", Boolean.toString(on));
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
@@ -224,8 +218,7 @@ public class FtcServo extends TrcServo implements TrcTaskMgr.Task
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
-                                "inverted=%s", Boolean.toString(inverted));
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "inverted=%s", Boolean.toString(inverted));
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
@@ -255,9 +248,8 @@ public class FtcServo extends TrcServo implements TrcTaskMgr.Task
     /**
      * This method sets the servo motor position.
      *
-     * @param position specifies the physical position of the servo motor.
-     *                 This value may be in degrees if setPhysicalRange
-     *                 is called with the degree range.
+     * @param position specifies the physical position of the servo motor. This value may be in degrees if
+     *                 setPhysicalRange is called with the degree range.
      */
     @Override
     public void setPosition(double position)
@@ -281,8 +273,8 @@ public class FtcServo extends TrcServo implements TrcTaskMgr.Task
     /**
      * This method returns the physical position value of the servo motor.
      *
-     * @return physical position of the servo, could be in degrees if
-     *         setPhysicalRangis called to set the range in degrees.
+     * @return physical position of the servo, could be in degrees if setPhysicalRangis called to set the range in
+     *         degrees.
      */
     @Override
     public double getPosition()
@@ -329,9 +321,8 @@ public class FtcServo extends TrcServo implements TrcTaskMgr.Task
     }   //preContinuousTask
 
     /**
-     * This method is called periodically to run a state machine that will enable
-     * the servo controller, set the servo position, wait for the specified hold
-     * time, and finally disable the servo controller.
+     * This method is called periodically to run a state machine that will enable the servo controller, set the servo
+     * position, wait for the specified hold time, and finally disable the servo controller.
      *
      * @param runMode specifies the competition mode that is running.
      */

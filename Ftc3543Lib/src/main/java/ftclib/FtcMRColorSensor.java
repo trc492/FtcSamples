@@ -24,22 +24,32 @@ package ftclib;
 
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cColorSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.qualcomm.robotcore.hardware.I2cDevice;
 
-import hallib.HalUtil;
-import trclib.TrcAnalogInput;
 import trclib.TrcDbgTrace;
+import trclib.TrcSensor;
+import trclib.TrcUtil;
 
 /**
- * This class implements the Modern Color sensor extending TrcAnalogInput. It provides implementation of the
- * abstract methods in TrcAnalogInput.
+ * This class implements the Modern Color sensor extending TrcAnalogInput. It provides implementation of the abstract
+ * methods in TrcAnalogInput.
  */
-public class FtcMRColorSensor extends TrcAnalogInput
+public class FtcMRColorSensor extends TrcSensor<FtcMRColorSensor.DataType>
 {
     private static final String moduleName = "FtcMRColorSensor";
     private static final boolean debugEnabled = false;
     private static final boolean tracingEnabled = false;
+    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
+
+    public enum DataType
+    {
+        COLOR_NUMBER,
+        RED,
+        GREEN,
+        BLUE,
+        WHITE
+    }   //enum DataType
 
     public ModernRoboticsI2cColorSensor sensor;
     private FtcI2cDeviceState sensorState;
@@ -52,16 +62,15 @@ public class FtcMRColorSensor extends TrcAnalogInput
      */
     public FtcMRColorSensor(HardwareMap hardwareMap, String instanceName)
     {
-        super(instanceName, 1, 0, null);
+        super(instanceName, 1);
 
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled,
-                                       TrcDbgTrace.TraceLevel.API, TrcDbgTrace.MsgLevel.INFO);
+            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         sensor = hardwareMap.get(ModernRoboticsI2cColorSensor.class, instanceName);
-        sensorState = new FtcI2cDeviceState(sensor);
+        sensorState = new FtcI2cDeviceState(instanceName, sensor);
     }   //FtcMRColorSensor
 
     /**
@@ -73,14 +82,6 @@ public class FtcMRColorSensor extends TrcAnalogInput
     {
         this(FtcOpMode.getInstance().hardwareMap, instanceName);
     }   //FtcMRColorSensor
-
-    /**
-     * This method calibrates the sensor.
-     */
-    public void calibrate()
-    {
-        calibrate(DataType.INPUT_DATA);
-    }   //calibrate
 
     /**
      * This method check if the color sensor is enabled.
@@ -127,60 +128,43 @@ public class FtcMRColorSensor extends TrcAnalogInput
      * This method returns the raw sensor data of the specified type.
      *
      * @param index specifies the data index.
-     * @return raw sensor data of the specified type.
+     * @param dataType specifies the data type.
+     * @return raw sensor data of the specified index and type.
      */
     @Override
-    public SensorData getRawData(int index, DataType dataType)
+    public SensorData<Integer> getRawData(int index, DataType dataType)
     {
         final String funcName = "getRawData";
-        SensorData data = null;
+        SensorData<Integer> data = null;
 
-        //
-        // Color sensor supports only INPUT_DATA type.
-        //
-        if (dataType == DataType.INPUT_DATA)
+        switch (dataType)
         {
-            if (index == 0)
-            {
-                data = new SensorData(
-                        HalUtil.getCurrentTime(), sensor.argb());
-            }
-            else if (index == 1)
-            {
-                data = new SensorData(
-                        HalUtil.getCurrentTime(), sensor.red());
-            }
-            else if (index == 2)
-            {
-                data = new SensorData(
-                        HalUtil.getCurrentTime(), sensor.green());
-            }
-            else if (index == 3)
-            {
-                data = new SensorData(
-                        HalUtil.getCurrentTime(), sensor.blue());
-            }
-            else if (index == 4)
-            {
-                data = new SensorData(
-                        HalUtil.getCurrentTime(), sensor.alpha());
-            }
-            else
-            {
-                throw new IllegalArgumentException("Invalid data index.");
-            }
-        }
-        else
-        {
-            throw new UnsupportedOperationException(
-                    "Color sensor only support INPUT_DATA type.");
+            case COLOR_NUMBER:
+                data = new SensorData<>(TrcUtil.getCurrentTime(), sensor.argb());
+                break;
+
+            case RED:
+                data = new SensorData<>(TrcUtil.getCurrentTime(), sensor.red());
+                break;
+
+            case GREEN:
+                data = new SensorData<>(TrcUtil.getCurrentTime(), sensor.green());
+                break;
+
+            case BLUE:
+                data = new SensorData<>(TrcUtil.getCurrentTime(), sensor.blue());
+                break;
+
+            case WHITE:
+                data = new SensorData<>(TrcUtil.getCurrentTime(), sensor.alpha());
+                break;
         }
 
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
-                               "=(timestamp:%.3f,value=%f)", data.timestamp, data.value);
+                               "=(timestamp:%.3f,value=%d)", data.timestamp, data.value);
         }
 
         return data;

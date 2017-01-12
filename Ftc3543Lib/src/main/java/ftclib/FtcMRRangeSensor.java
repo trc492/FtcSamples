@@ -27,21 +27,34 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
-import hallib.HalUtil;
-import trclib.TrcAnalogInput;
 import trclib.TrcDbgTrace;
 import trclib.TrcFilter;
+import trclib.TrcSensor;
+import trclib.TrcUtil;
 
 /**
- * This class implements the Modern Range sensor extending TrcAnalogInput. It provides implementation of the
- * abstract methods in TrcAnalogInput.
+ * This class implements the Modern Range sensor extending TrcAnalogInput. It provides implementation of the abstract
+ * methods in TrcAnalogInput.
  */
-public class FtcMRRangeSensor extends TrcAnalogInput
+public class FtcMRRangeSensor extends TrcSensor<FtcMRRangeSensor.DataType>
 {
     private static final String moduleName = "FtcMRRangeSensor";
     private static final boolean debugEnabled = false;
     private static final boolean tracingEnabled = false;
+    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
+
+    public enum DataType
+    {
+        DISTANCE_INCH,
+        ULTRASONIC_CM,
+        OPTICAL_CM,
+        ULTRASONIC_RAW,
+        OPTICAL_RAW,
+        RAW_LIGHT_DETECTED,
+        LIGHT_DETECTED
+    }   //enum DataType
 
     public ModernRoboticsI2cRangeSensor sensor;
 
@@ -50,17 +63,16 @@ public class FtcMRRangeSensor extends TrcAnalogInput
      *
      * @param hardwareMap specifies the global hardware map.
      * @param instanceName specifies the instance name.
-     * @param filters specifies an array of filter objects, one for each axis, to filter
-     *                sensor data. If no filter is used, this can be set to null.
+     * @param filters specifies an array of filter objects, one for each axis, to filter sensor data. If no filter
+     *                is used, this can be set to null.
      */
     public FtcMRRangeSensor(HardwareMap hardwareMap, String instanceName, TrcFilter[] filters)
     {
-        super(instanceName, 1, 0, filters);
+        super(instanceName, 1, filters);
 
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled,
-                                       TrcDbgTrace.TraceLevel.API, TrcDbgTrace.MsgLevel.INFO);
+            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         sensor = hardwareMap.get(ModernRoboticsI2cRangeSensor.class, instanceName);
@@ -70,8 +82,8 @@ public class FtcMRRangeSensor extends TrcAnalogInput
      * Constructor: Creates an instance of the object.
      *
      * @param instanceName specifies the instance name.
-     * @param filters specifies an array of filter objects, one for each axis, to filter
-     *                sensor data. If no filter is used, this can be set to null.
+     * @param filters specifies an array of filter objects, one for each axis, to filter sensor data. If no filter
+     *                is used, this can be set to null.
      */
     public FtcMRRangeSensor(String instanceName, TrcFilter[] filters)
     {
@@ -93,7 +105,7 @@ public class FtcMRRangeSensor extends TrcAnalogInput
      */
     public void calibrate()
     {
-        calibrate(DataType.INPUT_DATA);
+        calibrate(DataType.DISTANCE_INCH);
     }   //calibrate
 
     //
@@ -104,63 +116,43 @@ public class FtcMRRangeSensor extends TrcAnalogInput
      * This method returns the raw sensor data of the specified type.
      *
      * @param index specifies the data index.
-     * @return raw sensor data of the specified type.
+     * @param dataType specifies the data type.
+     * @return raw sensor data of the specified index and type.
      */
     @Override
-    public SensorData getRawData(int index, DataType dataType)
+    public SensorData<Double> getRawData(int index, DataType dataType)
     {
         final String funcName = "getRawData";
-        SensorData data = null;
+        SensorData<Double> data = null;
 
-        //
-        // Range sensor supports only INPUT_DATA type.
-        //
-        if (dataType == DataType.INPUT_DATA)
+        switch (dataType)
         {
-            if (index == 0)
-            {
-                data = new SensorData(
-                        HalUtil.getCurrentTime(), sensor.getDistance(DistanceUnit.INCH));
-            }
-            else if (index == 1)
-            {
-                data = new SensorData(
-                        HalUtil.getCurrentTime(), sensor.cmUltrasonic());
-            }
-            else if (index == 2)
-            {
-                data = new SensorData(
-                        HalUtil.getCurrentTime(), sensor.cmOptical());
-            }
-            else if (index == 3)
-            {
-                data = new SensorData(
-                        HalUtil.getCurrentTime(), (double)sensor.rawUltrasonic());
-            }
-            else if (index == 4)
-            {
-                data = new SensorData(
-                        HalUtil.getCurrentTime(), (double)sensor.rawOptical());
-            }
-            else if (index == 5)
-            {
-                data = new SensorData(
-                        HalUtil.getCurrentTime(), sensor.getRawLightDetected());
-            }
-            else if (index == 6)
-            {
-                data = new SensorData(
-                        HalUtil.getCurrentTime(), sensor.getLightDetected());
-            }
-            else
-            {
-                throw new IllegalArgumentException("Invalid data index.");
-            }
-        }
-        else
-        {
-            throw new UnsupportedOperationException(
-                    "Range sensor only support INPUT_DATA type.");
+            case DISTANCE_INCH:
+                data = new SensorData<>(TrcUtil.getCurrentTime(), sensor.getDistance(DistanceUnit.INCH));
+                break;
+
+            case ULTRASONIC_CM:
+                data = new SensorData<>(TrcUtil.getCurrentTime(), sensor.cmUltrasonic());
+                break;
+
+            case OPTICAL_CM:
+                data = new SensorData<>(TrcUtil.getCurrentTime(), sensor.cmOptical());
+                break;
+
+            case ULTRASONIC_RAW:
+                data = new SensorData<>(TrcUtil.getCurrentTime(), (double) sensor.rawUltrasonic());
+                break;
+
+            case OPTICAL_RAW:
+                data = new SensorData<>(TrcUtil.getCurrentTime(), (double) sensor.rawOptical());
+                break;
+
+            case RAW_LIGHT_DETECTED:
+                data = new SensorData<>(TrcUtil.getCurrentTime(), sensor.getRawLightDetected());
+                break;
+
+            case LIGHT_DETECTED:
+                data = new SensorData<>(TrcUtil.getCurrentTime(), sensor.getLightDetected());
         }
 
         if (debugEnabled)

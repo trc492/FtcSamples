@@ -33,14 +33,16 @@ import trclib.TrcI2cDevice;
 
 /**
  * Deprecated.
- * This class implements a platform dependent I2C device.
- * extending TrcI2cDevice. It provides implementation of the
+ * This class implements a platform dependent I2C device extending TrcI2cDevice. It provides implementation of the
  * abstract methods in TrcI2cDevice.
  */
 public class FtcI2cDeviceRaw extends TrcI2cDevice
 {
     private static final String moduleName = "FtcI2cDeviceRaw";
     private static final boolean debugEnabled = false;
+    private static final boolean tracingEnabled = false;
+    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
 
     private I2cAddr i2cAddr;
@@ -60,11 +62,7 @@ public class FtcI2cDeviceRaw extends TrcI2cDevice
 
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(
-                    moduleName + "." + instanceName,
-                    false,
-                    TrcDbgTrace.TraceLevel.API,
-                    TrcDbgTrace.MsgLevel.INFO);
+            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         updateI2cAddress(i2cAddress, addressIs7Bit);
@@ -95,8 +93,8 @@ public class FtcI2cDeviceRaw extends TrcI2cDevice
     }   //FtcI2cDeviceRaw
 
     /**
-     * This method updates the I2C address of the device to a new address. This is typically
-     * called by the child class to update the I2C address after changing it.
+     * This method updates the I2C address of the device to a new address. This is typically called by the child
+     * class to update the I2C address after changing it.
      *
      * @param newAddress specifies the new I2C address.
      * @param addressIs7Bit specifies true if the I2C address is a 7-bit address, false if it is 8-bit.
@@ -139,8 +137,7 @@ public class FtcI2cDeviceRaw extends TrcI2cDevice
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
-                               "=%s", Boolean.toString(ready));
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", Boolean.toString(ready));
         }
 
         return ready;
@@ -160,8 +157,7 @@ public class FtcI2cDeviceRaw extends TrcI2cDevice
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
-                               "=%s", Boolean.toString(writeMode));
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", Boolean.toString(writeMode));
         }
 
         return writeMode;
@@ -180,8 +176,7 @@ public class FtcI2cDeviceRaw extends TrcI2cDevice
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
-                                "addr=%x,len=%d", regAddress, length);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "addr=%x,len=%d", regAddress, length);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
@@ -204,8 +199,7 @@ public class FtcI2cDeviceRaw extends TrcI2cDevice
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
-                                "addr=%x,len=%d", regAddress, length);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "addr=%x,len=%d", regAddress, length);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 

@@ -30,7 +30,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.robotcontroller.internal.FtcRobotControllerActivity;
 
 import FtcSampleCode.R;
-import ftclib.FtcAdaFruitColorSensor;
+import ftclib.FtcI2cAdaFruitColorSensor;
 import ftclib.FtcOpMode;
 import hallib.HalDashboard;
 import trclib.TrcSensor;
@@ -40,7 +40,7 @@ import trclib.TrcSensor;
 public class FtcTestAdaFruitColorSensor extends FtcOpMode
 {
     private HalDashboard dashboard;
-    private FtcAdaFruitColorSensor sensor;
+    private FtcI2cAdaFruitColorSensor sensor;
 
     //
     // Implements FtcOpMode abstract method.
@@ -53,7 +53,7 @@ public class FtcTestAdaFruitColorSensor extends FtcOpMode
         dashboard = HalDashboard.getInstance();
         FtcRobotControllerActivity activity = (FtcRobotControllerActivity)hardwareMap.appContext;
         dashboard.setTextView((TextView)activity.findViewById(R.id.textOpMode));
-        sensor = new FtcAdaFruitColorSensor("adaFruitColorSensor");
+        sensor = new FtcI2cAdaFruitColorSensor("adaFruitColorSensor");
     }   //initRobot
 
     //

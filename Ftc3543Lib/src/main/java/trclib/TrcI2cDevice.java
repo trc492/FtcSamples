@@ -26,19 +26,18 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Queue;
 
-import hallib.HalUtil;
-
 /**
- * This class implements a platform independent I2C device. Typically,
- * this class is extended by a platform dependent I2C device class.
- * The platform dependent I2C device class must implement the abstract
- * methods required by this class. The abstract methods allow this class
- * to perform platform independent operations on the I2C device.
+ * This class implements a platform independent I2C device. Typically, this class is extended by a platform dependent
+ * I2C device class. The platform dependent I2C device class must implement the abstract methods required by this
+ * class. The abstract methods allow this class to perform platform independent operations on the I2C device.
  */
 public abstract class TrcI2cDevice implements TrcTaskMgr.Task
 {
     private static final String moduleName = "TrcI2cDevice";
     private static final boolean debugEnabled = false;
+    private static final boolean tracingEnabled = false;
+    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
 
     /**
@@ -80,8 +79,8 @@ public abstract class TrcI2cDevice implements TrcTaskMgr.Task
     public abstract byte[] getData();
 
     /**
-     * The client of this class provides this interface if it wants to be
-     * notified when a read or write operation has been completed.
+     * The client of this class provides this interface if it wants to be notified when a read or write operation
+     * has been completed.
      */
     public interface CompletionHandler
     {
@@ -95,8 +94,7 @@ public abstract class TrcI2cDevice implements TrcTaskMgr.Task
          * @param timedout specifies true if the operation was timed out, false otherwise.
          * @return true if the request should be repeated, false otherwise.
          */
-        public boolean readCompletion(
-                int regAddress, int length, double timestamp, byte[] data, boolean timedout);
+        boolean readCompletion(int regAddress, int length, double timestamp, byte[] data, boolean timedout);
 
         /**
          * This method is called when the write operation has been completed.
@@ -105,7 +103,7 @@ public abstract class TrcI2cDevice implements TrcTaskMgr.Task
          * @param length specifies the number of bytes read.
          * @param timedout specifies true if the operation was timed out, false otherwise.
          */
-        public void writeCompletion(int regAddress, int length, boolean timedout);
+        void writeCompletion(int regAddress, int length, boolean timedout);
 
     }   //interface CompletionHandler
 
@@ -137,10 +135,9 @@ public abstract class TrcI2cDevice implements TrcTaskMgr.Task
     }   //enum PortCommandState
 
     /**
-     * This class implements an I2C device request. It can be a read or write
-     * request. This is implicitly indicated by the writeBuffer field. The
-     * presence of a writeBuffer indicates it is a write request. It is a
-     * read request otherwise.
+     * This class implements an I2C device request. It can be a read or write request. This is implicitly indicated
+     * by the writeBuffer field. The presence of a writeBuffer indicates it is a write request. It is a read request
+     * otherwise.
      */
     private class Request
     {
@@ -157,13 +154,10 @@ public abstract class TrcI2cDevice implements TrcTaskMgr.Task
          * @param regAddress specifies the register address.
          * @param length specifies the number of bytes to read or write.
          * @param writeBuffer specifies the write buffer, null if read operation.
-         * @param handler specifies the completion handler to call when done.
-         *                Can be null if none needed.
+         * @param handler specifies the completion handler to call when done. Can be null if none needed.
          * @param timeout specifies the timeout time. It can be set to 0 if there is no timeout.
          */
-        public Request(
-                int regAddress, int length, byte[] writeBuffer,
-                CompletionHandler handler, double timeout)
+        public Request(int regAddress, int length, byte[] writeBuffer, CompletionHandler handler, double timeout)
         {
             this.regAddress = regAddress;
             this.length = length;
@@ -176,8 +170,8 @@ public abstract class TrcI2cDevice implements TrcTaskMgr.Task
     }   //class Request
 
     private String instanceName;
-    private TrcStateMachine portCommandSM;
-    private Queue<Request> requestQueue = new LinkedList<Request>();
+    private TrcStateMachine<PortCommandState> portCommandSM;
+    private Queue<Request> requestQueue = new LinkedList<>();
     private Request currRequest = null;
     private double expiredTime = 0.0;
     private byte[] dataRead = null;
@@ -191,15 +185,11 @@ public abstract class TrcI2cDevice implements TrcTaskMgr.Task
     {
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(
-                    moduleName + "." + instanceName,
-                    false,
-                    TrcDbgTrace.TraceLevel.API,
-                    TrcDbgTrace.MsgLevel.INFO);
+            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         this.instanceName = instanceName;
-        portCommandSM = new TrcStateMachine(instanceName);
+        portCommandSM = new TrcStateMachine<>(instanceName);
     }   //TrcI2cDevice
 
     /**
@@ -217,12 +207,19 @@ public abstract class TrcI2cDevice implements TrcTaskMgr.Task
      *
      * @param enabled specifies true to enable the state machine and task, false otherwise.
      */
-    private void setEnabled(boolean enabled)
+    private void setTaskEnabled(boolean enabled)
     {
+        final String funcName = "setTaskEnabled";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "enabled=%s", Boolean.toString(enabled));
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+
         if (enabled)
         {
-            TrcTaskMgr.getInstance().registerTask(
-                    instanceName, this, TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            TrcTaskMgr.getInstance().registerTask(instanceName, this, TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
             portCommandSM.start(PortCommandState.START);
         }
         else
@@ -230,15 +227,14 @@ public abstract class TrcI2cDevice implements TrcTaskMgr.Task
             portCommandSM.stop();
             TrcTaskMgr.getInstance().unregisterTask(this, TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
         }
-    }   //setEnabled
+    }   //setTaskEnabled
 
     /**
      * This method queues the read request.
      *
      * @param regAddress specifies the register address to read from.
      * @param length specifies the number of bytes to read.
-     * @param handler specifies the completion handler to call when done.
-     *                Can be null if none needed.
+     * @param handler specifies the completion handler to call when done. Can be null if none needed.
      * @param timeout specifies the timeout for the operation in seconds.
      */
     public void read(int regAddress, int length, CompletionHandler handler, double timeout)
@@ -247,8 +243,7 @@ public abstract class TrcI2cDevice implements TrcTaskMgr.Task
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
-                                "addr=%x,len=%d", regAddress, length);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "addr=%x,len=%d", regAddress, length);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
@@ -258,7 +253,7 @@ public abstract class TrcI2cDevice implements TrcTaskMgr.Task
         //
         if (!portCommandSM.isEnabled())
         {
-            setEnabled(true);
+            setTaskEnabled(true);
         }
     }   //read
 
@@ -267,8 +262,7 @@ public abstract class TrcI2cDevice implements TrcTaskMgr.Task
      *
      * @param regAddress specifies the register address to read from.
      * @param length specifies the number of bytes to read.
-     * @param handler specifies the completion handler to call when done.
-     *                Can be null if none needed.
+     * @param handler specifies the completion handler to call when done. Can be null if none needed.
      */
     public void read(int regAddress, int length, CompletionHandler handler)
     {
@@ -292,19 +286,16 @@ public abstract class TrcI2cDevice implements TrcTaskMgr.Task
      * @param regAddress specifies the register address to write to.
      * @param length specifies the number of bytes to read.
      * @param writeBuffer specifies the buffer containing the data to be written to the device.
-     * @param handler specifies the completion handler to call when done.
-     *                Can be null if none needed.
+     * @param handler specifies the completion handler to call when done. Can be null if none needed.
      * @param timeout specifies the timeout for the operation in seconds.
      */
-    public void write(int regAddress, int length, byte[] writeBuffer,
-                      CompletionHandler handler, double timeout)
+    public void write(int regAddress, int length, byte[] writeBuffer, CompletionHandler handler, double timeout)
     {
         final String funcName = "write";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
-                                "addr=%x,len=%d", regAddress, length);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "addr=%x,len=%d", regAddress, length);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
@@ -314,7 +305,7 @@ public abstract class TrcI2cDevice implements TrcTaskMgr.Task
         //
         if (!portCommandSM.isEnabled())
         {
-            setEnabled(true);
+            setTaskEnabled(true);
         }
     }   //write
 
@@ -423,14 +414,12 @@ public abstract class TrcI2cDevice implements TrcTaskMgr.Task
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK,
-                                "runMode=%s", runMode.toString());
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "runMode=%s", runMode.toString());
         }
 
         if (portCommandSM.isReady())
         {
-            PortCommandState state = (PortCommandState)portCommandSM.getState();
+            PortCommandState state = portCommandSM.getState();
             switch (state)
             {
                 case START:
@@ -455,11 +444,11 @@ public abstract class TrcI2cDevice implements TrcTaskMgr.Task
                         expiredTime = currRequest.timeout;
                         if (expiredTime != 0.0)
                         {
-                            expiredTime += HalUtil.getCurrentTime();
+                            expiredTime += TrcUtil.getCurrentTime();
                         }
                         currRequest.expired = false;
                         portCommandSM.setState(PortCommandState.SEND_PORT_COMMAND);
-                        state = (PortCommandState)portCommandSM.getState();
+                        state = portCommandSM.getState();
                     }
                     //
                     // Intentionally falling through to next case.
@@ -474,8 +463,7 @@ public abstract class TrcI2cDevice implements TrcTaskMgr.Task
                         {
                             dbgTrace.traceInfo(funcName, "%s: Request(addr=%x,len=%d,%s)",
                                                state.toString(), currRequest.regAddress,
-                                               currRequest.length,
-                                               currRequest.writeBuffer == null? "read": "write");
+                                               currRequest.length, currRequest.writeBuffer == null? "read": "write");
                         }
 
                         dataRead = null;
@@ -491,21 +479,18 @@ public abstract class TrcI2cDevice implements TrcTaskMgr.Task
                             //
                             // It's a write request, setup a write command.
                             //
-                            sendWriteCommand(currRequest.regAddress,
-                                             currRequest.length,
-                                             currRequest.writeBuffer);
+                            sendWriteCommand(currRequest.regAddress, currRequest.length, currRequest.writeBuffer);
                         }
                         portCommandSM.setState(PortCommandState.WAIT_PORT_COMMAND_COMPLETE);
                     }
-                    else if (expiredTime != 0.0 && HalUtil.getCurrentTime() > expiredTime)
+                    else if (expiredTime != 0.0 && TrcUtil.getCurrentTime() > expiredTime)
                     {
                         currRequest.expired = true;
                         portCommandSM.setState(PortCommandState.PORT_COMMAND_COMPLETED);
                         if (debugEnabled)
                         {
-                            dbgTrace.traceInfo(
-                                    funcName, "%s: Port timed out, busy with another request.",
-                                    state.toString());
+                            dbgTrace.traceInfo(funcName, "%s: Port timed out, busy with another request.",
+                                               state.toString());
                         }
                     }
                     break;
@@ -524,18 +509,16 @@ public abstract class TrcI2cDevice implements TrcTaskMgr.Task
                             portCommandSM.setState(PortCommandState.PORT_COMMAND_COMPLETED);
                             if (debugEnabled)
                             {
-                                dbgTrace.traceInfo(
-                                        funcName, "%s: write command completed.", state.toString());
+                                dbgTrace.traceInfo(funcName, "%s: write command completed.", state.toString());
                             }
                         }
                         else
                         {
                             dataRead = getData();
                             //
-                            // It is a read request. For some reason, even when isPortReady()
-                            // returns true, the data may not be ready. So we need to check the
-                            // buffer length against the requested length. If it's not ready,
-                            // remain in this state until we have valid data or timed out.
+                            // It is a read request. For some reason, even when isPortReady() returns true, the data
+                            // may not be ready. So we need to check the buffer length against the requested length.
+                            // If it's not ready, remain in this state until we have valid data or timed out.
                             //
                             if (dataRead.length == currRequest.length)
                             {
@@ -545,32 +528,28 @@ public abstract class TrcI2cDevice implements TrcTaskMgr.Task
                                 portCommandSM.setState(PortCommandState.PORT_COMMAND_COMPLETED);
                                 if (debugEnabled)
                                 {
-                                    dbgTrace.traceInfo(
-                                            funcName, "%s: read command completed. %s",
-                                            state.toString(), Arrays.toString(dataRead));
+                                    dbgTrace.traceInfo(funcName, "%s: read command completed. %s",
+                                                       state.toString(), Arrays.toString(dataRead));
                                 }
                             }
-                            else if (dataRead.length != currRequest.length &&
-                                     expiredTime != 0.0 && HalUtil.getCurrentTime() > expiredTime)
+                            else if (expiredTime != 0.0 && TrcUtil.getCurrentTime() > expiredTime)
                             {
                                 currRequest.expired = true;
                                 portCommandSM.setState(PortCommandState.PORT_COMMAND_COMPLETED);
                                 if (debugEnabled)
                                 {
-                                    dbgTrace.traceInfo(
-                                            funcName, "%s: Port command timed out.", state.toString());
+                                    dbgTrace.traceInfo(funcName, "%s: Port command timed out.", state.toString());
                                 }
                             }
                         }
                     }
-                    else if (expiredTime != 0.0 && HalUtil.getCurrentTime() > expiredTime)
+                    else if (expiredTime != 0.0 && TrcUtil.getCurrentTime() > expiredTime)
                     {
                         currRequest.expired = true;
                         portCommandSM.setState(PortCommandState.PORT_COMMAND_COMPLETED);
                         if (debugEnabled)
                         {
-                            dbgTrace.traceInfo(
-                                    funcName, "%s: Port command timed out.", state.toString());
+                            dbgTrace.traceInfo(funcName, "%s: Port command timed out.", state.toString());
                         }
                     }
                     break;
@@ -581,18 +560,17 @@ public abstract class TrcI2cDevice implements TrcTaskMgr.Task
                     //
                     if (debugEnabled)
                     {
-                        dbgTrace.traceInfo(
-                                funcName, "%s: Command completed (timeout=%s).",
-                                state.toString(), Boolean.toString(currRequest.expired));
+                        dbgTrace.traceInfo(funcName, "%s: Command completed (timeout=%s).",
+                                           state.toString(), Boolean.toString(currRequest.expired));
                     }
 
                     if (currRequest.handler != null)
                     {
                         if (currRequest.writeBuffer == null)
                         {
-                            if (currRequest.handler.readCompletion(
-                                    currRequest.regAddress, currRequest.length,
-                                    HalUtil.getCurrentTime(), dataRead, currRequest.expired))
+                            if (currRequest.handler.readCompletion(currRequest.regAddress, currRequest.length,
+                                                                   TrcUtil.getCurrentTime(), dataRead,
+                                                                   currRequest.expired))
                             {
                                 //
                                 // Repeat this read request.
@@ -602,9 +580,8 @@ public abstract class TrcI2cDevice implements TrcTaskMgr.Task
                         }
                         else
                         {
-                            currRequest.handler.writeCompletion(
-                                    currRequest.regAddress, currRequest.length,
-                                    currRequest.expired);
+                            currRequest.handler.writeCompletion(currRequest.regAddress, currRequest.length,
+                                                                currRequest.expired);
                         }
                     }
                     portCommandSM.setState(PortCommandState.START);
@@ -619,9 +596,14 @@ public abstract class TrcI2cDevice implements TrcTaskMgr.Task
                     {
                         dbgTrace.traceInfo(funcName, "%s", state.toString());
                     }
-                    setEnabled(false);
+                    setTaskEnabled(false);
                     break;
             }
+        }
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
         }
     }   //preContinuousTask
 

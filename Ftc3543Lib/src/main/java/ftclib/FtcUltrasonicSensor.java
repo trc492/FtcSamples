@@ -25,21 +25,28 @@ package ftclib;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.UltrasonicSensor;
 
-import hallib.HalUtil;
-import trclib.TrcAnalogInput;
 import trclib.TrcDbgTrace;
 import trclib.TrcFilter;
+import trclib.TrcSensor;
+import trclib.TrcUtil;
 
 /**
- * This class implements a platform dependent ultrasonic sensor
- * extending TrcAnalogInput. It provides implementation of the
- * abstract methods in TrcAnalogInput.
+ * This class implements a platform dependent ultrasonic sensor extending TrcAnalogInput. It provides implementation
+ * of the abstract methods in TrcAnalogInput.
  */
-public class FtcUltrasonicSensor extends TrcAnalogInput
+public class FtcUltrasonicSensor extends TrcSensor<FtcUltrasonicSensor.DataType>
 {
     private static final String moduleName = "FtcUltrasonicSensor";
     private static final boolean debugEnabled = false;
+    private static final boolean tracingEnabled = false;
+    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
+
+    public enum DataType
+    {
+        ULTRASONIC
+    }   //enum DataType
 
     private UltrasonicSensor sensor;
 
@@ -48,19 +55,16 @@ public class FtcUltrasonicSensor extends TrcAnalogInput
      *
      * @param hardwareMap specifies the global hardware map.
      * @param instanceName specifies the instance name.
-     * @param filters specifies an array of filter objects, one for each axis, to filter
-     *                sensor data. If no filter is used, this can be set to null.
+     * @param filters specifies an array of filter objects, one for each axis, to filter sensor data. If no filter
+     *                is used, this can be set to null.
      */
     public FtcUltrasonicSensor(HardwareMap hardwareMap, String instanceName, TrcFilter[] filters)
     {
-        super(instanceName, 1, 0, filters);
+        super(instanceName, 1, filters);
 
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName,
-                                       false,
-                                       TrcDbgTrace.TraceLevel.API,
-                                       TrcDbgTrace.MsgLevel.INFO);
+            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         sensor = hardwareMap.ultrasonicSensor.get(instanceName);
@@ -70,8 +74,8 @@ public class FtcUltrasonicSensor extends TrcAnalogInput
      * Constructor: Creates an instance of the object.
      *
      * @param instanceName specifies the instance name.
-     * @param filters specifies an array of filter objects, one for each axis, to filter
-     *                sensor data. If no filter is used, this can be set to null.
+     * @param filters specifies an array of filter objects, one for each axis, to filter sensor data. If no filter
+     *                is used, this can be set to null.
      */
     public FtcUltrasonicSensor(String instanceName, TrcFilter[] filters)
     {
@@ -88,14 +92,6 @@ public class FtcUltrasonicSensor extends TrcAnalogInput
         this(instanceName, null);
     }   //FtcUltrasonicSensor
 
-    /**
-     * This method calibrates the sensor.
-     */
-    public void calibrate()
-    {
-        calibrate(DataType.INPUT_DATA);
-    }   //calibrate
-
     //
     // Implements TrcAnalogInput abstract methods.
     //
@@ -104,25 +100,20 @@ public class FtcUltrasonicSensor extends TrcAnalogInput
      * This method returns the raw sensor data of the specified type.
      *
      * @param index specifies the data index (not used).
-     * @return raw sensor data of the specified type.
+     * @param dataType specifies the data type.
+     * @return raw sensor data of the specified index and type.
      */
     @Override
-    public SensorData getRawData(int index, DataType dataType)
+    public SensorData<Double> getRawData(int index, DataType dataType)
     {
         final String funcName = "getRawData";
-        SensorData data = null;
+        SensorData<Double> data = null;
 
-        //
-        // Ultrasonic sensor supports only INPUT_DATA type.
-        //
-        if (dataType == DataType.INPUT_DATA)
+        switch (dataType)
         {
-            data = new SensorData(HalUtil.getCurrentTime(), sensor.getUltrasonicLevel());
-        }
-        else
-        {
-            throw new UnsupportedOperationException(
-                    "Ultrasonic sensor only support INPUT_DATA type.");
+            case ULTRASONIC:
+                data = new SensorData<>(TrcUtil.getCurrentTime(), sensor.getUltrasonicLevel());
+                break;
         }
 
         if (debugEnabled)

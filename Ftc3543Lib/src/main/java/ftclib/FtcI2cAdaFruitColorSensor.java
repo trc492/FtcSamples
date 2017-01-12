@@ -27,17 +27,28 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import trclib.TrcDbgTrace;
 import trclib.TrcSensor;
-import trclib.TrcSensorDataSource;
 import trclib.TrcUtil;
 
 /**
  * This class implements the AdaFruit Color Sensor extending FtcI2cDevice.
  */
-public class FtcAdaFruitColorSensor extends FtcI2cDevice implements TrcSensorDataSource
+public class FtcI2cAdaFruitColorSensor extends FtcI2cDevice
+                                       implements TrcSensor.DataSource<FtcI2cAdaFruitColorSensor.DataType>
 {
-    private static final String moduleName = "FtcAdaFruitColorSensor";
+    private static final String moduleName = "FtcI2cAdaFruitColorSensor";
     private static final boolean debugEnabled = false;
+    private static final boolean tracingEnabled = false;
+    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
+
+    public enum DataType
+    {
+        CLEAR,
+        RED,
+        GREEN,
+        BLUE
+    }   //enum DataType
 
     public static final int DEF_I2CADDRESS          = (0x29 << 1);
     public static final int ALTERNATE_I2CADDRESS    = (0x39 << 1);
@@ -99,10 +110,10 @@ public class FtcAdaFruitColorSensor extends FtcI2cDevice implements TrcSensorDat
     private int readerId = -1;
     private int deviceID = 0;
     private int deviceStatus = 0;
-    private TrcSensor.SensorData clearValue = new TrcSensor.SensorData(0.0, null);
-    private TrcSensor.SensorData redValue = new TrcSensor.SensorData(0.0, null);
-    private TrcSensor.SensorData greenValue = new TrcSensor.SensorData(0.0, null);
-    private TrcSensor.SensorData blueValue = new TrcSensor.SensorData(0.0, null);
+    private TrcSensor.SensorData<Integer> clearValue = new TrcSensor.SensorData<>(0.0, null);
+    private TrcSensor.SensorData<Integer> redValue = new TrcSensor.SensorData<>(0.0, null);
+    private TrcSensor.SensorData<Integer> greenValue = new TrcSensor.SensorData<>(0.0, null);
+    private TrcSensor.SensorData<Integer> blueValue = new TrcSensor.SensorData<>(0.0, null);
     private double cacheTimestamp = 0.0;
 
     /**
@@ -113,24 +124,21 @@ public class FtcAdaFruitColorSensor extends FtcI2cDevice implements TrcSensorDat
      * @param i2cAddress specifies the I2C address of the device.
      * @param addressIs7Bit specifies true if the I2C address is a 7-bit address, false if it is 8-bit.
      */
-    public FtcAdaFruitColorSensor(HardwareMap hardwareMap, String instanceName, int i2cAddress, boolean addressIs7Bit)
+    public FtcI2cAdaFruitColorSensor(
+            HardwareMap hardwareMap, String instanceName, int i2cAddress, boolean addressIs7Bit)
     {
         super(hardwareMap, instanceName, i2cAddress, addressIs7Bit);
 
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(
-                    moduleName + "." + instanceName,
-                    false,
-                    TrcDbgTrace.TraceLevel.API,
-                    TrcDbgTrace.MsgLevel.INFO);
+            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         setSensorEnabled(true);
         byte[] data = syncRead(REG_ID, 1);
         deviceID = TrcUtil.bytesToInt(data[0]);
         readerId = addReader(instanceName, READ_START, READ_LENGTH);
-    }   //FtcAdaFruitColorSensor
+    }   //FtcI2cAdaFruitColorSensor
 
     /**
      * Constructor: Creates an instance of the object.
@@ -139,20 +147,20 @@ public class FtcAdaFruitColorSensor extends FtcI2cDevice implements TrcSensorDat
      * @param i2cAddress specifies the I2C address of the device.
      * @param addressIs7Bit specifies true if the I2C address is a 7-bit address, false if it is 8-bit.
      */
-    public FtcAdaFruitColorSensor(String instanceName, int i2cAddress, boolean addressIs7Bit)
+    public FtcI2cAdaFruitColorSensor(String instanceName, int i2cAddress, boolean addressIs7Bit)
     {
         this(FtcOpMode.getInstance().hardwareMap, instanceName, i2cAddress, addressIs7Bit);
-    }   //FtcAdaFruitColorSensor
+    }   //FtcI2cAdaFruitColorSensor
 
     /**
      * Constructor: Creates an instance of the object.
      *
      * @param instanceName specifies the instance name.
      */
-    public FtcAdaFruitColorSensor(String instanceName)
+    public FtcI2cAdaFruitColorSensor(String instanceName)
     {
         this(instanceName, DEF_I2CADDRESS, false);
-    }   //FtcAdaFruitColorSensor
+    }   //FtcI2cAdaFruitColorSensor
 
     /**
      * This method enables/disables the sensor.
@@ -271,17 +279,17 @@ public class FtcAdaFruitColorSensor extends FtcI2cDevice implements TrcSensorDat
      *
      * @return clear value.
      */
-    public TrcSensor.SensorData getClearValue()
+    public TrcSensor.SensorData<Integer> getClearValue()
     {
         final String funcName = "getClearValue";
         getStatus();
-        TrcSensor.SensorData data = new TrcSensor.SensorData(clearValue.timestamp, clearValue.value);
+        TrcSensor.SensorData<Integer> data = new TrcSensor.SensorData<>(clearValue.timestamp, clearValue.value);
 
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
-                               "=(timestamp=%.3f,value=%d)", data.timestamp, (Integer)data.value);
+                               "=(timestamp=%.3f,value=%d)", data.timestamp, data.value);
         }
 
         return data;
@@ -292,17 +300,17 @@ public class FtcAdaFruitColorSensor extends FtcI2cDevice implements TrcSensorDat
      *
      * @return red value.
      */
-    public TrcSensor.SensorData getRedValue()
+    public TrcSensor.SensorData<Integer> getRedValue()
     {
         final String funcName = "getRedValue";
         getStatus();
-        TrcSensor.SensorData data = new TrcSensor.SensorData(redValue.timestamp, redValue.value);
+        TrcSensor.SensorData<Integer> data = new TrcSensor.SensorData<>(redValue.timestamp, redValue.value);
 
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
-                               "=(timestamp=%.3f,value=%d)", data.timestamp, (Integer)data.value);
+                               "=(timestamp=%.3f,value=%d)", data.timestamp, data.value);
         }
 
         return data;
@@ -313,17 +321,17 @@ public class FtcAdaFruitColorSensor extends FtcI2cDevice implements TrcSensorDat
      *
      * @return green value.
      */
-    public TrcSensor.SensorData getGreenValue()
+    public TrcSensor.SensorData<Integer> getGreenValue()
     {
         final String funcName = "getGreenValue";
         getStatus();
-        TrcSensor.SensorData data = new TrcSensor.SensorData(greenValue.timestamp, greenValue.value);
+        TrcSensor.SensorData<Integer> data = new TrcSensor.SensorData<>(greenValue.timestamp, greenValue.value);
 
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
-                               "=(timestamp=%.3f,value=%d)", data.timestamp, (Integer)data.value);
+                               "=(timestamp=%.3f,value=%d)", data.timestamp, data.value);
         }
 
         return data;
@@ -334,17 +342,17 @@ public class FtcAdaFruitColorSensor extends FtcI2cDevice implements TrcSensorDat
      *
      * @return blue value.
      */
-    public TrcSensor.SensorData getBlueValue()
+    public TrcSensor.SensorData<Integer> getBlueValue()
     {
         final String funcName = "getBlueValue";
         getStatus();
-        TrcSensor.SensorData data = new TrcSensor.SensorData(blueValue.timestamp, blueValue.value);
+        TrcSensor.SensorData<Integer> data = new TrcSensor.SensorData<>(blueValue.timestamp, blueValue.value);
 
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
-                               "=(timestamp=%.3f,value=%d)", data.timestamp, (Integer)data.value);
+                               "=(timestamp=%.3f,value=%d)", data.timestamp, data.value);
         }
 
         return data;
@@ -361,38 +369,39 @@ public class FtcAdaFruitColorSensor extends FtcI2cDevice implements TrcSensorDat
      * @return sensor data of the specified index.
      */
     @Override
-    public TrcSensor.SensorData getSensorData(int index)
+    public TrcSensor.SensorData<Integer> getRawData(int index, DataType dataType)
     {
-        final String funcName = "getSensorData";
-        TrcSensor.SensorData data = null;
+        final String funcName = "getRawData";
+        TrcSensor.SensorData<Integer> data = null;
 
-        switch (index)
+        switch (dataType)
         {
-            case 0:
+            case CLEAR:
                 data = getClearValue();
                 break;
 
-            case 1:
+            case RED:
                 data = getRedValue();
                 break;
 
-            case 2:
+            case GREEN:
                 data = getGreenValue();
                 break;
 
-            case 3:
+            case BLUE:
                 data = getBlueValue();
                 break;
         }
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "index=%d", index);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
+                                "index=%d,dataType=%s", index, dataType.toString());
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
                                "=(time=%.3f,value=%d)", data.timestamp, data.value);
         }
 
         return data;
-    } //getSensorData
+    } //getRawData
 
-}   //class FtcAdaFruitColorSensor
+}   //class FtcI2cAdaFruitColorSensor

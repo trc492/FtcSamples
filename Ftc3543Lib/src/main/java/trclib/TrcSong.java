@@ -25,20 +25,22 @@ package trclib;
 import java.util.ArrayList;
 
 /**
- * This class implements a song object that contains a song name, an array list of notated sections
- * and a sequencing array specifying the order of the sections. It also keeps track of the next note
- * position of the song and provides a getNextNote() method to retrieve the next note to play.
+ * This class implements a song object that contains a song name, an array list of notated sections and a sequencing
+ * array specifying the order of the sections. It also keeps track of the next note position of the song and provides
+ * a getNextNote() method to retrieve the next note to play.
  */
 public class TrcSong
 {
     private static final String moduleName = "TrcSong";
     private static final boolean debugEnabled = false;
+    private static final boolean tracingEnabled = false;
+    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
 
     /**
-     * This class implements a notated section that contains a section name, an array of notes and
-     * keeps track of the next note of the section and provides a getNextNote() method to retrieve
-     * the next note to play.
+     * This class implements a notated section that contains a section name, an array of notes and keeps track of
+     * the next note of the section and provides a getNextNote() method to retrieve the next note to play.
      */
     private class Section
     {
@@ -66,7 +68,7 @@ public class TrcSong
          */
         public String getName()
         {
-            final String funcName = "section.getName";
+            final String funcName = "section.toString";
 
             if (debugEnabled)
             {
@@ -75,7 +77,7 @@ public class TrcSong
             }
 
             return name;
-        }   //getName
+        }   //toString
 
         /**
          * This method determines if there is a next note in the section.
@@ -164,15 +166,11 @@ public class TrcSong
      * @param name specifies the name of the song.
      * @param startVolume specifies the starting volume.
      */
-    public TrcSong(String name, double startVolume)
+    public TrcSong(final String name, double startVolume)
     {
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(
-                    moduleName + "." + name,
-                    false,
-                    TrcDbgTrace.TraceLevel.API,
-                    TrcDbgTrace.MsgLevel.INFO);
+            dbgTrace = new TrcDbgTrace(moduleName + "." + name, tracingEnabled, traceLevel, msgLevel);
         }
 
         this.songName = name;
@@ -201,9 +199,9 @@ public class TrcSong
     {
         this(name, startVolume);
 
-        for (int i = 0; i < sections.length; i++)
+        for (String s: sections)
         {
-            String[] pair = sections[i].split(":");
+            String[] pair = s.split(":");
 
             if (pair.length != 2)
             {
@@ -367,7 +365,7 @@ public class TrcSong
     /**
      * This method sets the current volume of the song.
      *
-     * @vol specifies the current volume of the song.
+     * @param vol specifies the current volume of the song.
      */
     public void setCurrentVolume(double vol)
     {
@@ -385,7 +383,7 @@ public class TrcSong
     /**
      * This method sets the start volume of the song.
      *
-     * @vol specifies the start volume of the song.
+     * @param vol specifies the start volume of the song.
      */
     public void setStartVolume(double vol)
     {
@@ -446,7 +444,7 @@ public class TrcSong
         if (debugEnabled)
         {
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC, "=%s",
-                    section == null? "null": section.getName());
+                               section == null? "null": section.getName());
         }
 
         return section;

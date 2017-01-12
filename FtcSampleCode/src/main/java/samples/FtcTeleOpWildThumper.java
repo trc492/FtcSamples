@@ -529,7 +529,7 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.Button
                         {
                             setVisionEnabled(true);
                         }
-                        else if (visionPidDrive.isEnabled())
+                        else if (visionPidDrive.isActive())
                         {
                             visionPidDrive.cancel();
                             setVisionEnabled(false);

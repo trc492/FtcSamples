@@ -23,21 +23,20 @@
 package trclib;
 
 /**
- * This class is a container. It contains some robot related definitions.
+ * This class is a container. It contains some robot related types and interfaces.
  */
 public class TrcRobot
 {
-    public static enum RunMode
+    public enum RunMode
     {
         /**
-         * The robot is only in this mode very briefly during initializaton.
+         * The robot is only in this mode very briefly during initialization.
          */
         INVALID_MODE,
 
         /**
-         * In FRC, the robot is in this mode before competition starts and between
-         * mode transitions from Autonomous to TeleOp, for example.
-         * (i.e. DISABLED_MODE->AUTO_MODE->DISABLED_MODE->TELEOP_MODE->DISABLED_MODE).
+         * In FRC, the robot is in this mode before competition starts and between mode transitions from Autonomous
+         * to TeleOp, for example. (i.e. DISABLED_MODE->AUTO_MODE->DISABLED_MODE->TELEOP_MODE->DISABLED_MODE).
          * This mode does not exist in FTC.
          */
         DISABLED_MODE,
@@ -59,62 +58,51 @@ public class TrcRobot
 
     }   //enum RunMode
 
+    /**
+     * This interface is normally implemented by the main robot code. The methods in this interface is called by
+     * the Cooperative Multitasking Scheduler.
+     */
     public interface RobotMode
     {
         /**
-         * This method is called when the competition mode is about to start. In FTC, this is
-         * called when the "Play" button on the Driver Station phone is pressed. Typically,
-         * you put code that will prepare the robot for start of competition here such as
-         * resetting the encoders/sensors and enabling some sensors to start sampling.
+         * This method is called when the competition mode is about to start. In FTC, this is called when the "Play"
+         * button on the Driver Station phone is pressed. Typically, you put code that will prepare the robot for
+         * start of competition here such as resetting the encoders/sensors and enabling some sensors to start
+         * sampling.
          */
-        public void startMode();
+        void startMode();
 
         /**
-         * This method is called when competition mode is about to end. Typically, you put code
-         * that will do clean up here such as disabling the sampling of some sensors.
+         * This method is called when competition mode is about to end. Typically, you put code that will do clean
+         * up here such as disabling the sampling of some sensors.
          */
-        public void stopMode();
+        void stopMode();
 
         /**
-         * This method is called periodically about 50 times a second. Typically, you put code
-         * that doesn't require frequent update here. For example, TeleOp joystick code can be
-         * put here since human responses are considered slow.
+         * This method is called periodically about 50 times a second. Typically, you put code that doesn't require
+         * frequent update here. For example, TeleOp joystick code can be put here since human responses are
+         * considered slow.
          * 
          * @param elapsedTime specifies the elapsed time since the mode started.
          */
-        public void runPeriodic(double elapsedTime);
+        void runPeriodic(double elapsedTime);
 
         /**
-         * This method is called periodically as fast as the control system allows. Typically,
-         * you put code that requires servicing at a higher frequency here. To make the robot
-         * as responsive and as accurate as possible especially in autonomous mode, you will
-         * typically put that code here.
+         * This method is called periodically as fast as the control system allows. Typically, you put code that
+         * requires servicing at a higher frequency here. To make the robot as responsive and as accurate as possible
+         * especially in autonomous mode, you will typically put that code here.
          * 
          * @param elapsedTime specifies the elapsed time since the mode started.
          */
-        public void runContinuous(double elapsedTime);
+        void runContinuous(double elapsedTime);
 
     }   //interface RobotMode
 
     /**
-     * Any class that implements an autonomous strategy must implement this interface.
-     */
-    public interface AutoStrategy
-    {
-        /**
-         * This method is called periodically to perform autonomous operation.
-         * Typically, this method runs a state machine.
-         *
-         * @param elapsedTime specifies the elapsed time of the autonomous period in seconds.
-         */
-        public void autoPeriodic(double elapsedTime);
-
-    }   //interface AutoStrategy
-
-    /**
-     * This interface is used to implement a robot command. A robot command typically implements a subset of an
-     * autonomous routine. This allows the robot command to be shared by multiple autonomous strategies to
-     * maximize code reuse.
+     * This interface is used to implement a robot command. A robot command consists of a sequence of actions
+     * typically executed using a state machine. It can be used to implement an entire autonomous strategy or
+     * it can implement a subset of an autonomous strategy that can be reused as a common portion of multiple
+     * autonomous strategies. This helps to reduce code duplication and improves code maintenance.
      */
     public interface RobotCommand
     {
@@ -125,7 +113,7 @@ public class TrcRobot
          * @param elapsedTime specifies the elapsed time of the period in seconds.
          * @return true if the command is done, false otherwise.
          */
-        public boolean cmdPeriodic(double elapsedTime);
+        boolean cmdPeriodic(double elapsedTime);
 
     }   //interface RobotCommand
 

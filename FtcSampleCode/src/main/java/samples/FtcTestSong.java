@@ -37,7 +37,7 @@ import trclib.TrcStateMachine;
 @Disabled
 public class FtcTestSong extends FtcOpMode
 {
-    private static final FtcAndroidTone.Waveform WAVE_FORM = FtcAndroidTone.Waveform.SineWave;
+    private static final FtcAndroidTone.Waveform WAVE_FORM = FtcAndroidTone.Waveform.SINE_WAVE;
     private static final int SAMPLE_RATE = 16*1024;     // ~16kHz
     private static final double ATTACK = 0.0;           // in seconds
     private static final double DECAY = 0.0;            // in seconds
