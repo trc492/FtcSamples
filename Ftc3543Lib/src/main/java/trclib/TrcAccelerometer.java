@@ -365,7 +365,7 @@ public abstract class TrcAccelerometer extends TrcSensor<TrcAccelerometer.DataTy
      *
      * @return Z acceleration.
      */
-    public SensorData getZAcceleration()
+    public SensorData<Double> getZAcceleration()
     {
         final String funcName = "getZAcceleration";
         SensorData<Double> data = getProcessedData(zIndex, DataType.ACCELERATION);
@@ -386,7 +386,7 @@ public abstract class TrcAccelerometer extends TrcSensor<TrcAccelerometer.DataTy
      *
      * @return X velocity.
      */
-    public SensorData getXVelocity()
+    public SensorData<Double> getXVelocity()
     {
         final String funcName = "getXVelocity";
         SensorData<Double> data;
@@ -416,7 +416,7 @@ public abstract class TrcAccelerometer extends TrcSensor<TrcAccelerometer.DataTy
      *
      * @return Y velocity.
      */
-    public SensorData getYVelocity()
+    public SensorData<Double> getYVelocity()
     {
         final String funcName = "getYVelocity";
         SensorData<Double> data;
@@ -446,7 +446,7 @@ public abstract class TrcAccelerometer extends TrcSensor<TrcAccelerometer.DataTy
      *
      * @return Z velocity.
      */
-    public SensorData getZVelocity()
+    public SensorData<Double> getZVelocity()
     {
         final String funcName = "getZVelocity";
         SensorData<Double> data;
@@ -476,7 +476,7 @@ public abstract class TrcAccelerometer extends TrcSensor<TrcAccelerometer.DataTy
      *
      * @return X distance.
      */
-    public SensorData getXDistance()
+    public SensorData<Double> getXDistance()
     {
         final String funcName = "getXDistance";
         SensorData<Double> data;
@@ -506,7 +506,7 @@ public abstract class TrcAccelerometer extends TrcSensor<TrcAccelerometer.DataTy
      *
      * @return Y distance.
      */
-    public SensorData getYDistance()
+    public SensorData<Double> getYDistance()
     {
         final String funcName = "getYDistance";
         SensorData<Double> data;
@@ -536,7 +536,7 @@ public abstract class TrcAccelerometer extends TrcSensor<TrcAccelerometer.DataTy
      *
      * @return Z distance.
      */
-    public SensorData getZDistance()
+    public SensorData<Double> getZDistance()
     {
         final String funcName = "getZDistance";
         SensorData<Double> data;
@@ -633,7 +633,7 @@ public abstract class TrcAccelerometer extends TrcSensor<TrcAccelerometer.DataTy
      * @return raw data for the specified axis.
      */
     @Override
-    public SensorData getRawData(int index, DataType dataType)
+    public SensorData<Double> getRawData(int index, DataType dataType)
     {
         final String funcName = "getRawData";
         SensorData<Double> data = null;

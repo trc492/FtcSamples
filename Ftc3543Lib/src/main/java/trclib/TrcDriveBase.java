@@ -76,11 +76,9 @@ public class TrcDriveBase extends HalRobotDrive implements TrcTaskMgr.Task
      * @param rightRearMotor specifies the right rear motor of the drive base.
      * @param gyro specifies the gyro. If none, it can be set to null.
      */
-    private void commonInit(
-            TrcMotor leftFrontMotor, TrcMotor leftMidMotor,
-            TrcMotor leftRearMotor, TrcMotor rightFrontMotor,
-            TrcMotor rightMidMotor, TrcMotor rightRearMotor,
-            TrcGyro gyro)
+    private void commonInit(TrcMotor leftFrontMotor, TrcMotor leftMidMotor, TrcMotor leftRearMotor,
+                            TrcMotor rightFrontMotor, TrcMotor rightMidMotor, TrcMotor rightRearMotor,
+                            TrcGyro gyro)
     {
         if (debugEnabled)
         {
@@ -116,15 +114,13 @@ public class TrcDriveBase extends HalRobotDrive implements TrcTaskMgr.Task
      * @param rightRearMotor specifies the right rear motor of the drive base.
      * @param gyro specifies the gyro. If none, it can be set to null.
      */
-    public TrcDriveBase(
-            TrcMotor leftFrontMotor, TrcMotor leftMidMotor,
-            TrcMotor leftRearMotor, TrcMotor rightFrontMotor,
-            TrcMotor rightMidMotor, TrcMotor rightRearMotor,
-            TrcGyro gyro)
+    public TrcDriveBase(TrcMotor leftFrontMotor, TrcMotor leftMidMotor, TrcMotor leftRearMotor,
+                        TrcMotor rightFrontMotor, TrcMotor rightMidMotor, TrcMotor rightRearMotor,
+                        TrcGyro gyro)
     {
         super(leftFrontMotor, leftMidMotor, leftRearMotor, rightFrontMotor, rightMidMotor, rightRearMotor);
-        if (leftFrontMotor == null || leftMidMotor == null || leftRearMotor == null
-                || rightFrontMotor == null || rightMidMotor == null || rightRearMotor == null)
+        if (leftFrontMotor == null || leftMidMotor == null || leftRearMotor == null ||
+            rightFrontMotor == null || rightMidMotor == null || rightRearMotor == null)
         {
             throw new IllegalArgumentException("All 6 motors must not be null.");
         }
@@ -142,10 +138,8 @@ public class TrcDriveBase extends HalRobotDrive implements TrcTaskMgr.Task
      * @param rightMidMotor specifies the right mid motor of a 6-wheel drive base.
      * @param rightRearMotor specifies the right rear motor of the drive base.
      */
-    public TrcDriveBase(
-            TrcMotor leftFrontMotor, TrcMotor leftMidMotor,
-            TrcMotor leftRearMotor, TrcMotor rightFrontMotor,
-            TrcMotor rightMidMotor, TrcMotor rightRearMotor)
+    public TrcDriveBase(TrcMotor leftFrontMotor, TrcMotor leftMidMotor, TrcMotor leftRearMotor,
+                        TrcMotor rightFrontMotor, TrcMotor rightMidMotor, TrcMotor rightRearMotor)
     {
         this(leftFrontMotor, leftMidMotor, leftRearMotor, rightFrontMotor, rightMidMotor, rightRearMotor, null);
     }   //TrcDriveBase
@@ -159,10 +153,9 @@ public class TrcDriveBase extends HalRobotDrive implements TrcTaskMgr.Task
      * @param rightRearMotor specifies the right rear motor of the drive base.
      * @param gyro specifies the gyro. If none, it can be set to null.
      */
-    public TrcDriveBase(
-            TrcMotor leftFrontMotor, TrcMotor leftRearMotor,
-            TrcMotor rightFrontMotor, TrcMotor rightRearMotor,
-            TrcGyro gyro)
+    public TrcDriveBase(TrcMotor leftFrontMotor, TrcMotor leftRearMotor,
+                        TrcMotor rightFrontMotor, TrcMotor rightRearMotor,
+                        TrcGyro gyro)
     {
         super(leftFrontMotor, null, leftRearMotor, rightFrontMotor, null, rightRearMotor);
         if (leftFrontMotor == null || leftRearMotor == null || rightFrontMotor == null || rightRearMotor == null)
@@ -181,9 +174,8 @@ public class TrcDriveBase extends HalRobotDrive implements TrcTaskMgr.Task
      * @param rightFrontMotor specifies the right front motor of the drive base.
      * @param rightRearMotor specifies the right rear motor of the drive base.
      */
-    public TrcDriveBase(
-            TrcMotor leftFrontMotor, TrcMotor leftRearMotor,
-            TrcMotor rightFrontMotor, TrcMotor rightRearMotor)
+    public TrcDriveBase(TrcMotor leftFrontMotor, TrcMotor leftRearMotor,
+                        TrcMotor rightFrontMotor, TrcMotor rightRearMotor)
     {
         this(leftFrontMotor, leftRearMotor, rightFrontMotor, rightRearMotor, null);
     }   //TrcDriveBase

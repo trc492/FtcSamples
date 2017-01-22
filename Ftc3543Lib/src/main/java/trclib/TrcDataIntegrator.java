@@ -38,7 +38,7 @@ public class TrcDataIntegrator<D> implements TrcTaskMgr.Task
     private TrcDbgTrace dbgTrace = null;
 
     private final String instanceName;
-    private TrcSensor sensor;
+    private TrcSensor<D> sensor;
     private D dataType;
     private int numAxes;
     private TrcSensor.SensorData<Double>[] inputData;
@@ -54,7 +54,7 @@ public class TrcDataIntegrator<D> implements TrcTaskMgr.Task
      * @param dataType specifies the data type to be integrated.
      * @param doubleIntegration specifies true to do double integration, false otherwise.
      */
-    public TrcDataIntegrator(final String instanceName, TrcSensor sensor, D dataType, boolean doubleIntegration)
+    public TrcDataIntegrator(final String instanceName, TrcSensor<D> sensor, D dataType, boolean doubleIntegration)
     {
         if (debugEnabled)
         {
@@ -94,7 +94,7 @@ public class TrcDataIntegrator<D> implements TrcTaskMgr.Task
      * @param sensor specifies the sensor object that needs integration.
      * @param dataType specifies the data type to be integrated.
      */
-    public TrcDataIntegrator(final String instanceName, TrcSensor sensor, D dataType)
+    public TrcDataIntegrator(final String instanceName, TrcSensor<D> sensor, D dataType)
     {
         this(instanceName, sensor, dataType, false);
     }   //TrcDataProcessor
@@ -184,7 +184,7 @@ public class TrcDataIntegrator<D> implements TrcTaskMgr.Task
      * @param index specifies the index.
      * @return the last indexed input data.
      */
-    public TrcSensor.SensorData getInputData(int index)
+    public TrcSensor.SensorData<Double> getInputData(int index)
     {
         final String funcName = "getInputData";
         TrcSensor.SensorData<Double> data = new TrcSensor.SensorData<>(
@@ -207,7 +207,7 @@ public class TrcDataIntegrator<D> implements TrcTaskMgr.Task
      * @param index specifies the index.
      * @return last indexed integrated data.
      */
-    public TrcSensor.SensorData getIntegratedData(int index)
+    public TrcSensor.SensorData<Double> getIntegratedData(int index)
     {
         final String funcName = "getIntegratedData";
         TrcSensor.SensorData<Double> data = new TrcSensor.SensorData<>(
@@ -230,7 +230,7 @@ public class TrcDataIntegrator<D> implements TrcTaskMgr.Task
      * @param index specifies the index.
      * @return last indexed double integrated data.
      */
-    public TrcSensor.SensorData getDoubleIntegratedData(int index)
+    public TrcSensor.SensorData<Double> getDoubleIntegratedData(int index)
     {
         final String funcName = "getDoubleIntegratedData";
         TrcSensor.SensorData<Double> data = new TrcSensor.SensorData<>(

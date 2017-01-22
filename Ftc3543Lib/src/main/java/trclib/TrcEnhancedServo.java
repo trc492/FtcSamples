@@ -22,8 +22,6 @@
 
 package trclib;
 
-import android.os.Trace;
-
 /**
  * This class implements a platform independent Enhanced servo. An enhanced servo is a servo with enhanced features.
  * The enhanced servo supports both normal servo as well as continuous servo. It supports limit switches for the

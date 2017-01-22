@@ -71,21 +71,21 @@ public abstract class TrcGyro extends TrcSensor<TrcGyro.DataType>
          *
          * @return X rotation rate.
          */
-        SensorData getXRotationRate();
+        SensorData<Double> getXRotationRate();
 
         /**
          * This method returns the rotation rate on the y-axis.
          *
          * @return Y rotation rate.
          */
-        SensorData getYRotationRate();
+        SensorData<Double> getYRotationRate();
 
         /**
          * This method returns the rotation rate on the z-axis.
          *
          * @return Z rotation rate.
          */
-        SensorData getZRotationRate();
+        SensorData<Double> getZRotationRate();
 
         /**
          * This method returns the heading of the x-axis. If there is an integrator, we call the integrator to get
@@ -94,7 +94,7 @@ public abstract class TrcGyro extends TrcSensor<TrcGyro.DataType>
          *
          * @return X heading.
          */
-        SensorData getXHeading();
+        SensorData<Double> getXHeading();
 
         /**
          * This method returns the heading of the y-axis. If there is an integrator, we call the integrator to get
@@ -103,7 +103,7 @@ public abstract class TrcGyro extends TrcSensor<TrcGyro.DataType>
          *
          * @return Y heading.
          */
-        SensorData getYHeading();
+        SensorData<Double> getYHeading();
 
         /**
          * This method returns the heading of the z-axis. If there is an integrator, we call the integrator to get
@@ -112,7 +112,7 @@ public abstract class TrcGyro extends TrcSensor<TrcGyro.DataType>
          *
          * @return Z heading.
          */
-        SensorData getZHeading();
+        SensorData<Double> getZHeading();
 
         /**
          * This method resets the integrator on the x-axis.
@@ -145,7 +145,7 @@ public abstract class TrcGyro extends TrcSensor<TrcGyro.DataType>
      * @param dataType specifies the data type.
      * @return raw data with the specified type of the x-axis.
      */
-    public abstract SensorData getRawXData(DataType dataType);
+    public abstract SensorData<Double> getRawXData(DataType dataType);
 
     /**
      * This abstract method returns the raw data with the specified type of the y-axis.
@@ -153,7 +153,7 @@ public abstract class TrcGyro extends TrcSensor<TrcGyro.DataType>
      * @param dataType specifies the data type.
      * @return raw data with the specified type of the y-axis.
      */
-    public abstract SensorData getRawYData(DataType dataType);
+    public abstract SensorData<Double> getRawYData(DataType dataType);
 
     /**
      * This abstract method returns the raw data with the specified type of the z-axis.
@@ -161,7 +161,7 @@ public abstract class TrcGyro extends TrcSensor<TrcGyro.DataType>
      * @param dataType specifies the data type.
      * @return raw data with the specified type of the z-axis.
      */
-    public abstract SensorData getRawZData(DataType dataType);
+    public abstract SensorData<Double> getRawZData(DataType dataType);
 
     //
     // Gyro options.
@@ -173,8 +173,8 @@ public abstract class TrcGyro extends TrcSensor<TrcGyro.DataType>
     public static final int GYRO_CONVERT_TO_CARTESIAN   = (1 << 4);
 
     private final String instanceName;
-    private TrcDataIntegrator integrator = null;
-    private TrcCardinalConverter cardinalConverter = null;
+    private TrcDataIntegrator<DataType> integrator = null;
+    private TrcCardinalConverter<DataType> cardinalConverter = null;
     private int xIndex = -1;
     private int yIndex = -1;
     private int zIndex = -1;
@@ -566,7 +566,7 @@ public abstract class TrcGyro extends TrcSensor<TrcGyro.DataType>
      *
      * @return X rotation rate.
      */
-    public SensorData getXRotationRate()
+    public SensorData<Double> getXRotationRate()
     {
         final String funcName = "getXRotationRate";
         SensorData<Double> data = getProcessedData(xIndex, DataType.ROTATION_RATE);
@@ -586,7 +586,7 @@ public abstract class TrcGyro extends TrcSensor<TrcGyro.DataType>
      *
      * @return Y rotation rate.
      */
-    public SensorData getYRotationRate()
+    public SensorData<Double> getYRotationRate()
     {
         final String funcName = "getYRotationRate";
         SensorData<Double> data = getProcessedData(yIndex, DataType.ROTATION_RATE);
@@ -606,7 +606,7 @@ public abstract class TrcGyro extends TrcSensor<TrcGyro.DataType>
      *
      * @return Z rotation rate.
      */
-    public SensorData getZRotationRate()
+    public SensorData<Double> getZRotationRate()
     {
         final String funcName = "getZRotationRate";
         SensorData<Double> data = getProcessedData(zIndex, DataType.ROTATION_RATE);
@@ -628,7 +628,7 @@ public abstract class TrcGyro extends TrcSensor<TrcGyro.DataType>
      *
      * @return X heading.
      */
-    public SensorData getXHeading()
+    public SensorData<Double> getXHeading()
     {
         final String funcName = "getXHeading";
         SensorData<Double> data;
@@ -663,7 +663,7 @@ public abstract class TrcGyro extends TrcSensor<TrcGyro.DataType>
      *
      * @return Y heading.
      */
-    public SensorData getYHeading()
+    public SensorData<Double> getYHeading()
     {
         final String funcName = "getYHeading";
         SensorData<Double> data;
@@ -698,7 +698,7 @@ public abstract class TrcGyro extends TrcSensor<TrcGyro.DataType>
      *
      * @return Z heading.
      */
-    public SensorData getZHeading()
+    public SensorData<Double> getZHeading()
     {
         final String funcName = "getZHeading";
         SensorData<Double> data;
@@ -799,7 +799,7 @@ public abstract class TrcGyro extends TrcSensor<TrcGyro.DataType>
      * @return raw data for the specified axis and type.
      */
     @Override
-    public SensorData getRawData(int index, DataType dataType)
+    public SensorData<Double> getRawData(int index, DataType dataType)
     {
         final String funcName = "getRawData";
         SensorData<Double> data = null;

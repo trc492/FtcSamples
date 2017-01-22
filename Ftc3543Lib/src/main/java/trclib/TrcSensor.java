@@ -84,7 +84,7 @@ public abstract class TrcSensor<D>
          * @param dataType specifies the data type to return (e.g. rotation rate or heading of a gyro axis).
          * @return selected sensor data.
          */
-        SensorData getRawData(int index, D dataType);
+        SensorData<?> getRawData(int index, D dataType);
 
     }   //interface DataSource
 
@@ -96,7 +96,7 @@ public abstract class TrcSensor<D>
      * @param dataType specifies the data type to return (e.g. rotation rate or heading of a gyro axis).
      * @return selected sensor data.
      */
-    public abstract SensorData getRawData(int index, D dataType);
+    public abstract SensorData<?> getRawData(int index, D dataType);
 
     private static final int NUM_CAL_SAMPLES    = 100;
     private static final long CAL_INTERVAL      = 10;   //in msec.
@@ -298,8 +298,7 @@ public abstract class TrcSensor<D>
     public SensorData<Double> getProcessedData(int index, D dataType)
     {
         final String funcName = "getProcessedData";
-
-        SensorData<Double> data = getRawData(index, dataType);
+        SensorData<Double> data = (SensorData<Double>)getRawData(index, dataType);
         double value = (double)data.value;
 
         if (filters[index] != null)

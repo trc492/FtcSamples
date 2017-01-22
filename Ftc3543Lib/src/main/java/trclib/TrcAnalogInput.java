@@ -56,7 +56,7 @@ public abstract class TrcAnalogInput extends TrcSensor<TrcAnalogInput.DataType>
      * @param dataType specifies the data type.
      * @return raw data with the specified type.
      */
-    public abstract SensorData getRawData(int index, DataType dataType);
+    public abstract SensorData<Double> getRawData(int index, DataType dataType);
 
     //
     // AnalogInput options.
@@ -65,7 +65,7 @@ public abstract class TrcAnalogInput extends TrcSensor<TrcAnalogInput.DataType>
     public static final int ANALOGINPUT_DOUBLE_INTEGRATE= (1 << 1);
 
     private final String instanceName;
-    private TrcDataIntegrator dataIntegrator = null;
+    private TrcDataIntegrator<DataType> dataIntegrator = null;
 
     /**
      * Constructor: Creates an instance of the object.
@@ -205,7 +205,7 @@ public abstract class TrcAnalogInput extends TrcSensor<TrcAnalogInput.DataType>
      * @param index specifies the data index.
      * @return processed data.
      */
-    public TrcSensor.SensorData getData(int index)
+    public TrcSensor.SensorData<Double> getData(int index)
     {
         final String funcName = "getData";
         TrcSensor.SensorData<Double> data = getProcessedData(index, DataType.INPUT_DATA);;
@@ -226,7 +226,7 @@ public abstract class TrcAnalogInput extends TrcSensor<TrcAnalogInput.DataType>
      * @param index specifies the data index.
      * @return integrated sensor data.
      */
-    public TrcSensor.SensorData getIntegratedData(int index)
+    public TrcSensor.SensorData<Double> getIntegratedData(int index)
     {
         final String funcName = "getIntegratedData";
         TrcSensor.SensorData<Double> data;
@@ -256,7 +256,7 @@ public abstract class TrcAnalogInput extends TrcSensor<TrcAnalogInput.DataType>
      * @param index specifies the data index.
      * @return double integrated sensor data.
      */
-    public TrcSensor.SensorData getDoubleIntegratedData(int index)
+    public TrcSensor.SensorData<Double> getDoubleIntegratedData(int index)
     {
         final String funcName = "getDoubleIntegratedData";
         TrcSensor.SensorData<Double> data;

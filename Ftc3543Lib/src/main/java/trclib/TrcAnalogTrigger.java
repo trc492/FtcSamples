@@ -51,7 +51,7 @@ public class TrcAnalogTrigger<D> implements TrcTaskMgr.Task
          * @param zoneIndex specifies the zone index it is crossing into.
          * @param zoneValue specifies the actual sensor value.
          */
-        void AnalogTriggerEvent(TrcAnalogTrigger analogTrigger, int zoneIndex, double zoneValue);
+        void AnalogTriggerEvent(TrcAnalogTrigger<?> analogTrigger, int zoneIndex, double zoneValue);
 
     }   //interface TriggerHandler
 
@@ -234,25 +234,13 @@ public class TrcAnalogTrigger<D> implements TrcTaskMgr.Task
     public void preContinuousTask(TrcRobot.RunMode runMode)
     {
         final String funcName = "preContinuousTask";
-        TrcSensor.SensorData data = sensor.getProcessedData(index, dataType);
+        TrcSensor.SensorData<Double> data = sensor.getProcessedData(index, dataType);
 
         if (data.value != null)
         {
-            double sample;
-            if (data.value instanceof Integer)
-            {
-                sample = (double)(Integer)data.value;
-            }
-            else if (data.value instanceof Double)
-            {
-                sample = (double)data.value;
-            }
-            else
-            {
-                throw new NumberFormatException("Sensor data must be either integer or double.");
-            }
-
+            double sample = (double)data.value;
             int currZone = -1;
+
             if (sample < thresholds[0])
             {
                 currZone = 0;

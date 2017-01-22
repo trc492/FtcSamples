@@ -201,7 +201,7 @@ public class TrcCardinalConverter<D> implements TrcTaskMgr.Task
      * @param index specifies the axis index.
      * @return converted cartesian data.
      */
-    public TrcSensor.SensorData getCartesianData(int index)
+    public TrcSensor.SensorData<Double> getCartesianData(int index)
     {
         final String funcName = "getCartesianData";
         TrcSensor.SensorData<Double> data = new TrcSensor.SensorData<>(
