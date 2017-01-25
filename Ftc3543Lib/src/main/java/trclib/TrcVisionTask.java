@@ -72,28 +72,71 @@ public class TrcVisionTask<I, O> implements Runnable
 
     }   //interface VisionProcessor
 
+    private class TaskState
+    {
+        private boolean taskEnabled;
+        private boolean oneShotEnabled;
+        private O targets;
+
+        public TaskState()
+        {
+            taskEnabled = false;
+            oneShotEnabled = false;
+            targets = null;
+        }   //TaskState
+
+        public synchronized boolean isTaskEnabled()
+        {
+            return taskEnabled || oneShotEnabled;
+        }   //isTaskEnabled
+
+        public synchronized void setTaskEnabled(boolean enabled)
+        {
+            taskEnabled = enabled;
+        }   //setTaskEnabled
+
+        public synchronized O getTargets()
+        {
+            //
+            // If task was not enabled, it must be a one-shot deal. Since we don't already have targets detected,
+            // we must unblock the task so it can process the next image frame.
+            //
+            if (!taskEnabled && targets == null)
+            {
+                oneShotEnabled = true;
+            }
+            O newTargets = targets;
+            targets = null;
+
+            return newTargets;
+        }   //getTargets
+
+        public synchronized void setTargets(O targets)
+        {
+            this.targets = targets;
+            oneShotEnabled = false;
+        }   //setTargets
+
+    }   //class TaskState
+
     private VisionProcessor<I, O> visionProcessor;
     private I image;
-    private O detectedObjects;
-    private O targets;
+    private O[] detectedObjectsBuffers;
+    private int bufferIndex = 0;
     private long totalTime = 0;
     private long totalFrames = 0;
-
-    private Object monitor;
-    private Thread visionThread = null;
-
     private long processingInterval = 50;   // in msec
-    private boolean taskEnabled = false;
-    private boolean oneShotEnabled = false;
+    private TaskState taskState = new TaskState();
+    private Thread visionThread = null;
 
     /**
      * Constructor: Create an instance of the object.
      *
      * @param visionProcessor specifies the vision processor object.
      * @param imageBuffer specifies the buffer to hold video image.
-     * @param detectedObjectsBuffer specifies the buffer to hold the detected objects.
+     * @param detectedObjectsBuffers specifies an array of buffers to hold the detected objects.
      */
-    public TrcVisionTask(VisionProcessor<I, O> visionProcessor, I imageBuffer, O detectedObjectsBuffer)
+    public TrcVisionTask(VisionProcessor<I, O> visionProcessor, I imageBuffer, O[] detectedObjectsBuffers)
     {
         if (debugEnabled)
         {
@@ -102,16 +145,16 @@ public class TrcVisionTask<I, O> implements Runnable
 
         this.visionProcessor = visionProcessor;
         this.image = imageBuffer;
-        this.detectedObjects = detectedObjectsBuffer;
-        targets = null;
-        monitor = new Object();
+        this.detectedObjectsBuffers = detectedObjectsBuffers;
+
         visionThread = new Thread(this, "VisionTask");
-        visionThread.setDaemon(true);
+//        visionThread.setDaemon(true);
         visionThread.start();
     }   //TrcVisionTask
 
     /**
-     * This method enables/disables the vision processing task.
+     * This method enables/disables the vision processing task. As long as the task is enabled, it will continue to
+     * process image frames.
      *
      * @param enabled specifies true to enable vision task, false to disable.
      */
@@ -124,24 +167,7 @@ public class TrcVisionTask<I, O> implements Runnable
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "enabled=%s", Boolean.toString(enabled));
         }
 
-        if (!taskEnabled && enabled)
-        {
-            //
-            // Enable task.
-            //
-            synchronized(monitor)
-            {
-                taskEnabled = true;
-                monitor.notify();
-            }
-        }
-        else if (taskEnabled && !enabled)
-        {
-            //
-            // Disable task.
-            //
-            taskEnabled = false;
-        }
+        taskState.setTaskEnabled(enabled);
 
         if (debugEnabled)
         {
@@ -157,13 +183,15 @@ public class TrcVisionTask<I, O> implements Runnable
     public boolean isTaskEnabled()
     {
         final String funcName = "isTaskEnabled";
+        boolean enabled = taskState.isTaskEnabled();
+
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", Boolean.toString(taskEnabled));
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", Boolean.toString(enabled));
         }
 
-        return taskEnabled;
+        return enabled;
     }   //isTaskEnabled
 
     /**
@@ -174,6 +202,7 @@ public class TrcVisionTask<I, O> implements Runnable
     public void setProcessingInterval(long interval)
     {
         final String funcName = "setProcessingInterval";
+
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "interval=%dms", interval);
@@ -191,6 +220,7 @@ public class TrcVisionTask<I, O> implements Runnable
     public long getProcessingInterval()
     {
         final String funcName = "getProcessingInterval";
+
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
@@ -207,31 +237,15 @@ public class TrcVisionTask<I, O> implements Runnable
      */
     public O getTargets()
     {
-        final String funcName = "getObjects";
-        O newTargets = null;
+        final String funcName = "getTargets";
 
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-        }
-
-        synchronized(monitor)
-        {
-            if (!taskEnabled && targets == null)
-            {
-                oneShotEnabled = true;
-                monitor.notify();
-            }
-            newTargets = targets;
-            targets = null;
-        }
-
-        if (debugEnabled)
-        {
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        return newTargets;
+        return taskState.getTargets();
     }   //getTargets
 
     //
@@ -241,31 +255,19 @@ public class TrcVisionTask<I, O> implements Runnable
     /**
      * This method runs the vision processing task.
      */
+    @Override
     public void run()
     {
         while (true)
         {
-            synchronized(monitor)
+            long startTime = TrcUtil.getCurrentTimeMillis();
+
+            if (taskState.isTaskEnabled())
             {
-                //
-                // Wait until we are enabled.
-                //
-                while (!taskEnabled && !oneShotEnabled)
-                {
-                    try
-                    {
-                        monitor.wait();
-                    }
-                    catch (InterruptedException e)
-                    {
-                    }
-                }
+                processImage();
             }
 
-            long startTime = TrcUtil.getCurrentTimeMillis();
-            processImage();
             long sleepTime = processingInterval - (TrcUtil.getCurrentTimeMillis() - startTime);
-
             TrcUtil.sleep(sleepTime);
         }
     }   //run
@@ -291,7 +293,7 @@ public class TrcVisionTask<I, O> implements Runnable
             // rectangles representing objects detected.
             //
             startTime = TrcUtil.getCurrentTimeMillis();
-            visionProcessor.detectObjects(image, detectedObjects);
+            visionProcessor.detectObjects(image, detectedObjectsBuffers[bufferIndex]);
             elapsedTime = TrcUtil.getCurrentTimeMillis() - startTime;
             totalTime += elapsedTime;
             totalFrames++;
@@ -300,13 +302,13 @@ public class TrcVisionTask<I, O> implements Runnable
                 dbgTrace.traceInfo(funcName, "Average processing time = %.3f msec", (double)totalTime/totalFrames);
             }
 
-            visionProcessor.putFrame(image, detectedObjects);
+            visionProcessor.putFrame(image, detectedObjectsBuffers[bufferIndex]);
 
-            synchronized(monitor)
-            {
-                oneShotEnabled = false;
-                targets = detectedObjects;
-            }
+            taskState.setTargets(detectedObjectsBuffers[bufferIndex]);
+            //
+            // Switch to the next buffer so that we won't clobber the info while the client is accessing it.
+            //
+            bufferIndex = (bufferIndex + 1)%detectedObjectsBuffers.length;
         }
 
         if (debugEnabled)
