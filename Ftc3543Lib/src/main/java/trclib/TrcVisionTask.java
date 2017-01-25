@@ -23,10 +23,15 @@
 package trclib;
 
 /**
+ */
+/**
  * This class implements a platform independent vision task. When enabled, it grabs a frame from the video source,
  * calls the provided object detector to process the frame and overlays rectangles on the detected objects in the
  * image. This class is to be extended by a platform dependent vision processor who will provide the video input
  * and output. 
+ *
+ * @param <I> specifies the type of the image frame buffer.
+ * @param <O>specifies the type of the detected objects.
  */
 public class TrcVisionTask<I, O> implements Runnable
 {
@@ -42,6 +47,9 @@ public class TrcVisionTask<I, O> implements Runnable
     /**
      * This interface provides methods to grab image from the video input, render image to video output and detect
      * objects from the acquired image.
+     *
+     * @param <I> specifies the type of the image frame buffer.
+     * @param <O> specifies the type of the detected objects.
      */
     public interface VisionProcessor<I, O>
     {
@@ -72,49 +80,109 @@ public class TrcVisionTask<I, O> implements Runnable
 
     }   //interface VisionProcessor
 
+    /**
+     * This class keeps track of the state of the vision task. It also provides thread synchronization control to
+     * make sure the integrity of the task state.
+     */
     private class TaskState
     {
+        private boolean taskTerminated;
         private boolean taskEnabled;
         private boolean oneShotEnabled;
         private O targets;
 
+        /**
+         * Constructor: Create an instance of the object.
+         */
         public TaskState()
         {
+            taskTerminated = false;
             taskEnabled = false;
             oneShotEnabled = false;
             targets = null;
         }   //TaskState
 
+        /**
+         * This method checks if the task has been terminated.
+         *
+         * @return true if task has been terminated, false otherwise.
+         */
+        public synchronized boolean isTaskTerminated()
+        {
+            return taskTerminated;
+        }   //isTaskTerminated
+
+        /**
+         * This method is called to terminate the vision task.
+         */
+        public synchronized void terminateTask()
+        {
+            taskTerminated = true;
+        }   //terminateTask
+
+        /**
+         * This method checks if the vision task is enabled.
+         *
+         * @return true if task is enabled, false otherwise.
+         */
         public synchronized boolean isTaskEnabled()
         {
-            return taskEnabled || oneShotEnabled;
+            return !taskTerminated && (taskEnabled || oneShotEnabled);
         }   //isTaskEnabled
 
+        /**
+         * This method enables/disables the vision task. If this is called to disable the task, the task will be
+         * set to a paused state. The operation will be resumed when this is called to enable it again.
+         *
+         * @param enabled specifies true to enable vision task, false to disable.
+         */
         public synchronized void setTaskEnabled(boolean enabled)
         {
-            taskEnabled = enabled;
+            if (!taskTerminated)
+            {
+                taskEnabled = enabled;
+            }
         }   //setTaskEnabled
 
+        /**
+         * This method returns the last detected targets. If there is no new detected targets since the last call,
+         * it will return null.
+         *
+         * @return newly detected targets if any, null if none.
+         */
         public synchronized O getTargets()
         {
-            //
-            // If task was not enabled, it must be a one-shot deal. Since we don't already have targets detected,
-            // we must unblock the task so it can process the next image frame.
-            //
-            if (!taskEnabled && targets == null)
+            O newTargets = null;
+
+            if (!taskTerminated)
             {
-                oneShotEnabled = true;
+                //
+                // If task was not enabled, it must be a one-shot deal. Since we don't already have targets detected,
+                // we must unblock the task so it can process the next image frame.
+                //
+                if (!taskEnabled && targets == null)
+                {
+                    oneShotEnabled = true;
+                }
+                newTargets = targets;
+                targets = null;
             }
-            O newTargets = targets;
-            targets = null;
 
             return newTargets;
         }   //getTargets
 
+        /**
+         * This method is called to set new targets after new targets have been detected.
+         *
+         * @param targets specifies newly detected targets. 
+         */
         public synchronized void setTargets(O targets)
         {
-            this.targets = targets;
-            oneShotEnabled = false;
+            if (!taskTerminated)
+            {
+                this.targets = targets;
+                oneShotEnabled = false;
+            }
         }   //setTargets
 
     }   //class TaskState
@@ -151,6 +219,25 @@ public class TrcVisionTask<I, O> implements Runnable
 //        visionThread.setDaemon(true);
         visionThread.start();
     }   //TrcVisionTask
+
+    /**
+     * This method is called to terminate the vision task. Once this is called, no other method in this class
+     * should be called except for isTaskTerminated().
+     */
+    public void terminateTask()
+    {
+        taskState.terminateTask();
+    }   //terminateTask
+
+    /**
+     * This method checks if the vision task has been terminated.
+     *
+     * @return true if vision task is terminated, false otherwise.
+     */
+    public boolean isTaskTerminated()
+    {
+        return taskState.isTaskTerminated();
+    }   //isTaskTerminated
 
     /**
      * This method enables/disables the vision processing task. As long as the task is enabled, it will continue to
@@ -258,7 +345,7 @@ public class TrcVisionTask<I, O> implements Runnable
     @Override
     public void run()
     {
-        while (true)
+        while (!taskState.isTaskTerminated())
         {
             long startTime = TrcUtil.getCurrentTimeMillis();
 
