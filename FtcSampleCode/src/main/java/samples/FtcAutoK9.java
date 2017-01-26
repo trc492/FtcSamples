@@ -441,7 +441,7 @@ public class FtcAutoK9 extends FtcOpMode implements FtcMenu.MenuButtons
         // Walk the menu tree starting with the delay menu as the root
         // menu and get user choices.
         //
-        FtcMenu.walkMenuTree(delayMenu);
+        FtcMenu.walkMenuTree(delayMenu, this);
         //
         // Set choices variables.
         //

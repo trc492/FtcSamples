@@ -22,6 +22,8 @@
 
 package ftclib;
 
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+
 import hallib.HalDashboard;
 import trclib.TrcDbgTrace;
 import trclib.TrcUtil;
@@ -199,6 +201,9 @@ public abstract class FtcMenu
     }   //setRootMenu
 
     /**
+     *
+     */
+    /**
      * This method traverses the menu tree from the given root menu displaying each menu and waiting for the user
      * to respond to a menu. After the user responded to a menu, it will go to the next menu in the tree. If the
      * user cancels the menu, it will go back to the parent menu where it came from. If there is no next menu, the
@@ -207,11 +212,10 @@ public abstract class FtcMenu
      * of a state machine. To use the menus in a multitasking environment, you must use the runMenus() method instead.
      *
      * @param rootMenu specifies the root of the menu tree.
+     * @param opmode specifies the linear opmode that calls this.
      */
-    public static void walkMenuTree(FtcMenu rootMenu)
+    public static void walkMenuTree(FtcMenu rootMenu, LinearOpMode opmode)
     {
-        FtcOpMode opmode = FtcOpMode.getInstance();
-
         setRootMenu(rootMenu);
         rootMenu.displayMenu();
         while (!runMenus() && !opmode.isStopRequested())
