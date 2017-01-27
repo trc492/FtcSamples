@@ -48,7 +48,6 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
 
     private static TrcDbgTrace globalTracer = null;
     private static String opModeName = null;
-    private HalDashboard dashboard = null;
     private TextToSpeech textToSpeech = null;
 
     /**
@@ -62,11 +61,12 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
     private final static String OPMODE_TEST     = "FtcTest";
 
     private final static long LOOP_PERIOD = 20;
-    private TrcRobot.RunMode runMode = TrcRobot.RunMode.INVALID_MODE;
     private static FtcOpMode instance = null;
     private static double opModeStartTime = 0.0;
     private static double opModeElapsedTime = 0.0;
     private static double loopStartTime = 0.0;
+
+    private TrcTaskMgr taskMgr;
 
     /**
      * Constructor: Creates an instance of the object. It calls the constructor of the LinearOpMode class and saves
@@ -85,7 +85,7 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
         //
         // Create task manager. There is only one global instance of task manager.
         //
-        TrcTaskMgr taskMgr = new TrcTaskMgr();
+        taskMgr = new TrcTaskMgr();
     }   //FtcOpMode
 
     /**
@@ -215,8 +215,8 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
     public void runOpMode()
     {
         final String funcName = "runOpMode";
-        TrcTaskMgr taskMgr = TrcTaskMgr.getInstance();
-        dashboard = HalDashboard.createInstance(telemetry);
+        HalDashboard dashboard = HalDashboard.createInstance(telemetry);
+        TrcRobot.RunMode runMode;
 
         if (debugEnabled)
         {
@@ -370,9 +370,8 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
      * This method is called periodically after initRobot() is called but before competition starts. Typically,
      * you override this method and put code that will check and display robot status in this method. For example,
      * one may monitor the gyro heading in this method to make sure there is no major gyro drift before competition
-     * starts.
+     * starts. By default, this method is doing exactly what waitForStart() does.
      */
-    @Override
     public synchronized void initPeriodic()
     {
         try
