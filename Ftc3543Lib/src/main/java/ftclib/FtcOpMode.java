@@ -267,20 +267,25 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
         //
         if (debugEnabled)
         {
-            dbgTrace.traceInfo(funcName, "Runing robotInit ...");
+            dbgTrace.traceInfo(funcName, "Running robotInit ...");
         }
         dashboard.displayPrintf(0, "initRobot starting...");
         initRobot();
         dashboard.displayPrintf(0, "initRobot completed!");
 
         //
-        // Wait for the start of autonomous mode.
+        // Run initPeriodic while waiting for competition to start.
         //
         if (debugEnabled)
         {
-            dbgTrace.traceInfo(funcName, "Waiting to start ...");
+            dbgTrace.traceInfo(funcName, "Running initPeriodic ...");
         }
-        waitForStart();
+        dashboard.displayPrintf(0, "initPeriodic starting...");
+        while (!opModeIsActive())
+        {
+            initPeriodic();
+        }
+        dashboard.displayPrintf(0, "initPeriodic completed!");
         opModeStartTime = TrcUtil.getCurrentTime();
 
         //
@@ -306,19 +311,19 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
 
             if (debugEnabled)
             {
-                dbgTrace.traceInfo(funcName, "Runing PreContinuous Tasks ...");
+                dbgTrace.traceInfo(funcName, "Running PreContinuous Tasks ...");
             }
             taskMgr.executeTaskType(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK, runMode);
 
             if (debugEnabled)
             {
-                dbgTrace.traceInfo(funcName, "Runing runContinuous ...");
+                dbgTrace.traceInfo(funcName, "Running runContinuous ...");
             }
             runContinuous(opModeElapsedTime);
 
             if (debugEnabled)
             {
-                dbgTrace.traceInfo(funcName, "Runing PostContinuous Tasks ...");
+                dbgTrace.traceInfo(funcName, "Running PostContinuous Tasks ...");
             }
             taskMgr.executeTaskType(TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK, runMode);
 
@@ -329,19 +334,19 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
 
                 if (debugEnabled)
                 {
-                    dbgTrace.traceInfo(funcName, "Runing PrePeriodic Tasks ...");
+                    dbgTrace.traceInfo(funcName, "Running PrePeriodic Tasks ...");
                 }
                 taskMgr.executeTaskType(TrcTaskMgr.TaskType.PREPERIODIC_TASK, runMode);
 
                 if (debugEnabled)
                 {
-                    dbgTrace.traceInfo(funcName, "Runing runPeriodic ...");
+                    dbgTrace.traceInfo(funcName, "Running runPeriodic ...");
                 }
                 runPeriodic(opModeElapsedTime);
 
                 if (debugEnabled)
                 {
-                    dbgTrace.traceInfo(funcName, "Runing PostPeriodic Tasks ...");
+                    dbgTrace.traceInfo(funcName, "Running PostPeriodic Tasks ...");
                 }
 
                 taskMgr.executeTaskType(TrcTaskMgr.TaskType.POSTPERIODIC_TASK, runMode);
@@ -360,6 +365,25 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
         }
         taskMgr.executeTaskType(TrcTaskMgr.TaskType.STOP_TASK, runMode);
     }   //runOpMode
+
+    /**
+     * This method is called periodically after initRobot() is called but before competition starts. Typically,
+     * you override this method and put code that will check and display robot status in this method. For example,
+     * one may monitor the gyro heading in this method to make sure there is no major gyro drift before competition
+     * starts.
+     */
+    @Override
+    public synchronized void initPeriodic()
+    {
+        try
+        {
+            this.wait();
+        }
+        catch (InterruptedException e)
+        {
+            Thread.currentThread().interrupt();
+        }
+    }   //initPeriodic
 
     /**
      * This method is called when the competition mode is about to start. In FTC, this is called when the "Play"

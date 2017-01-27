@@ -65,6 +65,14 @@ public class TrcRobot
     public interface RobotMode
     {
         /**
+         * This method is called periodically after initRobot() is called but before competition starts. Typically,
+         * you override this method and put code that will check and display robot status in this method. For example,
+         * one may monitor the gyro heading in this method to make sure there is no major gyro drift before competition
+         * starts.
+         */
+        void initPeriodic();
+
+        /**
          * This method is called when the competition mode is about to start. In FTC, this is called when the "Play"
          * button on the Driver Station phone is pressed. Typically, you put code that will prepare the robot for
          * start of competition here such as resetting the encoders/sensors and enabling some sensors to start
