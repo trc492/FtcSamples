@@ -90,8 +90,8 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
 
     /**
      * This method returns the saved instance. This is a static method. So other class can get to this class instance
-     * by calling getInstance(). This is very useful for other classes that need to access the public fields such as
-     * hardwareMap, gamepad1 and gamepad2.
+     * by calling getInstance(). This is very useful for other classes that need to access the public fields and
+     * methods.
      *
      * @return save instance of this class.
      */
@@ -118,43 +118,6 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
 
         return globalTracer;
     }   //getGlobalTracer
-
-    /**
-     * This method returns a TextToSpeech object. If it doesn't exist yet, one is created.
-     *
-     * @param locale specifies the language locale.
-     * @return TextToSpeech object.
-     */
-    public TextToSpeech getTextToSpeech(final Locale locale)
-    {
-        if (textToSpeech == null)
-        {
-            textToSpeech = new TextToSpeech(hardwareMap.appContext,
-                                            new TextToSpeech.OnInitListener()
-                                            {
-                                                @Override
-                                                public void onInit(int status)
-                                                {
-                                                    if (status != TextToSpeech.ERROR)
-                                                    {
-                                                        textToSpeech.setLanguage(locale);
-                                                    }
-                                                }
-                                            });
-        }
-
-        return textToSpeech;
-    }   //getTextToSpeech
-
-    /**
-     * This method returns a TextToSpeech object with US locale.
-     *
-     * @return TextToSpeech object.
-     */
-    public TextToSpeech getTextToSpeech()
-    {
-        return getTextToSpeech(Locale.US);
-    }   //getTextToSpeech
 
     /**
      * This method sets the global tracer configuration. The OpMode trace object was created with default
@@ -203,6 +166,43 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
     {
         return loopStartTime;
     }   //getElapsedTime
+
+    /**
+     * This method returns a TextToSpeech object. If it doesn't exist yet, one is created.
+     *
+     * @param locale specifies the language locale.
+     * @return TextToSpeech object.
+     */
+    public TextToSpeech getTextToSpeech(final Locale locale)
+    {
+        if (textToSpeech == null)
+        {
+            textToSpeech = new TextToSpeech(hardwareMap.appContext,
+                                            new TextToSpeech.OnInitListener()
+                                            {
+                                                @Override
+                                                public void onInit(int status)
+                                                {
+                                                    if (status != TextToSpeech.ERROR)
+                                                    {
+                                                        textToSpeech.setLanguage(locale);
+                                                    }
+                                                }
+                                            });
+        }
+
+        return textToSpeech;
+    }   //getTextToSpeech
+
+    /**
+     * This method returns a TextToSpeech object with US locale.
+     *
+     * @return TextToSpeech object.
+     */
+    public TextToSpeech getTextToSpeech()
+    {
+        return getTextToSpeech(Locale.US);
+    }   //getTextToSpeech
 
     //
     // Implements LinearOpMode
