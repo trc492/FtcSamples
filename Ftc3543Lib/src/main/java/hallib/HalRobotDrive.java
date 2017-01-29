@@ -23,7 +23,7 @@
 package hallib;
 
 import trclib.TrcDbgTrace;
-import trclib.TrcMotor;
+import trclib.TrcMotorController;
 import trclib.TrcUtil;
 
 /**
@@ -74,12 +74,12 @@ public class HalRobotDrive
     private double sensitivity;
     private double maxOutput;
     private int numMotors;
-    private TrcMotor frontLeftMotor;
-    private TrcMotor frontRightMotor;
-    private TrcMotor rearLeftMotor;
-    private TrcMotor rearRightMotor;
-    private TrcMotor midLeftMotor;
-    private TrcMotor midRightMotor;
+    private TrcMotorController frontLeftMotor;
+    private TrcMotorController frontRightMotor;
+    private TrcMotorController rearLeftMotor;
+    private TrcMotorController rearRightMotor;
+    private TrcMotorController midLeftMotor;
+    private TrcMotorController midRightMotor;
 
     /**
      * Constructor: Create an instance of the object with 6 motors.
@@ -92,8 +92,8 @@ public class HalRobotDrive
      * @param rearRightMotor specifies the right rear motor controller object.
      */
     public HalRobotDrive(
-            TrcMotor frontLeftMotor, TrcMotor midLeftMotor, TrcMotor rearLeftMotor, TrcMotor frontRightMotor,
-            TrcMotor midRightMotor, TrcMotor rearRightMotor)
+            TrcMotorController frontLeftMotor, TrcMotorController midLeftMotor, TrcMotorController rearLeftMotor,
+            TrcMotorController frontRightMotor, TrcMotorController midRightMotor, TrcMotorController rearRightMotor)
     {
         if (debugEnabled)
         {

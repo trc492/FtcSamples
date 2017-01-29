@@ -39,12 +39,12 @@ public class TrcDriveBase extends HalRobotDrive implements TrcTaskMgr.Task
     private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
 
-    private TrcMotor leftFrontMotor;
-    private TrcMotor leftMidMotor;
-    private TrcMotor leftRearMotor;
-    private TrcMotor rightFrontMotor;
-    private TrcMotor rightMidMotor;
-    private TrcMotor rightRearMotor;
+    private TrcMotorController leftFrontMotor;
+    private TrcMotorController leftMidMotor;
+    private TrcMotorController leftRearMotor;
+    private TrcMotorController rightFrontMotor;
+    private TrcMotorController rightMidMotor;
+    private TrcMotorController rightRearMotor;
     private TrcGyro gyro;
 
     private double prevLeftFrontPos = 0.0;
@@ -76,9 +76,10 @@ public class TrcDriveBase extends HalRobotDrive implements TrcTaskMgr.Task
      * @param rightRearMotor specifies the right rear motor of the drive base.
      * @param gyro specifies the gyro. If none, it can be set to null.
      */
-    private void commonInit(TrcMotor leftFrontMotor, TrcMotor leftMidMotor, TrcMotor leftRearMotor,
-                            TrcMotor rightFrontMotor, TrcMotor rightMidMotor, TrcMotor rightRearMotor,
-                            TrcGyro gyro)
+    private void commonInit(
+        TrcMotorController leftFrontMotor, TrcMotorController leftMidMotor, TrcMotorController leftRearMotor,
+        TrcMotorController rightFrontMotor, TrcMotorController rightMidMotor, TrcMotorController rightRearMotor,
+        TrcGyro gyro)
     {
         if (debugEnabled)
         {
@@ -114,9 +115,10 @@ public class TrcDriveBase extends HalRobotDrive implements TrcTaskMgr.Task
      * @param rightRearMotor specifies the right rear motor of the drive base.
      * @param gyro specifies the gyro. If none, it can be set to null.
      */
-    public TrcDriveBase(TrcMotor leftFrontMotor, TrcMotor leftMidMotor, TrcMotor leftRearMotor,
-                        TrcMotor rightFrontMotor, TrcMotor rightMidMotor, TrcMotor rightRearMotor,
-                        TrcGyro gyro)
+    public TrcDriveBase(
+        TrcMotorController leftFrontMotor, TrcMotorController leftMidMotor, TrcMotorController leftRearMotor,
+        TrcMotorController rightFrontMotor, TrcMotorController rightMidMotor, TrcMotorController rightRearMotor,
+        TrcGyro gyro)
     {
         super(leftFrontMotor, leftMidMotor, leftRearMotor, rightFrontMotor, rightMidMotor, rightRearMotor);
         if (leftFrontMotor == null || leftMidMotor == null || leftRearMotor == null ||
@@ -138,8 +140,9 @@ public class TrcDriveBase extends HalRobotDrive implements TrcTaskMgr.Task
      * @param rightMidMotor specifies the right mid motor of a 6-wheel drive base.
      * @param rightRearMotor specifies the right rear motor of the drive base.
      */
-    public TrcDriveBase(TrcMotor leftFrontMotor, TrcMotor leftMidMotor, TrcMotor leftRearMotor,
-                        TrcMotor rightFrontMotor, TrcMotor rightMidMotor, TrcMotor rightRearMotor)
+    public TrcDriveBase(
+        TrcMotorController leftFrontMotor, TrcMotorController leftMidMotor, TrcMotorController leftRearMotor,
+        TrcMotorController rightFrontMotor, TrcMotorController rightMidMotor, TrcMotorController rightRearMotor)
     {
         this(leftFrontMotor, leftMidMotor, leftRearMotor, rightFrontMotor, rightMidMotor, rightRearMotor, null);
     }   //TrcDriveBase
@@ -153,8 +156,8 @@ public class TrcDriveBase extends HalRobotDrive implements TrcTaskMgr.Task
      * @param rightRearMotor specifies the right rear motor of the drive base.
      * @param gyro specifies the gyro. If none, it can be set to null.
      */
-    public TrcDriveBase(TrcMotor leftFrontMotor, TrcMotor leftRearMotor,
-                        TrcMotor rightFrontMotor, TrcMotor rightRearMotor,
+    public TrcDriveBase(TrcMotorController leftFrontMotor, TrcMotorController leftRearMotor,
+                        TrcMotorController rightFrontMotor, TrcMotorController rightRearMotor,
                         TrcGyro gyro)
     {
         super(leftFrontMotor, null, leftRearMotor, rightFrontMotor, null, rightRearMotor);
@@ -174,8 +177,8 @@ public class TrcDriveBase extends HalRobotDrive implements TrcTaskMgr.Task
      * @param rightFrontMotor specifies the right front motor of the drive base.
      * @param rightRearMotor specifies the right rear motor of the drive base.
      */
-    public TrcDriveBase(TrcMotor leftFrontMotor, TrcMotor leftRearMotor,
-                        TrcMotor rightFrontMotor, TrcMotor rightRearMotor)
+    public TrcDriveBase(TrcMotorController leftFrontMotor, TrcMotorController leftRearMotor,
+                        TrcMotorController rightFrontMotor, TrcMotorController rightRearMotor)
     {
         this(leftFrontMotor, leftRearMotor, rightFrontMotor, rightRearMotor, null);
     }   //TrcDriveBase
@@ -187,7 +190,7 @@ public class TrcDriveBase extends HalRobotDrive implements TrcTaskMgr.Task
      * @param rightMotor specifies the right rear motor of the drive base.
      * @param gyro specifies the gyro. If none, it can be set to null.
      */
-    public TrcDriveBase(TrcMotor leftMotor, TrcMotor rightMotor, TrcGyro gyro)
+    public TrcDriveBase(TrcMotorController leftMotor, TrcMotorController rightMotor, TrcGyro gyro)
     {
         super(null, null, leftMotor, null, null, rightMotor);
         if (leftMotor == null || rightMotor == null)
@@ -204,7 +207,7 @@ public class TrcDriveBase extends HalRobotDrive implements TrcTaskMgr.Task
      * @param leftMotor specifies the left rear motor of the drive base.
      * @param rightMotor specifies the right rear motor of the drive base.
      */
-    public TrcDriveBase(TrcMotor leftMotor, TrcMotor rightMotor)
+    public TrcDriveBase(TrcMotorController leftMotor, TrcMotorController rightMotor)
     {
         this(leftMotor, rightMotor, null);
     }   //TrcDriveBase

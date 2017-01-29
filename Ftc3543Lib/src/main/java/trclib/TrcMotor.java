@@ -24,13 +24,14 @@ package trclib;
 
 /**
  * This class implements a platform independent motor controller. Typically, this class is extended by a platform
- * dependent motor controller class. The platform dependent motor controller class must implement the abstract
- * methods required by this class. The abstract methods allow this class to access the physical motor controller
- * independent of the platform. Not all motor controllers are created equal. Some have more features than the other.
- * This class attempts to implement some of the features in software. If the motor controller supports these features
- * in hardware, the subclass should override these methods and access the hardware instead.
+ * dependent motor controller class. Not all motor controllers are created equal. Some have more features than the
+ * others. This class attempts to emulate some of the features in software. If the platform dependent motor controller
+ * supports some features in hardware it should override the corresponding methods and call the hardware directly.
+ * For some features that there is no software emulation, this class will throw an UnsupportedOperationException.
+ * If the motor controller hardware support these features, the platform dependent class should override these methods
+ * to provide the support in hardware.
  */
-public abstract class TrcMotor implements TrcTaskMgr.Task
+public abstract class TrcMotor implements TrcMotorController, TrcTaskMgr.Task
 {
     private static final String moduleName = "TrcMotor";
     private static final boolean debugEnabled = false;
@@ -38,71 +39,6 @@ public abstract class TrcMotor implements TrcTaskMgr.Task
     private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
     private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
-
-    /**
-     * This method returns the state of the motor controller direction.
-     *
-     * @return true if the motor direction is inverted, false otherwise.
-     */
-    public abstract boolean getInverted();
-
-    /**
-     * This method returns the motor position by reading the position sensor. The position sensor can be an encoder
-     * or a potentiometer.
-     *
-     * @return current motor position.
-     */
-    public abstract double getPosition();
-
-    /**
-     * This method gets the last set power.
-     *
-     * @return the last setPower value.
-     */
-    public abstract double getPower();
-
-    /**
-     * This method returns the state of the lower limit switch.
-     *
-     * @return true if lower limit switch is active, false otherwise.
-     */
-    public abstract boolean isLowerLimitSwitchActive();
-
-    /**
-     * This method returns the state of the upper limit switch.
-     *
-     * @return true if upper limit switch is active, false otherwise.
-     */
-    public abstract boolean isUpperLimitSwitchActive();
-
-    /**
-     * This method resets the motor position sensor, typically an encoder.
-     */
-    public abstract void resetPosition();
-
-    /**
-     * This method enables/disables motor brake mode. In motor brake mode, set power to 0 would stop the motor very
-     * abruptly by shorting the motor wires together using the generated back EMF to stop the motor. When brakMode
-     * is false (i.e. float/coast mode), the motor wires are just disconnected from the motor controller so the motor
-     * will stop gradually.
-     *
-     * @param enabled specifies true to enable brake mode, false otherwise.
-     */
-    public abstract void setBrakeModeEnabled(boolean enabled);
-
-    /**
-     * This method inverts the motor direction.
-     *
-     * @param inverted specifies true to invert motor direction, false otherwise.
-     */
-    public abstract void setInverted(boolean inverted);
-
-    /**
-     * This method sets the output power of the motor controller.
-     *
-     * @param power specifies the output power for the motor controller in the range of -1.0 to 1.0.
-     */
-    public abstract void setPower(double power);
 
     private final String instanceName;
     private boolean speedTaskEnabled = false;
@@ -136,12 +72,54 @@ public abstract class TrcMotor implements TrcTaskMgr.Task
     }   //toString
 
     /**
+     * This method enables/disables the task that monitors the motor speed. To determine the motor speed, the task
+     * runs periodically and determines the delta encoder reading over delta time to calculate the speed. Since the
+     * task takes up CPU cycle, it should not be enabled if the user doesn't need motor speed info.
+     *
+     * @param enabled specifies true to enable speed monitor task, disable otherwise.
+     */
+    public void setSpeedTaskEnabled(boolean enabled)
+    {
+        final String funcName = "setSpeedTaskEnabled";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "enabled=%s", Boolean.toString(enabled));
+        }
+
+        speedTaskEnabled = enabled;
+        TrcTaskMgr taskMgr = TrcTaskMgr.getInstance();
+        if (enabled)
+        {
+            prevTime = TrcUtil.getCurrentTime();
+            prevPos = getPosition();
+            taskMgr.registerTask(instanceName, this, TrcTaskMgr.TaskType.STOP_TASK);
+            taskMgr.registerTask(instanceName, this, TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+        }
+        else
+        {
+            taskMgr.unregisterTask(this, TrcTaskMgr.TaskType.STOP_TASK);
+            taskMgr.unregisterTask(this, TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+        }
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+    }   //setSpeedTaskEnabled
+
+    //
+    // Implements the TrcMotorController interface.
+    //
+
+    /**
      * This method returns the speed of the motor rotation. It keeps track of the rotation speed by using a periodic
      * task to monitor the position sensor value. If the motor controller has hardware monitoring speed, it should
      * override this method and access the hardware instead.
      *
-     * @throws UnsupportedOperationException exception.
+     * @throws UnsupportedOperationException.
      */
+    @Override
     public double getSpeed()
     {
         final String funcName = "getSpeed";
@@ -161,39 +139,6 @@ public abstract class TrcMotor implements TrcTaskMgr.Task
             throw new UnsupportedOperationException("SpeedTask is not enabled.");
         }
     }   //getSpeed
-
-    /**
-     * This method enables/disables the task that monitors the motor speed. To determine the motor speed, the task
-     * runs periodically and determines the delta encoder reading over delta time to calculate the speed. Since the
-     * task takes up CPU cycle, it should not be enabled if the user doesn't need motor speed info.
-     *
-     * @param enabled specifies true to enable speed monitor task, disable otherwise.
-     */
-    public void setSpeedTaskEnabled(boolean enabled)
-    {
-        final String funcName = "setSpeedTaskEnabled";
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "enabled=%s", Boolean.toString(enabled));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
-        }
-
-        speedTaskEnabled = enabled;
-        TrcTaskMgr taskMgr = TrcTaskMgr.getInstance();
-        if (enabled)
-        {
-            prevTime = TrcUtil.getCurrentTime();
-            prevPos = getPosition();
-            taskMgr.registerTask(instanceName, this, TrcTaskMgr.TaskType.STOP_TASK);
-            taskMgr.registerTask(instanceName, this, TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
-        }
-        else
-        {
-            taskMgr.unregisterTask(this, TrcTaskMgr.TaskType.STOP_TASK);
-            taskMgr.unregisterTask(this, TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
-        }
-    }   //setSpeedTaskEnabled
 
     //
     // Implements TrcTaskMgr.Task

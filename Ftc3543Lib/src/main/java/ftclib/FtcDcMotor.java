@@ -54,6 +54,10 @@ public class FtcDcMotor extends TrcMotor
     private int prevEncPos;
     private int positionSensorSign = 1;
     private double prevPower = 0.0;
+    private boolean softLowerLimitEnabled = false;
+    private boolean softUpperLimitEnabled = false;
+    private double softLowerLimit = 0.0;
+    private double softUpperLimit = 0.0;
 
     /**
      * Constructor: Create an instance of the object.
@@ -373,14 +377,15 @@ public class FtcDcMotor extends TrcMotor
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "power=%f", power);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
         //
         // If we have limit switches, respect them.
         //
-        if (power > 0.0 && upperLimitSwitch != null && upperLimitSwitch.isActive() ||
-            power < 0.0 && lowerLimitSwitch != null && lowerLimitSwitch.isActive())
+        if (power > 0.0 && (upperLimitSwitch != null && upperLimitSwitch.isActive() ||
+                            softUpperLimitEnabled && getPosition() >= softUpperLimit) ||
+            power < 0.0 && (lowerLimitSwitch != null && lowerLimitSwitch.isActive() ||
+                            softLowerLimitEnabled && getPosition() <= softLowerLimit))
         {
             power = 0.0;
         }
@@ -390,6 +395,68 @@ public class FtcDcMotor extends TrcMotor
             motor.setPower(power);
             prevPower = power;
         }
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "! (power=%f)", power);
+        }
     }   //setPower
+
+    /**
+     * This method enables/disables soft limit switches.
+     *
+     * @param lowerLimitEnabled specifies true to enable lower soft limit switch, false otherwise.
+     * @param upperLimitEnabled specifies true to enable upper soft limit switch, false otherwise.
+     */
+    public void setSoftLimitEnabled(boolean lowerLimitEnabled, boolean upperLimitEnabled)
+    {
+        final String funcName = "setSoftLimitEnabled";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "lowerEnabled=%s,upperEnabled=%s",
+                                Boolean.toString(lowerLimitEnabled), Boolean.toString(upperLimitEnabled));
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+
+        softLowerLimitEnabled = lowerLimitEnabled;
+        softUpperLimitEnabled = upperLimitEnabled;
+    }   //setSoftLimitEnabled
+
+    /**
+     * This method sets the lower soft limit.
+     *
+     * @param position specifies the position of the lower limit.
+     */
+    public void setSoftLowerLimit(double position)
+    {
+        final String funcName = "setSoftLowerLimit";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "position=%f", position);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+
+        softLowerLimit = position;
+    }   //setSoftLowerLimit
+
+    /**
+     * This method sets the upper soft limit.
+     *
+     * @param position specifies the position of the upper limit.
+     */
+    public void setSoftUpperLimit(double position)
+    {
+        final String funcName = "setSoftUpperLimit";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "position=%f", position);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+
+        softUpperLimit = position;
+    }   //setSoftUpperLimit
 
 }   //class FtcDcMotor
