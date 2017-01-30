@@ -94,7 +94,7 @@ public class TrcDbgTrace
     private TraceLevel traceLevel;
     private MsgLevel msgLevel;
     private double nextTraceTime;
-    private PrintStream logFile = null;
+    private PrintStream traceLog = null;
 
     /**
      * Constructor: Create an instance of the object.
@@ -114,36 +114,36 @@ public class TrcDbgTrace
     /**
      * This method opens a file for writing all the trace messages to it.
      *
-     * @param logFileName specifies the log file name.
+     * @param traceLogName specifies the trace log file name.
      * @return true if log file is successfully opened, false if it failed.
      */
-    public boolean openLogFile(String logFileName)
+    public boolean openTraceLog(String traceLogName)
     {
         boolean success = true;
 
         try
         {
-            logFile = new PrintStream(new File(logFileName));
+            traceLog = new PrintStream(new File(traceLogName));
         }
         catch (FileNotFoundException e)
         {
-            logFile = null;
+            traceLog = null;
             success = false;
         }
 
         return success;
-    }   //openLogFile
+    }   //openTraceLog
 
     /**
-     * This method closes the log file.
+     * This method closes the trace log file.
      */
-    public void closeLogFile()
+    public void closeTraceLog()
     {
-        if (logFile != null)
+        if (traceLog != null)
         {
-            logFile.close();
+            traceLog.close();
         }
-    }   //closeLogFile
+    }   //closeTraceLog
 
     /**
      * This method sets the trace level, message level of the debug tracer. It can also enables/disables function
@@ -323,10 +323,10 @@ public class TrcDbgTrace
                 nextTraceTime = currTime + traceInterval;
                 String msg = msgPrefix(funcName, level) + String.format(format, args) + "\n";
                 HalDbgLog.msg(level, msg);
-                if (logFile != null)
+                if (traceLog != null)
                 {
-                    logFile.print(msg);
-                    logFile.flush();
+                    traceLog.print(msg);
+                    traceLog.flush();
                 }
             }
         }
