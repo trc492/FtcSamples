@@ -22,6 +22,10 @@
 
 package trclib;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintStream;
+
 import hallib.HalDbgLog;
 
 /**
@@ -90,6 +94,7 @@ public class TrcDbgTrace
     private TraceLevel traceLevel;
     private MsgLevel msgLevel;
     private double nextTraceTime;
+    private PrintStream logFile = null;
 
     /**
      * Constructor: Create an instance of the object.
@@ -105,6 +110,40 @@ public class TrcDbgTrace
         setDbgTraceConfig(traceEnabled, traceLevel, msgLevel);
         this.nextTraceTime = TrcUtil.getCurrentTime();
     }   //TrcDbgTrace
+
+    /**
+     * This method opens a file for writing all the trace messages to it.
+     *
+     * @param logFileName specifies the log file name.
+     * @return true if log file is successfully opened, false if it failed.
+     */
+    public boolean openLogFile(String logFileName)
+    {
+        boolean success = true;
+
+        try
+        {
+            logFile = new PrintStream(new File(logFileName));
+        }
+        catch (FileNotFoundException e)
+        {
+            logFile = null;
+            success = false;
+        }
+
+        return success;
+    }   //openLogFile
+
+    /**
+     * This method closes the log file.
+     */
+    public void closeLogFile()
+    {
+        if (logFile != null)
+        {
+            logFile.close();
+        }
+    }   //closeLogFile
 
     /**
      * This method sets the trace level, message level of the debug tracer. It can also enables/disables function
@@ -282,7 +321,13 @@ public class TrcDbgTrace
             if (currTime >= nextTraceTime)
             {
                 nextTraceTime = currTime + traceInterval;
-                HalDbgLog.msg(level, msgPrefix(funcName, level) + String.format(format, args) + "\n");
+                String msg = msgPrefix(funcName, level) + String.format(format, args) + "\n";
+                HalDbgLog.msg(level, msg);
+                if (logFile != null)
+                {
+                    logFile.print(msg);
+                    logFile.flush();
+                }
             }
         }
     }   //traceMsg
