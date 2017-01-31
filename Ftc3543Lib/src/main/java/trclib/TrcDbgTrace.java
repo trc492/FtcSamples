@@ -142,6 +142,7 @@ public class TrcDbgTrace
         if (traceLog != null)
         {
             traceLog.close();
+            traceLog = null;
         }
     }   //closeTraceLog
 
