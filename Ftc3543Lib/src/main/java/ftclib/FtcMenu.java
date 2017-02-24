@@ -201,9 +201,6 @@ public abstract class FtcMenu
     }   //setRootMenu
 
     /**
-     *
-     */
-    /**
      * This method traverses the menu tree from the given root menu displaying each menu and waiting for the user
      * to respond to a menu. After the user responded to a menu, it will go to the next menu in the tree. If the
      * user cancels the menu, it will go back to the parent menu where it came from. If there is no next menu, the

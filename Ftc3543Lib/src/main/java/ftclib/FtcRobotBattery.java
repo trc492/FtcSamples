@@ -24,6 +24,8 @@ package ftclib;
 
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsUsbDcMotorController;
 import com.qualcomm.robotcore.hardware.DcMotorController;
+import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.VoltageSensor;
 
 import trclib.TrcDbgTrace;
 import trclib.TrcRobot;
@@ -42,23 +44,32 @@ public class FtcRobotBattery implements TrcTaskMgr.Task
     private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
 
-    private ModernRoboticsUsbDcMotorController motorController;
+    private VoltageSensor sensor;
+    private double currVoltage = 0.0;
     private double lowestVoltage = 0.0;
     private double highestVoltage = 0.0;
 
     /**
      * Constructor: create an instance of the object.
      *
-     * @param motorController specifies the motor control that provides the voltage information.
+     * @param hardwareMap specifies the global hardware map.
      */
-    public FtcRobotBattery(DcMotorController motorController)
+    public FtcRobotBattery(HardwareMap hardwareMap)
     {
         if (debugEnabled)
         {
             dbgTrace = new TrcDbgTrace(moduleName, tracingEnabled, traceLevel, msgLevel);
         }
 
-        this.motorController = (ModernRoboticsUsbDcMotorController)motorController;
+        sensor = hardwareMap.voltageSensor.iterator().next();
+    }   //FtcRobotBattery
+
+    /**
+     * Constructor: create an instance of the object.
+     */
+    public FtcRobotBattery()
+    {
+        this(FtcOpMode.getInstance().hardwareMap);
     }   //FtcRobotBattery
 
     /**
@@ -79,7 +90,7 @@ public class FtcRobotBattery implements TrcTaskMgr.Task
 
         if (enabled)
         {
-            lowestVoltage = highestVoltage = motorController.getVoltage();
+            currVoltage = lowestVoltage = highestVoltage = sensor.getVoltage();
             TrcTaskMgr.getInstance().registerTask(moduleName, this, TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
         }
         else
@@ -95,7 +106,7 @@ public class FtcRobotBattery implements TrcTaskMgr.Task
      */
     public double getCurrentVoltage()
     {
-        return motorController.getVoltage();
+        return currVoltage;
     }   //getCurrentVoltage
 
     /**
@@ -159,14 +170,14 @@ public class FtcRobotBattery implements TrcTaskMgr.Task
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
         }
 
-        double voltage = getCurrentVoltage();
-        if (voltage < lowestVoltage)
+        currVoltage = sensor.getVoltage();
+        if (currVoltage < lowestVoltage)
         {
-            lowestVoltage = voltage;
+            lowestVoltage = currVoltage;
         }
-        else if (voltage > highestVoltage)
+        else if (currVoltage > highestVoltage)
         {
-            highestVoltage = voltage;
+            highestVoltage = currVoltage;
         }
     }   //preContinuousTask
 

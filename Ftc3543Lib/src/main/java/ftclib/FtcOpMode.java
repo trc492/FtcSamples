@@ -65,6 +65,7 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
     private static double opModeStartTime = 0.0;
     private static double opModeElapsedTime = 0.0;
     private static double loopStartTime = 0.0;
+    private static long loopCounter = 0;
 
     private TrcTaskMgr taskMgr;
 
@@ -166,6 +167,18 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
     {
         return loopStartTime;
     }   //getElapsedTime
+
+    /**
+     * This method returns the loop counter. This is very useful for code to determine if it is called multiple times
+     * in the same loop. For example, it can be used to optimize sensor access so that if the sensor is accessed in
+     * the same loop, there is no reason to create a new bus transaction to get "fresh" data from the sensor.
+     *
+     * @return loop counter value.
+     */
+    public static long getLoopCounter()
+    {
+        return loopCounter;
+    }   //getLoopCounter
 
     /**
      * This method returns a TextToSpeech object. If it doesn't exist yet, one is created.

@@ -57,6 +57,20 @@ public class FtcMRRangeSensor extends TrcSensor<FtcMRRangeSensor.DataType>
     }   //enum DataType
 
     public ModernRoboticsI2cRangeSensor sensor;
+    private double distanceInchData = 0.0;
+    private long distanceInchTagId = -1;
+    private double ultrasonicCmData = 0.0;
+    private long ultrasonicCmTagId = -1;
+    private double opticalCmData = 0.0;
+    private long opticalCmTagId = -1;
+    private double ultrasonicRawData = 0.0;
+    private long ultrasonicRawTagId = -1;
+    private double opticalRawData = 0.0;
+    private long opticalRawTagId = -1;
+    private double rawLightData = 0.0;
+    private double rawLightTagId = -1;
+    private double lightData = 0.0;
+    private long lightTagId = -1;
 
     /**
      * Constructor: Creates an instance of the object.
@@ -124,35 +138,71 @@ public class FtcMRRangeSensor extends TrcSensor<FtcMRRangeSensor.DataType>
     {
         final String funcName = "getRawData";
         SensorData<Double> data = null;
+        long currTagId = FtcOpMode.getLoopCounter();
 
         switch (dataType)
         {
             case DISTANCE_INCH:
-                data = new SensorData<>(TrcUtil.getCurrentTime(), sensor.getDistance(DistanceUnit.INCH));
+                if (currTagId != distanceInchTagId)
+                {
+                    distanceInchData = sensor.getDistance(DistanceUnit.INCH);
+                    distanceInchTagId = currTagId;
+                }
+                data = new SensorData<>(TrcUtil.getCurrentTime(), distanceInchData);
                 break;
 
             case ULTRASONIC_CM:
-                data = new SensorData<>(TrcUtil.getCurrentTime(), sensor.cmUltrasonic());
+                if (currTagId != ultrasonicCmTagId)
+                {
+                    ultrasonicCmData = sensor.cmUltrasonic();
+                    ultrasonicCmTagId = currTagId;
+                }
+                data = new SensorData<>(TrcUtil.getCurrentTime(), ultrasonicCmData);
                 break;
 
             case OPTICAL_CM:
-                data = new SensorData<>(TrcUtil.getCurrentTime(), sensor.cmOptical());
+                if (currTagId != opticalCmTagId)
+                {
+                    opticalCmData = sensor.cmOptical();
+                    opticalCmTagId= currTagId;
+                }
+                data = new SensorData<>(TrcUtil.getCurrentTime(), opticalCmData);
                 break;
 
             case ULTRASONIC_RAW:
-                data = new SensorData<>(TrcUtil.getCurrentTime(), (double) sensor.rawUltrasonic());
+                if (currTagId != ultrasonicRawTagId)
+                {
+                    ultrasonicRawData = sensor.rawUltrasonic();
+                    ultrasonicCmTagId = currTagId;
+                }
+                data = new SensorData<>(TrcUtil.getCurrentTime(), ultrasonicRawData);
                 break;
 
             case OPTICAL_RAW:
-                data = new SensorData<>(TrcUtil.getCurrentTime(), (double) sensor.rawOptical());
+                if (currTagId != opticalRawTagId)
+                {
+                    opticalRawData = sensor.rawOptical();
+                    opticalRawTagId = currTagId;
+                }
+                data = new SensorData<>(TrcUtil.getCurrentTime(), opticalRawData);
                 break;
 
             case RAW_LIGHT_DETECTED:
-                data = new SensorData<>(TrcUtil.getCurrentTime(), sensor.getRawLightDetected());
+                if (currTagId != rawLightTagId)
+                {
+                    rawLightData = sensor.getRawLightDetected();
+                    rawLightTagId = currTagId;
+                }
+                data = new SensorData<>(TrcUtil.getCurrentTime(), rawLightData);
                 break;
 
             case LIGHT_DETECTED:
-                data = new SensorData<>(TrcUtil.getCurrentTime(), sensor.getLightDetected());
+                if (currTagId != lightTagId)
+                {
+                    lightData = sensor.getLightDetected();
+                    lightTagId = currTagId;
+                }
+                data = new SensorData<>(TrcUtil.getCurrentTime(), lightData);
         }
 
         if (debugEnabled)

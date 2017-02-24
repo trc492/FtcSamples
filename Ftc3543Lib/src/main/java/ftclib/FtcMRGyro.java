@@ -46,6 +46,14 @@ public class FtcMRGyro extends TrcGyro
 
     private ModernRoboticsI2cGyro gyro;
     private FtcI2cDeviceState sensorState;
+    private double xRateData = 0.0;
+    private long xRateTagId = -1;
+    private double yRateData = 0.0;
+    private long yRateTagId = -1;
+    private double zRateData = 0.0;
+    private long zRateTagId = -1;
+    private double zHeadingData = 0.0;
+    private long zHeadingTagId = -1;
 
     /**
      * Constructor: Creates an instance of the object.
@@ -216,16 +224,20 @@ public class FtcMRGyro extends TrcGyro
     public SensorData<Double> getRawXData(DataType dataType)
     {
         final String funcName = "getRawXData";
-        double value = 0.0;
 
         //
         // MR gyro supports only rotation rate for the x-axis.
         //
         if (dataType == DataType.ROTATION_RATE)
         {
-            value = gyro.rawX();
+            long currTagId = FtcOpMode.getLoopCounter();
+            if (currTagId != xRateTagId)
+            {
+                xRateData = gyro.rawX();
+                xRateTagId = currTagId;
+            }
         }
-        SensorData<Double> data = new SensorData<>(TrcUtil.getCurrentTime(), value);
+        SensorData<Double> data = new SensorData<>(TrcUtil.getCurrentTime(), xRateData);
 
         if (debugEnabled)
         {
@@ -247,16 +259,20 @@ public class FtcMRGyro extends TrcGyro
     public SensorData<Double> getRawYData(DataType dataType)
     {
         final String funcName = "getRawYData";
-        double value = 0.0;
 
         //
         // MR gyro supports only rotation rate for the x-axis.
         //
         if (dataType == DataType.ROTATION_RATE)
         {
-            value = gyro.rawY();
+            long currTagId = FtcOpMode.getLoopCounter();
+            if (currTagId != yRateTagId)
+            {
+                yRateData = gyro.rawY();
+                yRateTagId = currTagId;
+            }
         }
-        SensorData<Double> data = new SensorData<>(TrcUtil.getCurrentTime(), value);
+        SensorData<Double> data = new SensorData<>(TrcUtil.getCurrentTime(), yRateData);
 
         if (debugEnabled)
         {
@@ -279,14 +295,25 @@ public class FtcMRGyro extends TrcGyro
     {
         final String funcName = "getRawZData";
         double value = 0.0;
+        long currTagId = FtcOpMode.getLoopCounter();
 
         if (dataType == DataType.ROTATION_RATE)
         {
-            value = gyro.rawZ();
+            if (currTagId != zRateTagId)
+            {
+                zRateData = gyro.rawZ();
+                zRateTagId = currTagId;
+            }
+            value = zRateData;
         }
         else if (dataType == DataType.HEADING)
         {
-            value = -gyro.getIntegratedZValue();
+            if (currTagId != zHeadingTagId)
+            {
+                zHeadingData = -gyro.getIntegratedZValue();
+                zHeadingTagId = currTagId;
+            }
+            value = zHeadingData;
         }
         SensorData<Double> data = new SensorData<>(TrcUtil.getCurrentTime(), value);
 

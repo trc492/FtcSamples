@@ -57,7 +57,8 @@ public class FtcGamepad implements TrcTaskMgr.Task
     public static final int GAMEPAD_DPAD_DOWN   = ((int)1 << 13);
 
     /**
-     * This interface if provided will allow this class to do a notification callback when there are button activities.
+     * This interface, if provided, will allow this class to do a notification callback when there are button
+     * activities.
      */
     public interface ButtonHandler
     {
@@ -68,7 +69,7 @@ public class FtcGamepad implements TrcTaskMgr.Task
          * @param button specifies the button ID that generates the event
          * @param pressed specifies true if the button is pressed, false otherwise.
          */
-        public void gamepadButtonEvent(FtcGamepad gamepad, int button, boolean pressed);
+        void gamepadButtonEvent(FtcGamepad gamepad, int button, boolean pressed);
 
     }   //interface ButonHandler
 

@@ -47,6 +47,8 @@ public class FtcAccelerometer extends TrcAccelerometer
     private TrcDbgTrace dbgTrace = null;
 
     private AccelerationSensor accel;
+    private Acceleration accelData = null;
+    private long dataTagId = -1;
 
     /**
      * Constructor: Creates an instance of the object.
@@ -118,7 +120,13 @@ public class FtcAccelerometer extends TrcAccelerometer
 
         if (dataType == DataType.ACCELERATION)
         {
-            Acceleration accelData = accel.getAcceleration();
+            long currTagId = FtcOpMode.getLoopCounter();
+            if (currTagId != dataTagId)
+            {
+                accelData = accel.getAcceleration();
+                dataTagId = currTagId;
+            }
+
             data = new SensorData<>(TrcUtil.getCurrentTime(), accelData.xAccel);
         }
         else
@@ -150,7 +158,13 @@ public class FtcAccelerometer extends TrcAccelerometer
 
         if (dataType == DataType.ACCELERATION)
         {
-            Acceleration accelData = accel.getAcceleration();
+            long currTagId = FtcOpMode.getLoopCounter();
+            if (currTagId != dataTagId)
+            {
+                accelData = accel.getAcceleration();
+                dataTagId = currTagId;
+            }
+
             data = new SensorData<>(TrcUtil.getCurrentTime(), accelData.yAccel);
         }
         else
@@ -182,7 +196,13 @@ public class FtcAccelerometer extends TrcAccelerometer
 
         if (dataType == DataType.ACCELERATION)
         {
-            Acceleration accelData = accel.getAcceleration();
+            long currTagId = FtcOpMode.getLoopCounter();
+            if (currTagId != dataTagId)
+            {
+                accelData = accel.getAcceleration();
+                dataTagId = currTagId;
+            }
+
             data = new SensorData<>(TrcUtil.getCurrentTime(), accelData.zAccel);
         }
         else

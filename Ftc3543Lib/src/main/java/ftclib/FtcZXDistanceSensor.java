@@ -281,7 +281,7 @@ public class FtcZXDistanceSensor extends FtcI2cDevice implements TrcSensor.DataS
     private TrcSensor.SensorData<Double> zPos = new TrcSensor.SensorData<>(0.0, null);
     private TrcSensor.SensorData<Double> leftRangingData = new TrcSensor.SensorData<>(0.0, null);
     private TrcSensor.SensorData<Double> rightRangingData = new TrcSensor.SensorData<>(0.0, null);
-    private double cacheTimestamp = 0.0;
+    private long dataTagId = -1;
 
     /**
      * Constructor: Creates an instance of the object.
@@ -347,9 +347,9 @@ public class FtcZXDistanceSensor extends FtcI2cDevice implements TrcSensor.DataS
     public int getStatus()
     {
         final String funcName = "getStatus";
-        double loopStartTime = FtcOpMode.getLoopStartTime();
+        long currTagId = FtcOpMode.getLoopCounter();
 
-        if (loopStartTime > cacheTimestamp)
+        if (currTagId != dataTagId)
         {
             byte[] data;
 
@@ -390,7 +390,7 @@ public class FtcZXDistanceSensor extends FtcI2cDevice implements TrcSensor.DataS
                 dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%x", deviceStatus);
             }
 
-            cacheTimestamp = loopStartTime;
+            dataTagId = currTagId;
         }
 
         return deviceStatus;

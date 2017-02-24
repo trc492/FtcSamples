@@ -42,6 +42,8 @@ public class FtcTouchSensor extends TrcDigitalInput
     private TrcDbgTrace dbgTrace = null;
 
     private TouchSensor touchSensor;
+    private boolean touchState = false;
+    private long touchStateTagId = -1;
 
     /**
      * Constructor: Creates an instance of the object.
@@ -84,15 +86,21 @@ public class FtcTouchSensor extends TrcDigitalInput
     public boolean isActive()
     {
         final String funcName = "isActive";
-        boolean active = touchSensor.isPressed();
+        long currTagId = FtcOpMode.getLoopCounter();
+
+        if (currTagId != touchStateTagId)
+        {
+            touchState = touchSensor.isPressed();
+            touchStateTagId = currTagId;
+        }
 
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", Boolean.toString(active));
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", Boolean.toString(touchState));
         }
 
-        return active;
+        return touchState;
     }   //isActive
 
 }   //class FtcTouchSensor

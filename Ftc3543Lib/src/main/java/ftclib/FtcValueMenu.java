@@ -61,7 +61,7 @@ public class FtcValueMenu extends FtcMenu
         this.valueStep = valueStep;
         this.currValue = defaultValue;
         this.valueFormat = valueFormat;
-    }   //FtcMenu
+    }   //FtcValueMenu
 
     /**
      * This method sets the next menu to go to after pressing ENTER on the value menu.

@@ -46,6 +46,8 @@ public class FtcAnalogGyro extends TrcGyro
 
     private double voltPerDegPerSec;
     private AnalogInput gyro;
+    private double gyroData = 0.0;
+    private long dataTagId = -1;
 
     /**
      * Constructor: Creates an instance of the object.
@@ -155,16 +157,20 @@ public class FtcAnalogGyro extends TrcGyro
     public SensorData<Double> getRawZData(DataType dataType)
     {
         final String funcName = "getRawZData";
-        double value = 0.0;
 
         //
         // Analog gyro supports only rotation rate.
         //
         if (dataType == DataType.ROTATION_RATE)
         {
-            value = gyro.getVoltage()/voltPerDegPerSec;
+            long currTagId = FtcOpMode.getLoopCounter();
+            if (currTagId != dataTagId)
+            {
+                gyroData = gyro.getVoltage()/voltPerDegPerSec;
+                dataTagId = currTagId;
+            }
         }
-        SensorData<Double> data = new SensorData<>(TrcUtil.getCurrentTime(), value);
+        SensorData<Double> data = new SensorData<>(TrcUtil.getCurrentTime(), gyroData);
 
         if (debugEnabled)
         {

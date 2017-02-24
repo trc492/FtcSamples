@@ -49,6 +49,8 @@ public class FtcUltrasonicSensor extends TrcSensor<FtcUltrasonicSensor.DataType>
     }   //enum DataType
 
     private UltrasonicSensor sensor;
+    private double sensorData = 0.0;
+    private long dataTagId = -1;
 
     /**
      * Constructor: Creates an instance of the object.
@@ -108,11 +110,17 @@ public class FtcUltrasonicSensor extends TrcSensor<FtcUltrasonicSensor.DataType>
     {
         final String funcName = "getRawData";
         SensorData<Double> data = null;
+        long currTagId = FtcOpMode.getLoopCounter();
 
         switch (dataType)
         {
             case ULTRASONIC:
-                data = new SensorData<>(TrcUtil.getCurrentTime(), sensor.getUltrasonicLevel());
+                if (currTagId != dataTagId)
+                {
+                    sensorData = sensor.getUltrasonicLevel();
+                    dataTagId = currTagId;
+                }
+                data = new SensorData<>(TrcUtil.getCurrentTime(), sensorData);
                 break;
         }
 

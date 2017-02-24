@@ -114,7 +114,7 @@ public class FtcI2cAdaFruitColorSensor extends FtcI2cDevice
     private TrcSensor.SensorData<Integer> redValue = new TrcSensor.SensorData<>(0.0, null);
     private TrcSensor.SensorData<Integer> greenValue = new TrcSensor.SensorData<>(0.0, null);
     private TrcSensor.SensorData<Integer> blueValue = new TrcSensor.SensorData<>(0.0, null);
-    private double cacheTimestamp = 0.0;
+    private long dataTagId = -1;
 
     /**
      * Constructor: Creates an instance of the object.
@@ -239,12 +239,12 @@ public class FtcI2cAdaFruitColorSensor extends FtcI2cDevice
      */
     public int getStatus()
     {
-        double loopStartTime = FtcOpMode.getLoopStartTime();
-        //
-        // We only update the cache if we are in a different time slice loop as before.
-        //
-        if (loopStartTime > cacheTimestamp)
+        long currTagId = FtcOpMode.getLoopCounter();
+        if (currTagId != dataTagId)
         {
+            //
+            // We only update the cache if we are in a different time slice loop as before.
+            //
             byte[] regData = getData(readerId);
 
             deviceStatus = TrcUtil.bytesToInt(regData[REG_STATUS - READ_START]);
@@ -268,7 +268,7 @@ public class FtcI2cAdaFruitColorSensor extends FtcI2cDevice
                 blueValue.value = TrcUtil.bytesToInt(
                         regData[REG_BDATAL - READ_START], regData[REG_BDATAH - READ_START]);
             }
-            cacheTimestamp = loopStartTime;
+            dataTagId = currTagId;
         }
 
         return deviceStatus;

@@ -45,6 +45,8 @@ public class FtcHiTechnicGyro extends TrcGyro
     private TrcDbgTrace dbgTrace = null;
 
     private GyroSensor gyro;
+    private double gyroZData = 0.0;
+    private long zDataTagId = -1;
 
     /**
      * Constructor: Creates an instance of the object.
@@ -152,16 +154,20 @@ public class FtcHiTechnicGyro extends TrcGyro
     public SensorData<Double> getRawZData(DataType dataType)
     {
         final String funcName = "getRawZData";
-        double value = 0.0;
 
         //
         // HiTechnic gyro supports only rotation rate.
         //
         if (dataType == DataType.ROTATION_RATE)
         {
-            value = gyro.rawZ();
+            long currTagId = FtcOpMode.getLoopCounter();
+            if (currTagId != zDataTagId)
+            {
+                gyroZData = gyro.rawZ();
+                zDataTagId = currTagId;
+            }
         }
-        SensorData<Double> data = new SensorData<>(TrcUtil.getCurrentTime(), value);
+        SensorData<Double> data = new SensorData<>(TrcUtil.getCurrentTime(), gyroZData);
 
         if (debugEnabled)
         {
