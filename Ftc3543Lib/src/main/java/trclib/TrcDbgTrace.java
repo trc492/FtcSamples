@@ -25,6 +25,9 @@ package trclib;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 import hallib.HalDbgLog;
 
@@ -112,12 +115,12 @@ public class TrcDbgTrace
     }   //TrcDbgTrace
 
     /**
-     * This method opens a file for writing all the trace messages to it.
+     * This method opens a log file for writing all the trace messages to it.
      *
      * @param traceLogName specifies the trace log file name.
      * @return true if log file is successfully opened, false if it failed.
      */
-    public boolean openTraceLog(String traceLogName)
+    public boolean openTraceLog(final String traceLogName)
     {
         boolean success = true;
 
@@ -132,6 +135,24 @@ public class TrcDbgTrace
         }
 
         return success;
+    }   //openTraceLog
+
+    /**
+     * This method opens a log file for writing all the trace messages to it. The log file is written to the specified
+     * folder. The file name will be formed by concatenating the specified file prefix and a date-time stamp.
+     *
+     * @param folderPath specifies the folder path.
+     * @param filePrefix specifies the file name prefix.
+     * @return true if log file is successfully opened, false if it failed.
+     */
+    public boolean openTraceLog(final String folderPath, final String filePrefix)
+    {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd_hh-mm", Locale.US);
+        String logFilePath = folderPath + "/" + filePrefix + "_" + dateFormat.format(new Date()) + ".log";
+        File folder = new File(folderPath);
+        folder.mkdir();
+
+        return openTraceLog(logFilePath);
     }   //openTraceLog
 
     /**
