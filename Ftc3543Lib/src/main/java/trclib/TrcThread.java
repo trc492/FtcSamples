@@ -329,6 +329,13 @@ public class TrcThread<T> implements Runnable
     @Override
     public void run()
     {
+        final String funcName = "run";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.CALLBK);
+        }
+
         while (!Thread.interrupted() && !taskState.isTaskTerminated())
         {
             long startTime = TrcUtil.getCurrentTimeMillis();
@@ -343,6 +350,15 @@ public class TrcThread<T> implements Runnable
                 long sleepTime = processingInterval - (TrcUtil.getCurrentTimeMillis() - startTime);
                 TrcUtil.sleep(sleepTime);
             }
+            else
+            {
+                Thread.yield();
+            }
+        }
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.CALLBK);
         }
     }   //run
 
