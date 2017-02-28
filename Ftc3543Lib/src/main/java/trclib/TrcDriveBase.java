@@ -51,7 +51,7 @@ public class TrcDriveBase implements TrcTaskMgr.Task
         {
             this.value = value;
         }
-    }   //class MotorType
+    }   //enum MotorType
 
     private static double DEF_SENSITIVITY = 0.5;
     private static double DEF_MAX_OUTPUT = 1.0;
