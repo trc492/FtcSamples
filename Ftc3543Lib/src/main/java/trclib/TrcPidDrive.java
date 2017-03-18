@@ -72,6 +72,7 @@ public class TrcPidDrive implements TrcTaskMgr.Task
     private boolean turnOnly = false;
     private boolean maintainHeading = false;
     private boolean canceled = false;
+    private boolean pidDriveStarted = false;
 
     /**
      * Constructor: Create an instance of the object.
@@ -278,6 +279,7 @@ public class TrcPidDrive implements TrcTaskMgr.Task
 
         this.holdTarget = holdTarget;
         this.turnOnly = xTarget == 0.0 && yTarget == 0.0 && turnTarget != 0.0;
+        this.pidDriveStarted = false;
 
         setTaskEnabled(true);
 
@@ -566,12 +568,18 @@ public class TrcPidDrive implements TrcTaskMgr.Task
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "mode=%s", runMode.toString());
         }
 
+        if (!pidDriveStarted &&
+            (driveBase.getXSpeed() != 0.0 || driveBase.getYSpeed() != 0.0 || driveBase.getTurnSpeed() != 0))
+        {
+            pidDriveStarted = true;
+        }
+
         double xPower = turnOnly || xPidCtrl == null? 0.0: xPidCtrl.getOutput();
         double yPower = turnOnly || yPidCtrl == null? 0.0: yPidCtrl.getOutput();
         double turnPower = turnPidCtrl == null? 0.0: turnPidCtrl.getOutput();
 
         boolean expired = expiredTime != 0.0 && TrcUtil.getCurrentTime() >= expiredTime;
-        boolean stalled = stallTimeout != 0.0 && driveBase.isStalled(stallTimeout);
+        boolean stalled = pidDriveStarted && stallTimeout != 0.0 && driveBase.isStalled(stallTimeout);
         boolean xOnTarget = xPidCtrl == null || xPidCtrl.isOnTarget();
         boolean yOnTarget = yPidCtrl == null || yPidCtrl.isOnTarget();
         boolean turnOnTarget = turnPidCtrl == null || turnPidCtrl.isOnTarget();

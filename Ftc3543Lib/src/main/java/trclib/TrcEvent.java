@@ -82,7 +82,7 @@ public class TrcEvent
      *
      * @param signaled specifies the event state to be set.
      */
-    public void set(boolean signaled)
+    public synchronized void set(boolean signaled)
     {
         final String funcName = "set";
 
@@ -101,7 +101,7 @@ public class TrcEvent
      * signal for this (i.e. set signal to true when canceled) but we like to be able to differentiate whether
      * the event was completed normally or aborted.
      */
-    public void cancel()
+    public synchronized void cancel()
     {
         final String funcName = "cancel";
 
@@ -120,7 +120,7 @@ public class TrcEvent
     /**
      * This method clears the event.
      */
-    public void clear()
+    public synchronized void clear()
     {
         final String funcName = "clear";
 
@@ -139,7 +139,7 @@ public class TrcEvent
      *
      * @return true if the event is signaled, false otherwise.
      */
-    public boolean isSignaled()
+    public synchronized boolean isSignaled()
     {
         final String funcName = "isSignaled";
 
@@ -157,7 +157,7 @@ public class TrcEvent
      *
      * @return true if the event was canceled, false otherwise.
      */
-    public boolean isCanceled()
+    public synchronized boolean isCanceled()
     {
         final String funcName = "isCanceled";
 

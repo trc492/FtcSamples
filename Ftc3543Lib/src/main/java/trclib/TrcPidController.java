@@ -117,12 +117,12 @@ public class TrcPidController
 
         dashboard = HalDashboard.getInstance();
         this.instanceName = instanceName;
-        this.kP = kP;
-        this.kI = kI;
-        this.kD = kD;
-        this.kF = kF;
-        this.tolerance = tolerance;
-        this.settlingTime = settlingTime;
+        this.kP = Math.abs(kP);
+        this.kI = Math.abs(kI);
+        this.kD = Math.abs(kD);
+        this.kF = Math.abs(kF);
+        this.tolerance = Math.abs(tolerance);
+        this.settlingTime = Math.abs(settlingTime);
         this.pidInput = pidInput;
     }   //TrcPidController
 
@@ -566,6 +566,12 @@ public class TrcPidController
             setPoint = target;
             prevError = setPoint - input;
         }
+
+        if (inverted)
+        {
+            prevError = -prevError;
+        }
+
         setPointSign = Math.signum(prevError);
 
         //
@@ -583,13 +589,8 @@ public class TrcPidController
             }
         }
 
-        prevTime = TrcUtil.getCurrentTime();
-        if (inverted)
-        {
-            prevError = -prevError;
-        }
         totalError = 0.0;
-        settlingStartTime = TrcUtil.getCurrentTime();
+        prevTime = settlingStartTime = TrcUtil.getCurrentTime();
 
         if (debugEnabled)
         {

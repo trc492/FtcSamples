@@ -657,12 +657,12 @@ public class TrcPidMotor implements TrcTaskMgr.Task
 
         if (motor1.isLowerLimitSwitchActive())
         {
-            motor1.resetPosition();
+            motor1.resetPosition(false);
         }
 
         if (motor2 != null && syncGain != 0.0 && motor2.isLowerLimitSwitchActive())
         {
-            motor2.resetPosition();
+            motor2.resetPosition(false);
         }
 
         if (power == 0.0 || syncGain == 0.0 || calPower != 0.0)

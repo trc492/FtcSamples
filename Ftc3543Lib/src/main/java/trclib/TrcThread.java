@@ -50,7 +50,6 @@ public class TrcThread<T> implements Runnable
      */
     private class TaskState
     {
-        private volatile boolean taskTerminated;
         private volatile boolean taskEnabled;
         private volatile boolean oneShotEnabled;
         private T data;
@@ -60,7 +59,6 @@ public class TrcThread<T> implements Runnable
          */
         public TaskState()
         {
-            taskTerminated = false;
             taskEnabled = false;
             oneShotEnabled = false;
             data = null;
@@ -73,7 +71,7 @@ public class TrcThread<T> implements Runnable
          */
         public synchronized boolean isTaskTerminated()
         {
-            return taskTerminated;
+            return !periodicThread.isAlive();
         }   //isTaskTerminated
 
         /**
@@ -81,7 +79,7 @@ public class TrcThread<T> implements Runnable
          */
         public synchronized void terminateTask()
         {
-            taskTerminated = true;
+            periodicThread.interrupt();
         }   //terminateTask
 
         /**
@@ -91,7 +89,7 @@ public class TrcThread<T> implements Runnable
          */
         public synchronized boolean isTaskEnabled()
         {
-            return !taskTerminated && (taskEnabled || oneShotEnabled);
+            return periodicThread.isAlive() && (taskEnabled || oneShotEnabled);
         }   //isTaskEnabled
 
         /**
@@ -102,7 +100,7 @@ public class TrcThread<T> implements Runnable
          */
         public synchronized void setTaskEnabled(boolean enabled)
         {
-            if (!taskTerminated)
+            if (periodicThread.isAlive())
             {
                 taskEnabled = enabled;
             }
@@ -117,7 +115,7 @@ public class TrcThread<T> implements Runnable
         {
             T newData = null;
 
-            if (!taskTerminated)
+            if (periodicThread.isAlive())
             {
                 //
                 // If task was not enabled, it must be a one-shot deal. Since we don't already have the data, we
@@ -141,7 +139,7 @@ public class TrcThread<T> implements Runnable
          */
         public synchronized void setData(T data)
         {
-            if (!taskTerminated)
+            if (periodicThread.isAlive())
             {
                 this.data = data;
                 oneShotEnabled = false;
@@ -185,18 +183,8 @@ public class TrcThread<T> implements Runnable
     }   //toString
 
     /**
-     * This method sets the periodic task to be called periodically.
-     *
-     * @param task specifies the object that implements the PeriodicTask interface.
-     */
-    protected void setPeriodicTask(PeriodicTask task)
-    {
-        this.task = task;
-    }   //setPeriodicTask
-
-    /**
      * This method is called to terminate the periodic task. Once this is called, no other method in this class
-     * should not be called except for isTaskTerminated().
+     * should be called except for isTaskTerminated().
      */
     public void terminateTask()
     {

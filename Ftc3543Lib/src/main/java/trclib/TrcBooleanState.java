@@ -69,7 +69,7 @@ public class TrcBooleanState
      *
      * @return state of the object.
      */
-    public boolean getState()
+    public synchronized boolean getState()
     {
         final String funcName = "getState";
 
@@ -87,7 +87,7 @@ public class TrcBooleanState
      *
      * @param state specifies the state to set the object to.
      */
-    public void setState(boolean state)
+    public synchronized void setState(boolean state)
     {
         final String funcName = "setState";
 
@@ -105,7 +105,7 @@ public class TrcBooleanState
      *
      * @return new state of the object.
      */
-    public boolean toggleState()
+    public synchronized boolean toggleState()
     {
         final String funcName = "toggleState";
 

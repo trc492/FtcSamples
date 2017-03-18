@@ -76,8 +76,10 @@ public interface TrcMotorController
 
     /**
      * This method resets the motor position sensor, typically an encoder.
+     *
+     * @param hardware specifies true for resetting hardware position, false for resetting software position.
      */
-    void resetPosition();
+    void resetPosition(boolean hardware);
 
     /**
      * This method enables/disables motor brake mode. In motor brake mode, set power to 0 would stop the motor very

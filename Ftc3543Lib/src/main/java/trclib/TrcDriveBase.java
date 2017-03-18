@@ -125,7 +125,7 @@ public class TrcDriveBase implements TrcTaskMgr.Task
         xScale = 1.0;
         yScale = 1.0;
         rotScale = 1.0;
-        resetPosition();
+        resetPosition(true);
 
         TrcTaskMgr taskMgr = TrcTaskMgr.getInstance();
         taskMgr.registerTask(moduleName, this, TrcTaskMgr.TaskType.STOP_TASK);
@@ -398,8 +398,10 @@ public class TrcDriveBase implements TrcTaskMgr.Task
     /**
      * This method resets the drive base position odometry. This includes the motor encoders, the gyro heading and
      * all the cached values.
+     *
+     * @param hardware specifies true for resetting hardware position, false for resetting software position.
      */
-    public void resetPosition()
+    public void resetPosition(boolean hardware)
     {
         final String funcName = "resetPosition";
 
@@ -408,12 +410,12 @@ public class TrcDriveBase implements TrcTaskMgr.Task
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        if (leftFrontMotor != null) leftFrontMotor.resetPosition();
-        if (leftMidMotor != null) leftMidMotor.resetPosition();
-        if (leftRearMotor != null) leftRearMotor.resetPosition();
-        if (rightFrontMotor != null) rightFrontMotor.resetPosition();
-        if (rightMidMotor != null) rightMidMotor.resetPosition();
-        if (rightRearMotor != null) rightRearMotor.resetPosition();
+        if (leftFrontMotor != null) leftFrontMotor.resetPosition(hardware);
+        if (leftMidMotor != null) leftMidMotor.resetPosition(hardware);
+        if (leftRearMotor != null) leftRearMotor.resetPosition(hardware);
+        if (rightFrontMotor != null) rightFrontMotor.resetPosition(hardware);
+        if (rightMidMotor != null) rightMidMotor.resetPosition(hardware);
+        if (rightRearMotor != null) rightRearMotor.resetPosition(hardware);
         if (gyro != null) gyro.resetZIntegrator();
 
         xPos = 0.0;
@@ -428,6 +430,15 @@ public class TrcDriveBase implements TrcTaskMgr.Task
         {
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
+    }   //resetPosition
+
+    /**
+     * This method resets the drive base position odometry. This includes the motor encoders, the gyro heading and
+     * all the cached values.
+     */
+    public void resetPosition()
+    {
+        resetPosition(false);
     }   //resetPosition
 
     /**

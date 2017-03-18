@@ -147,7 +147,7 @@ public class TrcDbgTrace
      */
     public boolean openTraceLog(final String folderPath, final String filePrefix)
     {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd_hh-mm", Locale.US);
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd@HH-mm-ss", Locale.US);
         String logFilePath = folderPath + "/" + filePrefix + "_" + dateFormat.format(new Date()) + ".log";
         File folder = new File(folderPath);
         folder.mkdir();
