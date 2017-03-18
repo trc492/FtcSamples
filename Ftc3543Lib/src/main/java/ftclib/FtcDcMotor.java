@@ -300,9 +300,11 @@ public class FtcDcMotor extends TrcMotor
 
     /**
      * This method resets the motor position sensor, typically an encoder.
+     *
+     * @param hardware specifies true for resetting hardware position, false for resetting software position.
      */
     @Override
-    public void resetPosition()
+    public void resetPosition(boolean hardware)
     {
         final String funcName = "resetPosition";
 
@@ -311,16 +313,35 @@ public class FtcDcMotor extends TrcMotor
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
-
         //
         // Modern Robotics motor controllers supports resetting encoders by setting the motor controller mode. This
         // is a long operation and has side effect of disabling the motor controller unless you do another setMode
-        // to re-enable it. For example:
-        //      motor.setMode(DcMotorController.RunMode.RESET_ENCODERS);
-        //      motor.setMode(DcMotorController.RunMode.RUN_WITHOUT_ENCODERS);
-        // It is a lot more efficient doing it in software.
+        // to re-enable it. Therefore, resetPosition with hardware set to true is a synchronous call. This should
+        // only be called in robotInit time. For other times, it should call resetPosition with hardware set to false
+        // (software reset).
         //
-        zeroEncoderValue = motor.getCurrentPosition();
+        if (hardware)
+        {
+            motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            while (motor.getCurrentPosition() != 0.0)
+            {
+                Thread.yield();
+            }
+            zeroEncoderValue = 0;
+            motor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        }
+        else
+        {
+            zeroEncoderValue = motor.getCurrentPosition();
+        }
+    }   //resetPosition
+
+    /**
+     * This method resets the motor position sensor, typically an encoder.
+     */
+    public void resetPosition()
+    {
+        resetPosition(false);
     }   //resetPosition
 
     /**
