@@ -58,7 +58,7 @@ public class FtcI2cDevice
      * @param i2cAddress specifies the I2C address of the device.
      * @param addressIs7Bit specifies true if the I2C address is a 7-bit address, false if it is 8-bit.
      */
-    public FtcI2cDevice(HardwareMap hardwareMap, String instanceName, int i2cAddress, boolean addressIs7Bit)
+    public FtcI2cDevice(HardwareMap hardwareMap, final String instanceName, int i2cAddress, boolean addressIs7Bit)
     {
         if (debugEnabled)
         {
@@ -77,7 +77,7 @@ public class FtcI2cDevice
      * @param instanceName specifies the instance name.
      * @param i2cAddress specifies the I2C address of the device.
      */
-    public FtcI2cDevice(HardwareMap hardwareMap, String instanceName, int i2cAddress)
+    public FtcI2cDevice(HardwareMap hardwareMap, final String instanceName, int i2cAddress)
     {
         this(hardwareMap, instanceName, i2cAddress, false);
     }   //FtcI2cDevice
@@ -88,7 +88,7 @@ public class FtcI2cDevice
      * @param instanceName specifies the instance name.
      * @param i2cAddress specifies the I2C address of the device.
      */
-    public FtcI2cDevice(String instanceName, int i2cAddress)
+    public FtcI2cDevice(final String instanceName, int i2cAddress)
     {
         this(FtcOpMode.getInstance().hardwareMap, instanceName, i2cAddress, false);
     }   //FtcI2cDevice
