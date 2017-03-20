@@ -28,8 +28,8 @@ import com.qualcomm.robotcore.hardware.VoltageSensor;
 import trclib.TrcRobotBattery;
 
 /**
- * This class extends the TrcRobotBattery which provides a task to monitor the robot battery level and the methods to
- * access the highest and the lowest battery voltages during the monitoring session.
+ * This class extends the TrcRobotBattery which provides a task to monitor the robot battery levels and the methods to
+ * access the highest and the lowest battery levels during the monitoring session.
  */
 public class FtcRobotBattery extends TrcRobotBattery
 {
@@ -55,14 +55,36 @@ public class FtcRobotBattery extends TrcRobotBattery
     }   //FtcRobotBattery
 
     /**
-     * This method returns the current robot battery voltage.
+     * This method returns the robot battery voltage.
      *
-     * @return current battery voltage.
+     * @return current battery voltage in volts.
      */
     @Override
     public double getVoltage()
     {
         return sensor.getVoltage();
     }   //getVoltage
+
+    /**
+     * This method returns the robot battery current.
+     *
+     * @return current battery current in amps.
+     */
+    @Override
+    public double getCurrent()
+    {
+        throw new UnsupportedOperationException("The system does not support current info.");
+    }   //getCurrent
+
+    /**
+     * This method returns the robot battery power.
+     *
+     * @return current battery power in watts.
+     */
+    @Override
+    public double getPower()
+    {
+        throw new UnsupportedOperationException("The system does not support power info.");
+    }   //getPower
 
 }   //class FtcRobotBattery

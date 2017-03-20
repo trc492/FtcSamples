@@ -36,14 +36,35 @@ public abstract class TrcRobotBattery implements TrcTaskMgr.Task
     private TrcDbgTrace dbgTrace = null;
 
     /**
-     * This method returns the current robot battery voltage.
+     * This method returns the robot battery voltage.
      *
-     * @return robot battery voltage.
+     * @return robot battery voltage in volts.
      */
     public abstract double getVoltage();
 
+    /**
+     * This method returns the robot battery current.
+     *
+     * @return robot battery current in amps.
+     */
+    public abstract double getCurrent();
+
+    /**
+     * This method returns the robot battery power.
+     *
+     * @return robot battery power in watts.
+     */
+    public abstract double getPower();
+
     private double lowestVoltage = 0.0;
     private double highestVoltage = 0.0;
+    private boolean voltageSupported = true;
+    private double lowestCurrent = 0.0;
+    private double highestCurrent = 0.0;
+    private boolean currentSupported = true;
+    private double lowestPower = 0.0;
+    private double highestPower = 0.0;
+    private boolean powerSupported = true;
 
     /**
      * Constructor: create an instance of the object.
@@ -74,7 +95,42 @@ public abstract class TrcRobotBattery implements TrcTaskMgr.Task
 
         if (enabled)
         {
-            lowestVoltage = highestVoltage = getVoltage();
+            if (voltageSupported)
+            {
+                try
+                {
+                    lowestVoltage = highestVoltage = getVoltage();
+                }
+                catch (UnsupportedOperationException e)
+                {
+                    voltageSupported = false;
+                }
+            }
+
+            if (currentSupported)
+            {
+                try
+                {
+                    lowestCurrent = highestCurrent = getCurrent();
+                }
+                catch (UnsupportedOperationException e)
+                {
+                    currentSupported = false;
+                }
+            }
+
+            if (powerSupported)
+            {
+                try
+                {
+                    lowestPower = highestPower = getPower();
+                }
+                catch (UnsupportedOperationException e)
+                {
+                    powerSupported = false;
+                }
+            }
+
             TrcTaskMgr.getInstance().registerTask(moduleName, this, TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
         }
         else
@@ -87,9 +143,15 @@ public abstract class TrcRobotBattery implements TrcTaskMgr.Task
      * This method returns the lowest voltage it has ever seen during the monitoring session.
      *
      * @return lowest battery voltage.
+     * @throws UnsupportedOperationException if voltage is not supported by the system. 
      */
     public double getLowestVoltage()
     {
+        if (!voltageSupported)
+        {
+            throw new UnsupportedOperationException("This system does not support voltage info.");
+        }
+
         return lowestVoltage;
     }   //getLowestVoltage
 
@@ -97,11 +159,81 @@ public abstract class TrcRobotBattery implements TrcTaskMgr.Task
      * This method returns the highest voltage it has ever seen during the monitoring session.
      *
      * @return highest battery voltage.
+     * @throws UnsupportedOperationException if voltage is not supported by the system. 
      */
     public double getHighestVoltage()
     {
+        if (!voltageSupported)
+        {
+            throw new UnsupportedOperationException("This system does not support voltage info.");
+        }
+
         return highestVoltage;
     }   //getHighestVoltage
+
+    /**
+     * This method returns the lowest current it has ever seen during the monitoring session.
+     *
+     * @return lowest battery current.
+     * @throws UnsupportedOperationException if current is not supported by the system. 
+     */
+    public double getLowestCurrent()
+    {
+        if (!currentSupported)
+        {
+            throw new UnsupportedOperationException("This system does not support current info.");
+        }
+
+        return lowestCurrent;
+    }   //getLowestCurrent
+
+    /**
+     * This method returns the highest current it has ever seen during the monitoring session.
+     *
+     * @return highest battery current.
+     * @throws UnsupportedOperationException if current is not supported by the system. 
+     */
+    public double getHighestCurrent()
+    {
+        if (!currentSupported)
+        {
+            throw new UnsupportedOperationException("This system does not support current info.");
+        }
+
+        return highestCurrent;
+    }   //getHighestCurrent
+
+    /**
+     * This method returns the lowest power it has ever seen during the monitoring session.
+     *
+     * @return lowest battery power.
+     * @throws UnsupportedOperationException if power is not supported by the system. 
+     */
+    public double getLowestPower()
+    {
+        if (!powerSupported)
+        {
+            throw new UnsupportedOperationException("This system does not support power info.");
+        }
+
+        return lowestPower;
+    }   //getLowestPower
+
+    /**
+     * This method returns the highest power it has ever seen during the monitoring session.
+     *
+     * @return highest battery power.
+     * @throws UnsupportedOperationException if power is not supported by the system. 
+     */
+    public double getHighestPower()
+    {
+        if (!powerSupported)
+        {
+            throw new UnsupportedOperationException("This system does not support power info.");
+        }
+
+        return highestPower;
+    }   //getHighestPower
 
     //
     // Implements TrcTaskMgr.Task
@@ -144,14 +276,43 @@ public abstract class TrcRobotBattery implements TrcTaskMgr.Task
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
         }
 
-        double currVoltage = getVoltage();
-        if (currVoltage < lowestVoltage)
+        if (voltageSupported)
         {
-            lowestVoltage = currVoltage;
+            double voltage = getVoltage();
+            if (voltage < lowestVoltage)
+            {
+                lowestVoltage = voltage;
+            }
+            else if (voltage > highestVoltage)
+            {
+                highestVoltage = voltage;
+            }
         }
-        else if (currVoltage > highestVoltage)
+
+        if (currentSupported)
         {
-            highestVoltage = currVoltage;
+            double current = getCurrent();
+            if (current < lowestCurrent)
+            {
+                lowestCurrent = current;
+            }
+            else if (current > highestCurrent)
+            {
+                highestCurrent = current;
+            }
+        }
+
+        if (powerSupported)
+        {
+            double power = getPower();
+            if (power < lowestPower)
+            {
+                lowestPower = power;
+            }
+            else if (power > highestPower)
+            {
+                highestPower = power;
+            }
         }
     }   //preContinuousTask
 
