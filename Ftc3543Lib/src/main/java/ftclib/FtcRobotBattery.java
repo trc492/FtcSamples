@@ -22,32 +22,18 @@
 
 package ftclib;
 
-import com.qualcomm.hardware.modernrobotics.ModernRoboticsUsbDcMotorController;
-import com.qualcomm.robotcore.hardware.DcMotorController;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 
-import trclib.TrcDbgTrace;
-import trclib.TrcRobot;
-import trclib.TrcTaskMgr;
+import trclib.TrcRobotBattery;
 
 /**
- * This class monitors the robot battery level and provides methods to get the current battery voltage as well as
- * the lowest voltage it has ever seen during the monitoring session.
+ * This class extends the TrcRobotBattery which provides a task to monitor the robot battery level and the methods to
+ * access the highest and the lowest battery voltages during the monitoring session.
  */
-public class FtcRobotBattery implements TrcTaskMgr.Task
+public class FtcRobotBattery extends TrcRobotBattery
 {
-    private static final String moduleName = "FtcRobotBattery";
-    private static final boolean debugEnabled = false;
-    private static final boolean tracingEnabled = false;
-    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
-    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
-    private TrcDbgTrace dbgTrace = null;
-
     private VoltageSensor sensor;
-    private double currVoltage = 0.0;
-    private double lowestVoltage = 0.0;
-    private double highestVoltage = 0.0;
 
     /**
      * Constructor: create an instance of the object.
@@ -56,11 +42,7 @@ public class FtcRobotBattery implements TrcTaskMgr.Task
      */
     public FtcRobotBattery(HardwareMap hardwareMap)
     {
-        if (debugEnabled)
-        {
-            dbgTrace = new TrcDbgTrace(moduleName, tracingEnabled, traceLevel, msgLevel);
-        }
-
+        super();
         sensor = hardwareMap.voltageSensor.iterator().next();
     }   //FtcRobotBattery
 
@@ -73,117 +55,14 @@ public class FtcRobotBattery implements TrcTaskMgr.Task
     }   //FtcRobotBattery
 
     /**
-     * This method enables/disables the battery monitoring task. When the task is enabled, it also clears the
-     * lowest voltage.
-     *
-     * @param enabled specifies true to enable the task, false to disable.
-     */
-    public void setEnabled(boolean enabled)
-    {
-        final String funcName = "setEnabled";
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC, "enabled=%s", Boolean.toString(enabled));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC);
-        }
-
-        if (enabled)
-        {
-            currVoltage = lowestVoltage = highestVoltage = sensor.getVoltage();
-            TrcTaskMgr.getInstance().registerTask(moduleName, this, TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
-        }
-        else
-        {
-            TrcTaskMgr.getInstance().unregisterTask(this, TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
-        }
-    }   //setEnabled
-
-    /**
      * This method returns the current robot battery voltage.
      *
      * @return current battery voltage.
      */
-    public double getCurrentVoltage()
-    {
-        return currVoltage;
-    }   //getCurrentVoltage
-
-    /**
-     * This method returns the lowest voltage it has ever seen during the monitoring session.
-     *
-     * @return lowest battery voltage.
-     */
-    public double getLowestVoltage()
-    {
-        return lowestVoltage;
-    }   //getLowestVoltage
-
-    /**
-     * This method returns the highest voltage it has ever seen during the monitoring session.
-     *
-     * @return highest battery voltage.
-     */
-    public double getHighestVoltage()
-    {
-        return highestVoltage;
-    }   //getHighestVoltage
-
-    //
-    // Implements TrcTaskMgr.Task
-    //
-
     @Override
-    public void startTask(TrcRobot.RunMode runMode)
+    public double getVoltage()
     {
-    }   //startTask
-
-    @Override
-    public void stopTask(TrcRobot.RunMode runMode)
-    {
-    }   //stopTask
-
-    @Override
-    public void prePeriodicTask(TrcRobot.RunMode runMode)
-    {
-    }   //prePeriodicTask
-
-    @Override
-    public void postPeriodicTask(TrcRobot.RunMode runMode)
-    {
-    }   //postPeriodicTask
-
-    /**
-     * This method is called periodically to monitor the battery voltage and to keep track of the lowest voltage it
-     * has ever seen.
-     *
-     * @param runMode specifies the competition mode that is running.
-     */
-    @Override
-    public void preContinuousTask(TrcRobot.RunMode runMode)
-    {
-        final String funcName = "preContinuousTask";
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "runMode=%s", runMode.toString());
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
-        }
-
-        currVoltage = sensor.getVoltage();
-        if (currVoltage < lowestVoltage)
-        {
-            lowestVoltage = currVoltage;
-        }
-        else if (currVoltage > highestVoltage)
-        {
-            highestVoltage = currVoltage;
-        }
-    }   //preContinuousTask
-
-    @Override
-    public void postContinuousTask(TrcRobot.RunMode runMode)
-    {
-    }   //postContinuousTask
+        return sensor.getVoltage();
+    }   //getVoltage
 
 }   //class FtcRobotBattery
