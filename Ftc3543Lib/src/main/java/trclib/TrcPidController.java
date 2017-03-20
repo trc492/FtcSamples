@@ -74,7 +74,7 @@ public class TrcPidController
     private double maxOutput = 1.0;
 
     private double prevTime = 0.0;
-    private double prevError = 0.0;
+    private double currError = 0.0;
     private double totalError = 0.0;
     private double settlingStartTime = 0.0;
     private double setPoint = 0.0;
@@ -181,7 +181,7 @@ public class TrcPidController
     public void displayPidInfo(int lineNum)
     {
         dashboard.displayPrintf(
-                lineNum, "%s:Target=%.1f,Input=%.1f,Error=%.1f", instanceName, setPoint, input, prevError);
+                lineNum, "%s:Target=%.1f,Input=%.1f,Error=%.1f", instanceName, setPoint, input, currError);
         dashboard.displayPrintf(
                 lineNum + 1, "minOutput=%.1f,Output=%.1f,maxOutput=%.1f", minOutput, output, maxOutput);
     }   //displayPidInfo
@@ -206,7 +206,7 @@ public class TrcPidController
             tracer.traceInfo(
                     funcName,
                     "%s: Target=%6.1f, Input=%6.1f, Error=%6.1f, PIDTerms=%6.3f/%6.3f/%6.3f/%6.3f, Output=%6.3f(%6.3f/%5.3f)",
-                    instanceName, setPoint, input, prevError, pTerm, iTerm, dTerm, fTerm, output, minOutput, maxOutput);
+                    instanceName, setPoint, input, currError, pTerm, iTerm, dTerm, fTerm, output, minOutput, maxOutput);
         }
     }   //printPidInfo
 
@@ -556,7 +556,7 @@ public class TrcPidController
             // Set point is relative, add target to current input to get absolute set point.
             //
             setPoint = input + target;
-            prevError = target;
+            currError = target;
         }
         else
         {
@@ -564,15 +564,15 @@ public class TrcPidController
             // Set point is absolute, use as is.
             //
             setPoint = target;
-            prevError = setPoint - input;
+            currError = setPoint - input;
         }
 
         if (inverted)
         {
-            prevError = -prevError;
+            currError = -currError;
         }
 
-        setPointSign = Math.signum(prevError);
+        setPointSign = Math.signum(currError);
 
         //
         // If there is a valid target range, limit the set point to this range.
@@ -610,10 +610,10 @@ public class TrcPidController
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", prevError);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", currError);
         }
 
-        return prevError;
+        return currError;
     }   //getError
 
     /**
@@ -629,7 +629,7 @@ public class TrcPidController
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        prevError = 0.0;
+        currError = 0.0;
         prevTime = 0.0;
         totalError = 0.0;
         setPoint = 0.0;
@@ -660,12 +660,12 @@ public class TrcPidController
             //
             // Don't allow oscillation, so if we are within tolerance or we pass target, just quit.
             //
-            if (prevError*setPointSign <= tolerance)
+            if (currError*setPointSign <= tolerance)
             {
                 onTarget = true;
             }
         }
-        else if (Math.abs(prevError) > tolerance)
+        else if (Math.abs(currError) > tolerance)
         {
             settlingStartTime = TrcUtil.getCurrentTime();
         }
@@ -697,14 +697,15 @@ public class TrcPidController
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
+        double prevError = currError;
         double currTime = TrcUtil.getCurrentTime();
         double deltaTime = currTime - prevTime;
         prevTime = currTime;
         input = pidInput.getInput(this);
-        double error = setPoint - input;
+        currError = setPoint - input;
         if (inverted)
         {
-            error = -error;
+            currError = -currError;
         }
 
         if (kI != 0.0)
@@ -712,14 +713,14 @@ public class TrcPidController
             //
             // Make sure the total error doesn't get wound up too much exceeding maxOutput.
             //
-            double potentialGain = (totalError + error * deltaTime) * kI;
+            double potentialGain = (totalError + currError * deltaTime) * kI;
             if (potentialGain >= maxOutput)
             {
                 totalError = maxOutput / kI;
             }
             else if (potentialGain > minOutput)
             {
-                totalError += error * deltaTime;
+                totalError += currError * deltaTime;
             }
             else
             {
@@ -727,13 +728,12 @@ public class TrcPidController
             }
         }
 
-        pTerm = kP*error;
+        pTerm = kP*currError;
         iTerm = kI*totalError;
-        dTerm = deltaTime > 0.0? kD*(error - prevError)/deltaTime: 0.0;
+        dTerm = deltaTime > 0.0? kD*(currError - prevError)/deltaTime: 0.0;
         fTerm = kF*setPoint;
         output = fTerm + pTerm + iTerm + dTerm;
 
-        prevError = error;
         if (output > maxOutput)
         {
             output = maxOutput;
