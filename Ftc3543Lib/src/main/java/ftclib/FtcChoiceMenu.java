@@ -112,26 +112,29 @@ public class FtcChoiceMenu<T> extends FtcMenu
      *
      * @param choiceText specifies the choice text that will be displayed on the dashboard.
      * @param choiceObject specifies the object to be returned if the choice is selected.
+     * @param defChoice specifies true to set it the default choice, false otherwise.
      * @param childMenu specifies the next menu to go to when this choice is selected. If this is the last menu
      *                  (a leaf node in the tree), it can be set to null.
      */
-    public void addChoice(String choiceText, T choiceObject, FtcMenu childMenu)
+    public void addChoice(String choiceText, T choiceObject, boolean defChoice, FtcMenu childMenu)
     {
         final String funcName = "addChoice";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "text=%s,obj=%s,child=%s",
-                                choiceText, choiceObject.toString(), childMenu == null? "null": childMenu.getTitle());
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "text=%s,obj=%s,default=%s,child=%s",
+                                choiceText, choiceObject.toString(), Boolean.toString(defChoice),
+                                childMenu == null? "null": childMenu.getTitle());
         }
 
         choiceItems.add(new ChoiceItem(choiceText, choiceObject, childMenu));
-        if (currChoice == -1)
+        if (defChoice || currChoice == -1)
         {
             //
-            // This is the first added choice in the menu. Make it the default choice by highlighting it.
+            // Either this is the first added choice or the specified default choice in the menu, make it the current
+            // choice.
             //
-            currChoice = 0;
+            currChoice = choiceItems.size() - 1;
         }
 
         if (debugEnabled)
@@ -145,10 +148,11 @@ public class FtcChoiceMenu<T> extends FtcMenu
      *
      * @param choiceText specifies the choice text that will be displayed on the dashboard.
      * @param choiceObj specifies the object to be returned if the choice is selected.
+     * @param defChoice specifies true to set it the default choice, false otherwise.
      */
-    public void addChoice(String choiceText, T choiceObj)
+    public void addChoice(String choiceText, T choiceObj, boolean defChoice)
     {
-        addChoice(choiceText, choiceObj, null);
+        addChoice(choiceText, choiceObj, defChoice, null);
     }   //addChoice
 
     /**

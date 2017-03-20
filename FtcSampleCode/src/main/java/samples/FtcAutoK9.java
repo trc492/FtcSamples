@@ -428,14 +428,14 @@ public class FtcAutoK9 extends FtcOpMode implements FtcMenu.MenuButtons
 
         delayMenu.setChildMenu(strategyMenu);
 
-        strategyMenu.addChoice("Do nothing", AutoStrategy.DO_NOTHING);
-        strategyMenu.addChoice("Timed drive", AutoStrategy.TIMED_DRIVE, driveTimeMenu);
-        strategyMenu.addChoice("Drive forward", AutoStrategy.DRIVE_AND_TURN, distanceMenu);
-        strategyMenu.addChoice("Follow line", AutoStrategy.FOLLOW_LINE, allianceMenu);
-        strategyMenu.addChoice("Seek IR", AutoStrategy.SEEK_IR);
+        strategyMenu.addChoice("Do nothing", AutoStrategy.DO_NOTHING, true);
+        strategyMenu.addChoice("Timed drive", AutoStrategy.TIMED_DRIVE, false, driveTimeMenu);
+        strategyMenu.addChoice("Drive forward", AutoStrategy.DRIVE_AND_TURN, false, distanceMenu);
+        strategyMenu.addChoice("Follow line", AutoStrategy.FOLLOW_LINE, false, allianceMenu);
+        strategyMenu.addChoice("Seek IR", AutoStrategy.SEEK_IR, false);
 
-        allianceMenu.addChoice("Red", Alliance.RED_ALLIANCE);
-        allianceMenu.addChoice("Blue", Alliance.BLUE_ALLIANCE);
+        allianceMenu.addChoice("Red", Alliance.RED_ALLIANCE, true);
+        allianceMenu.addChoice("Blue", Alliance.BLUE_ALLIANCE, false);
 
         //
         // Walk the menu tree starting with the delay menu as the root
