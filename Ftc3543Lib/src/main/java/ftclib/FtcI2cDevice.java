@@ -26,6 +26,7 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.I2cAddr;
 import com.qualcomm.robotcore.hardware.I2cDevice;
 import com.qualcomm.robotcore.hardware.I2cDeviceSynchImpl;
+import com.qualcomm.robotcore.hardware.I2cWaitControl;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -230,7 +231,7 @@ public class FtcI2cDevice
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        syncDevice.write(startAddress, data, true);
+        syncDevice.write(startAddress, data, I2cWaitControl.WRITTEN);
     }   //syncWrite
 
     /**
@@ -251,7 +252,7 @@ public class FtcI2cDevice
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        syncDevice.write(startAddress, data, false);
+        syncDevice.write(startAddress, data, I2cWaitControl.ATOMIC);
     }   //asyncWrite
 
     /**
@@ -267,7 +268,8 @@ public class FtcI2cDevice
         byte[] data = new byte[1];
 
         data[0] = command;
-        syncDevice.write(regAddress, data, waitForCompletion);
+        syncDevice.write(
+                regAddress, data, waitForCompletion? I2cWaitControl.WRITTEN: I2cWaitControl.ATOMIC);
 
         if (debugEnabled)
         {
@@ -290,7 +292,8 @@ public class FtcI2cDevice
 
         data[0] = (byte)(command & 0xff);
         data[1] = (byte)(command >> 8);
-        syncDevice.write(regAddress, data, waitForCompletion);
+        syncDevice.write(
+                regAddress, data, waitForCompletion? I2cWaitControl.WRITTEN: I2cWaitControl.ATOMIC);
 
         if (debugEnabled)
         {

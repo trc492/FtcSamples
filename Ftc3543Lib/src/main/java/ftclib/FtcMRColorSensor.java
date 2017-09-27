@@ -52,7 +52,7 @@ public class FtcMRColorSensor extends TrcSensor<FtcMRColorSensor.DataType>
     }   //enum DataType
 
     public ModernRoboticsI2cColorSensor sensor;
-    private FtcI2cDeviceState sensorState;
+//    private FtcI2cDeviceState sensorState;
     private int argbData = 0;
     private long argbTagId = -1;
     private int redData = 0;
@@ -80,7 +80,7 @@ public class FtcMRColorSensor extends TrcSensor<FtcMRColorSensor.DataType>
         }
 
         sensor = hardwareMap.get(ModernRoboticsI2cColorSensor.class, instanceName);
-        sensorState = new FtcI2cDeviceState(instanceName, sensor);
+//        sensorState = new FtcI2cDeviceState(instanceName, sensor);
     }   //FtcMRColorSensor
 
     /**
@@ -98,37 +98,37 @@ public class FtcMRColorSensor extends TrcSensor<FtcMRColorSensor.DataType>
      *
      * @return true if the device state indicates it is enabled, false otherwise.
      */
-    public boolean isDeviceEnabled()
-    {
-        final String funcName = "isDeviceEnabled";
-        boolean enabled = sensorState.isEnabled();
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", Boolean.toString(enabled));
-        }
-
-        return enabled;
-    }   //isDeviceEnabled
+//    public boolean isDeviceEnabled()
+//    {
+//        final String funcName = "isDeviceEnabled";
+//        boolean enabled = sensorState.isEnabled();
+//
+//        if (debugEnabled)
+//        {
+//            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+//            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", Boolean.toString(enabled));
+//        }
+//
+//        return enabled;
+//    }   //isDeviceEnabled
 
     /**
      * This method is called to enable/disable the sensor so it is not hogging I2c bus bandwidth when not in use.
      *
      * @param enabled specifies true if enabling, false otherwise.
      */
-    public void setDeviceEnabled(boolean enabled)
-    {
-        final String funcName = "setDeviceEnabled";
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "enabled=%s", Boolean.toString(enabled));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
-        }
-
-        sensorState.setEnabled(enabled);
-    }   //setDeviceEnabled
+//    public void setDeviceEnabled(boolean enabled)
+//    {
+//        final String funcName = "setDeviceEnabled";
+//
+//        if (debugEnabled)
+//        {
+//            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "enabled=%s", Boolean.toString(enabled));
+//            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+//        }
+//
+//        sensorState.setEnabled(enabled);
+//    }   //setDeviceEnabled
 
     //
     // Implements TrcAnalogInput abstract methods.

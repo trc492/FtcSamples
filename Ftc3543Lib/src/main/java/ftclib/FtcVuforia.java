@@ -86,7 +86,7 @@ public class FtcVuforia
      * other parameters.
      *
      * @param licenseKey specifies the Vuforia license key.
-     * @param cameraViewId specifies the camera view ID on the activity.
+     * @param cameraViewId specifies the camera view ID on the activity, -1 if none given.
      * @param cameraDir specifies which camera to use (front or back).
      * @param trackablesFile specifies the XML file that contains the target info.
      * @param numTargets specifies the number of simultaneous trackable targets.
@@ -97,7 +97,12 @@ public class FtcVuforia
             String trackablesFile, int numTargets,
             VuforiaLocalizer.Parameters.CameraMonitorFeedback cameraMonitorFeedback)
     {
-        params = new VuforiaLocalizer.Parameters(cameraViewId);
+        //
+        // If no camera view ID, do not activate camera monitor view to save power.
+        //
+        params = cameraViewId == -1?
+                    new VuforiaLocalizer.Parameters():
+                    new VuforiaLocalizer.Parameters(cameraViewId);
         params.vuforiaLicenseKey = licenseKey;
         params.cameraDirection = cameraDir;
         params.cameraMonitorFeedback = cameraMonitorFeedback;

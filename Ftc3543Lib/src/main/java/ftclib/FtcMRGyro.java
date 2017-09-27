@@ -45,7 +45,7 @@ public class FtcMRGyro extends TrcGyro
     private TrcDbgTrace dbgTrace = null;
 
     private ModernRoboticsI2cGyro gyro;
-    private FtcI2cDeviceState sensorState;
+//    private FtcI2cDeviceState sensorState;
     private double xRateData = 0.0;
     private long xRateTagId = -1;
     private double yRateData = 0.0;
@@ -73,7 +73,7 @@ public class FtcMRGyro extends TrcGyro
         }
 
         gyro = (ModernRoboticsI2cGyro)hardwareMap.gyroSensor.get(instanceName);
-        sensorState = new FtcI2cDeviceState(instanceName, gyro);
+//        sensorState = new FtcI2cDeviceState(instanceName, gyro);
     }   //FtcMRGyro
 
     /**
@@ -127,37 +127,37 @@ public class FtcMRGyro extends TrcGyro
      *
      * @return true if the device state indicates it is enabled, false otherwise.
      */
-    public boolean isDeviceEnabled()
-    {
-        final String funcName = "isDeviceEnabled";
-        boolean enabled = sensorState.isEnabled();
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", Boolean.toString(enabled));
-        }
-
-        return enabled;
-    }   //isDeviceEnabled
+//    public boolean isDeviceEnabled()
+//    {
+//        final String funcName = "isDeviceEnabled";
+//        boolean enabled = sensorState.isEnabled();
+//
+//        if (debugEnabled)
+//        {
+//            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+//            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", Boolean.toString(enabled));
+//        }
+//
+//        return enabled;
+//    }   //isDeviceEnabled
 
     /**
      * This method is called to enable/disable the sensor so it is not hogging I2c bus bandwidth when not in use.
      *
      * @param enabled specifies true if enabling, false otherwise.
      */
-    public void setDeviceEnabled(boolean enabled)
-    {
-        final String funcName = "setDeviceEnabled";
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "enabled=%s", Boolean.toString(enabled));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
-        }
-
-        sensorState.setEnabled(enabled);
-    }   //setDeviceEnabled
+//    public void setDeviceEnabled(boolean enabled)
+//    {
+//        final String funcName = "setDeviceEnabled";
+//
+//        if (debugEnabled)
+//        {
+//            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "enabled=%s", Boolean.toString(enabled));
+//            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+//        }
+//
+//        sensorState.setEnabled(enabled);
+//    }   //setDeviceEnabled
 
     //
     // Overriding TrcGyro methods.
