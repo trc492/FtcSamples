@@ -48,7 +48,7 @@ import ftclib.FtcVuforia;
 import hallib.HalDashboard;
 
 @TeleOp(name="Test: VuMark Tracking", group="3543TestSamples")
-@Disabled
+//@Disabled
 public class FtcTestVuMark extends FtcOpMode
 {
     //
@@ -186,16 +186,21 @@ public class FtcTestVuMark extends FtcOpMode
             RelicRecoveryVuMark vuMark = RelicRecoveryVuMark.from(vuforia.getTarget(0));
             if (vuMark != prevVuMark)
             {
-                String sentence;
-                if (vuMark == RelicRecoveryVuMark.UNKNOWN)
-                {
-                    sentence = String.format("%s is %s.", prevVuMark.toString(), "out of view");
-                }
-                else
+                String sentence = null;
+                if (vuMark != RelicRecoveryVuMark.UNKNOWN)
                 {
                     sentence = String.format("%s is %s.", vuMark.toString(), "in view");
                 }
-                textToSpeech.speak(sentence, TextToSpeech.QUEUE_FLUSH, null);
+                else if (prevVuMark != null)
+                {
+                    sentence = String.format("%s is %s.", prevVuMark.toString(), "out of view");
+                }
+
+                if (sentence != null)
+                {
+                    dashboard.displayPrintf(1, sentence);
+                    textToSpeech.speak(sentence, TextToSpeech.QUEUE_FLUSH, null);
+                }
             }
             prevVuMark = vuMark;
         }
