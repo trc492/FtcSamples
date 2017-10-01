@@ -82,11 +82,6 @@ public class FtcTestVuMark extends FtcOpMode
             if (pose != null)
             {
                 targetPos = pose.getTranslation();
-                dashboard.displayPrintf(2, "%s: x=%6.2f,y=%6.2f,z=%6.2f",
-                        vuMark.toString(),
-                        targetPos.get(0)/MM_PER_INCH,
-                        targetPos.get(1)/MM_PER_INCH,
-                        targetPos.get(2)/MM_PER_INCH);
             }
         }
 
@@ -106,9 +101,6 @@ public class FtcTestVuMark extends FtcOpMode
             {
                 targetAngle = Orientation.getOrientation(
                         pose, AxesReference.EXTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES);
-                dashboard.displayPrintf(3, "%s: xRot=%6.2f,yRot=%6.2f,zRot=%6.2f",
-                        vuMark.toString(),
-                        targetAngle.firstAngle, targetAngle.secondAngle, targetAngle.thirdAngle);
             }
         }
 
@@ -136,19 +128,7 @@ public class FtcTestVuMark extends FtcOpMode
         //
         if (SPEECH_ENABLED)
         {
-            textToSpeech = new TextToSpeech(
-                    hardwareMap.appContext,
-                    new TextToSpeech.OnInitListener()
-                    {
-                        @Override
-                        public void onInit(int status)
-                        {
-                            if (status != TextToSpeech.ERROR)
-                            {
-                                textToSpeech.setLanguage(Locale.US);
-                            }
-                        }
-                    });
+            textToSpeech = FtcOpMode.getInstance().getTextToSpeech();
         }
     }   //initRobot
 
@@ -177,31 +157,45 @@ public class FtcTestVuMark extends FtcOpMode
     @Override
     public void runPeriodic(double elapsedTime)
     {
-        final int LABEL_WIDTH = 120;
+        RelicRecoveryVuMark vuMark = RelicRecoveryVuMark.from(vuforia.getTarget(0));
 
-        getVuMarkPosition();
-        getVuMarkOrientation();
-        if (textToSpeech != null)
+        if (vuMark != RelicRecoveryVuMark.UNKNOWN)
         {
-            RelicRecoveryVuMark vuMark = RelicRecoveryVuMark.from(vuforia.getTarget(0));
-            if (vuMark != prevVuMark)
-            {
-                String sentence = null;
-                if (vuMark != RelicRecoveryVuMark.UNKNOWN)
-                {
-                    sentence = String.format("%s is %s.", vuMark.toString(), "in view");
-                }
-                else if (prevVuMark != null)
-                {
-                    sentence = String.format("%s is %s.", prevVuMark.toString(), "out of view");
-                }
+            VectorF pos = getVuMarkPosition();
+            Orientation orientation = getVuMarkOrientation();
 
-                if (sentence != null)
+            dashboard.displayPrintf(1, "%s: x=%6.2f,y=%6.2f,z=%6.2f",
+                    vuMark.toString(), pos.get(0)/MM_PER_INCH, pos.get(1)/MM_PER_INCH, pos.get(2)/MM_PER_INCH);
+            dashboard.displayPrintf(2, "%s: xRot=%6.2f,yRot=%6.2f,zRot=%6.2f",
+                    vuMark.toString(), orientation.firstAngle, orientation.secondAngle, orientation.thirdAngle);
+        }
+
+        if (vuMark != prevVuMark)
+        {
+            String sentence = null;
+
+            if (vuMark != RelicRecoveryVuMark.UNKNOWN)
+            {
+                sentence = String.format("%s is %s.", vuMark.toString(), "in view");
+            }
+            else if (prevVuMark != null)
+            {
+                sentence = String.format("%s is %s.", prevVuMark.toString(), "out of view");
+            }
+
+            if (sentence != null)
+            {
+                dashboard.displayPrintf(3, sentence);
+                if (textToSpeech != null)
                 {
-                    dashboard.displayPrintf(1, sentence);
+                    //
+                    // ZTE phones are on KitKat and running level 19 APIs, so we need to use the deprecated version
+                    // to be compatible with it.
+                    //
                     textToSpeech.speak(sentence, TextToSpeech.QUEUE_FLUSH, null);
                 }
             }
+
             prevVuMark = vuMark;
         }
     }   //runPeriodic
