@@ -294,7 +294,7 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
             dbgTrace.traceInfo(funcName, "Running initPeriodic ...");
         }
         dashboard.displayPrintf(0, "initPeriodic starting...");
-        while (!opModeIsActive())
+        while (!isStarted())
         {
             initPeriodic();
         }
