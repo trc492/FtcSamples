@@ -46,7 +46,7 @@ public class TrcDigitalTrigger implements TrcTaskMgr.Task
          * @param digitalTrigger specifies this DigitalTrigger instance as the source of the event.
          * @param active specifies true if the digital device state is active, false otherwise.
          */
-        void DigitalTriggerEvent(TrcDigitalTrigger digitalTrigger, boolean active);
+        void triggerEvent(TrcDigitalTrigger digitalTrigger, boolean active);
 
     }   //interface TriggerHandler
 
@@ -144,7 +144,7 @@ public class TrcDigitalTrigger implements TrcTaskMgr.Task
         {
             if (eventHandler != null)
             {
-                eventHandler.DigitalTriggerEvent(this, currState);
+                eventHandler.triggerEvent(this, currState);
             }
             prevState = currState;
 

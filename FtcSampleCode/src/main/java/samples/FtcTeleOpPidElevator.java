@@ -33,6 +33,8 @@ import hallib.HalDashboard;
 @Disabled
 public class FtcTeleOpPidElevator extends FtcOpMode implements FtcGamepad.ButtonHandler
 {
+    private static final double ELEVATOR_CAL_POWER = 0.3;
+
     private HalDashboard dashboard;
     //
     // Gamepad.
@@ -61,7 +63,7 @@ public class FtcTeleOpPidElevator extends FtcOpMode implements FtcGamepad.Button
         // Elevator subsystem.
         //
         elevator = new Elevator();
-        elevator.zeroCalibrate();
+        elevator.zeroCalibrate(ELEVATOR_CAL_POWER);
     }   //initRobot
 
     //
@@ -89,7 +91,7 @@ public class FtcTeleOpPidElevator extends FtcOpMode implements FtcGamepad.Button
         double elevatorPower = gamepad.getRightStickY(true);
         elevator.setPower(elevatorPower);
         dashboard.displayPrintf(1, "Elevator:power=%.2f,height=%.2f",
-                                elevatorPower, elevator.getHeight());
+                                elevatorPower, elevator.getPosition());
     }   //runPeriodic
 
     //
@@ -110,7 +112,7 @@ public class FtcTeleOpPidElevator extends FtcOpMode implements FtcGamepad.Button
                 case FtcGamepad.GAMEPAD_START:
                     if (pressed)
                     {
-                        elevator.zeroCalibrate();
+                        elevator.zeroCalibrate(ELEVATOR_CAL_POWER);
                     }
                     break;
             }
