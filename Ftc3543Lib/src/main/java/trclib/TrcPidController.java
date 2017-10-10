@@ -38,6 +38,67 @@ public class TrcPidController
     private TrcDbgTrace dbgTrace = null;
 
     /**
+     * This class encapsulates all the PID coefficients into a single object and makes it more efficient to pass them
+     * around.
+     */
+    public static class PidCoefficients
+    {
+        public double kP = 0.0;
+        public double kI = 0.0;
+        public double kD = 0.0;
+        public double kF = 0.0;
+
+        /**
+         * Constructor: Create an instance of the object.
+         *
+         * @param kP specifies the Proportional constant.
+         * @param kI specifies the Integral constant.
+         * @param kD specifies the Differential constant.
+         * @param kF specifies the Feed forward constant.
+         */
+        public PidCoefficients(double kP, double kI, double kD, double kF)
+        {
+            this.kP = Math.abs(kP);
+            this.kI = Math.abs(kI);
+            this.kD = Math.abs(kD);
+            this.kF = Math.abs(kF);
+        }   //PidCoefficients
+
+        /**
+         * Constructor: Create an instance of the object.
+         *
+         * @param kP specifies the Proportional constant.
+         * @param kI specifies the Integral constant.
+         * @param kD specifies the Differential constant.
+         */
+        public PidCoefficients(double kP, double kI, double kD)
+        {
+            this(kP, kI, kD, 0.0);
+        }   //PidCoefficients
+
+        /**
+         * Constructor: Create an instance of the object.
+         *
+         * @param kP specifies the Proportional constant.
+         */
+        public PidCoefficients(double kP)
+        {
+            this(kP, 0.0, 0.0, 0.0);
+        }   //PidCoefficients
+
+        /**
+         * This method returns all PID coefficients in string form.
+         *
+         * @return PID coefficients string.
+         */
+        public String toString()
+        {
+            return String.format("(%f,%f,%f,%f)", kP, kI, kD, kF);
+        }   //toString
+
+    }   //class PidCoefficients
+
+    /**
      * PID controller needs input from a feedback device for calculating the output power. Whoever is providing this
      * input must implement this interface.
      */
@@ -55,12 +116,11 @@ public class TrcPidController
 
     }   //interface PidInput
 
+    public static final double DEF_SETTLING_TIME = 0.2;
+
     private HalDashboard dashboard;
-    private final String instanceName;
-    private double kP;
-    private double kI;
-    private double kD;
-    private double kF;
+    private String instanceName;
+    private PidCoefficients pidCoefficients;
     private double tolerance;
     private double settlingTime;
     private PidInput pidInput;
@@ -92,23 +152,17 @@ public class TrcPidController
      * Constructor: Create an instance of the object.
      *
      * @param instanceName specifies the instance name.
-     * @param kP specifies the proportional constant.
-     * @param kI specifies the integral constant.
-     * @param kD specifies the differential constant.
-     * @param kF specifies the feed forward constant.
+     * @param pidCoefficients specifies the PID constants.
      * @param tolerance specifies the target tolerance.
      * @param settlingTime specifies the minimum on target settling time.
      * @param pidInput specifies the input provider.
      */
     public TrcPidController(
             final String instanceName,
-            double       kP,
-            double       kI,
-            double       kD,
-            double       kF,
-            double       tolerance,
-            double       settlingTime,
-            PidInput     pidInput)
+            PidCoefficients pidCoefficients,
+            double tolerance,
+            double settlingTime,
+            PidInput pidInput)
     {
         if (debugEnabled)
         {
@@ -117,10 +171,7 @@ public class TrcPidController
 
         dashboard = HalDashboard.getInstance();
         this.instanceName = instanceName;
-        this.kP = Math.abs(kP);
-        this.kI = Math.abs(kI);
-        this.kD = Math.abs(kD);
-        this.kF = Math.abs(kF);
+        this.pidCoefficients = pidCoefficients;
         this.tolerance = Math.abs(tolerance);
         this.settlingTime = Math.abs(settlingTime);
         this.pidInput = pidInput;
@@ -133,23 +184,55 @@ public class TrcPidController
      * set the PidInput outside of the super() call.
      *
      * @param instanceName specifies the instance name.
-     * @param kP specifies the proportional constant.
-     * @param kI specifies the integral constant.
-     * @param kD specifies the differential constant.
-     * @param kF specifies the feed forward constant.
+     * @param pidCoefficients specifies the PID constants.
      * @param tolerance specifies the target tolerance.
      * @param settlingTime specifies the minimum on target settling time.
      */
     protected TrcPidController(
             final String instanceName,
-            double       kP,
-            double       kI,
-            double       kD,
-            double       kF,
+            PidCoefficients pidCoefficients,
             double       tolerance,
             double       settlingTime)
     {
-        this(instanceName, kP, kI, kD, kF, tolerance, settlingTime, null);
+        this(instanceName, pidCoefficients, tolerance, settlingTime, null);
+    }   //TrcPidController
+
+    /**
+     * Constructor: Create an instance of the object. This constructor is not public. It is only for classes
+     * extending this class (e.g. Cascade PID Controller) that cannot make itself as an input provider in its
+     * constructor (Java won't allow it). Instead, we provide another protected method setPidInput so it can
+     * set the PidInput outside of the super() call.
+     *
+     * @param instanceName specifies the instance name.
+     * @param pidCoefficients specifies the PID constants.
+     * @param tolerance specifies the target tolerance.
+     * @param pidInput specifies the input provider.
+     */
+    public TrcPidController(
+            final String instanceName,
+            PidCoefficients pidCoefficients,
+            double tolerance,
+            PidInput pidInput)
+    {
+        this(instanceName, pidCoefficients, tolerance, DEF_SETTLING_TIME, pidInput);
+    }   //TrcPidController
+
+    /**
+     * Constructor: Create an instance of the object. This constructor is not public. It is only for classes
+     * extending this class (e.g. Cascade PID Controller) that cannot make itself as an input provider in its
+     * constructor (Java won't allow it). Instead, we provide another protected method setPidInput so it can
+     * set the PidInput outside of the super() call.
+     *
+     * @param instanceName specifies the instance name.
+     * @param pidCoefficients specifies the PID constants.
+     * @param tolerance specifies the target tolerance.
+     */
+    protected TrcPidController(
+            final String instanceName,
+            PidCoefficients pidCoefficients,
+            double tolerance)
+    {
+        this(instanceName, pidCoefficients, tolerance, DEF_SETTLING_TIME, null);
     }   //TrcPidController
 
     /**
@@ -295,172 +378,43 @@ public class TrcPidController
     }   //setNoOscillation
 
     /**
-     * This method returns the current proportional constant.
+     * This method returns the current PID coefficients.
      *
-     * @return current proportional constant.
+     * @return current PID coefficients.
      */
-    public double getKp()
+    public PidCoefficients getPidCoefficients()
     {
-        final String funcName = "getKp";
+        final String funcName = "getPidCoefficients";
 
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", kP);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
+                    "=(%f,%f,%f,%f)", pidCoefficients.kP, pidCoefficients.kI, pidCoefficients.kD, pidCoefficients.kF);
         }
 
-        return kP;
-    }   //getKp
+        return pidCoefficients;
+    }   //getPidCoefficients
 
     /**
-     * This method returns the current integral constant.
+     * This method sets new PID coefficients.
      *
-     * @return current integral constant.
+     * @param pidCoefficients specifies new PID coefficients.
      */
-    public double getKi()
+    public void setPidCoefficients(PidCoefficients pidCoefficients)
     {
-        final String funcName = "getKi";
+        final String funcName = "setPidCoefficients";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", kI);
-        }
-
-        return kI;
-    }   //getKi
-
-    /**
-     * This method returns the current differential constant.
-     *
-     * @return current differential constant.
-     */
-    public double getKd()
-    {
-        final String funcName = "getKd";
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", kD);
-        }
-
-        return kD;
-    }   //getKd
-
-    /**
-     * This method returns the current feed forward constant.
-     *
-     * @return current feed forward constant.
-     */
-    public double getKf()
-    {
-        final String funcName = "getKf";
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", kF);
-        }
-
-        return kF;
-    }   //getKf
-
-    /**
-     * This method sets a new proportional constant.
-     *
-     * @param kP specifies a new proportional constant.
-     */
-    public void setKp(double kP)
-    {
-        final String funcName = "setKp";
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "Kp=%f", kP);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
+                    "Kp=%f,Ki=%f,Kd=%f,Kf=%f",
+                    pidCoefficients.kP, pidCoefficients.kI, pidCoefficients.kD, pidCoefficients.kF);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        this.kP = kP;
-    }   //setKp
-
-    /**
-     * This method sets a new integral constant.
-     *
-     * @param kI specifies a new integral constant.
-     */
-    public void setKi(double kI)
-    {
-        final String funcName = "setKi";
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "Ki=%f", kI);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
-        }
-
-        this.kI = kI;
-    }   //setKi
-
-    /**
-     * This method sets a new differential constant.
-     *
-     * @param kD specifies a new differential constant.
-     */
-    public void setKd(double kD)
-    {
-        final String funcName = "setKd";
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "Kd=%f", kD);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
-        }
-
-        this.kD = kD;
-    }   //setKd
-
-    /**
-     * This method sets a new feed forward constant.
-     *
-     * @param kF specifies a new feed forward constant.
-     */
-    public void setKf(double kF)
-    {
-        final String funcName = "setKf";
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "Kf=%f", kF);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
-        }
-
-        this.kF = kF;
-    }   //setKf
-
-    /**
-     * This method sets a new set of PID constants.
-     *
-     * @param kP specifies the new proportional constant.
-     * @param kI specifies the new integral constant.
-     * @param kD specifies the new differential constant.
-     * @param kF specifies the new feed forward constant.
-     */
-    public void setPID(double kP, double kI, double kD, double kF)
-    {
-        final String funcName = "setPID";
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "Kp=%f,Ki=%f,Kd=%f,Kf=%f", kP, kI, kD, kF);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
-        }
-
-        this.kP = kP;
-        this.kI = kI;
-        this.kD = kD;
-        this.kF = kF;
-    }   //setPID
+        this.pidCoefficients = pidCoefficients;
+    }   //setPidCoefficients
 
     /**
      * This method sets a new target tolerance.
@@ -708,15 +662,15 @@ public class TrcPidController
             currError = -currError;
         }
 
-        if (kI != 0.0)
+        if (pidCoefficients.kI != 0.0)
         {
             //
             // Make sure the total error doesn't get wound up too much exceeding maxOutput.
             //
-            double potentialGain = (totalError + currError * deltaTime) * kI;
+            double potentialGain = (totalError + currError * deltaTime) * pidCoefficients.kI;
             if (potentialGain >= maxOutput)
             {
-                totalError = maxOutput / kI;
+                totalError = maxOutput / pidCoefficients.kI;
             }
             else if (potentialGain > minOutput)
             {
@@ -724,14 +678,14 @@ public class TrcPidController
             }
             else
             {
-                totalError = minOutput / kI;
+                totalError = minOutput / pidCoefficients.kI;
             }
         }
 
-        pTerm = kP*currError;
-        iTerm = kI*totalError;
-        dTerm = deltaTime > 0.0? kD*(currError - prevError)/deltaTime: 0.0;
-        fTerm = kF*setPoint;
+        pTerm = pidCoefficients.kP*currError;
+        iTerm = pidCoefficients.kI*totalError;
+        dTerm = deltaTime > 0.0? pidCoefficients.kD*(currError - prevError)/deltaTime: 0.0;
+        fTerm = pidCoefficients.kF*setPoint;
         output = fTerm + pTerm + iTerm + dTerm;
 
         if (output > maxOutput)

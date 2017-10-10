@@ -72,30 +72,22 @@ public class TrcCascadePidController extends TrcPidController implements TrcPidC
      * Constructor: Create an instance of the object.
      *
      * @param instanceName specifies the instance name.
-     * @param primaryKp specifies the Proportional constant of the primary PID controller.
-     * @param primaryKi specifies the Integral constant of the primary PID controller.
-     * @param primaryKd specifies the Differential constant of the primary PID controller.
-     * @param primaryKf specifies the Feed Forward constant of the primary PID controller.
+     * @param primaryPidCoefficients specifies the PID coefficients of the primary PID controller.
      * @param primaryTolerance specifies the target tolerance of the primary PID controller.
      * @param primarySettlingTime specifies the target settling time of the primary PID controller.
-     * @param secondaryKp specifies the Proportional constant of the secondary PID controller.
-     * @param secondaryKi specifies the Integral constant of the secondary PID controller.
-     * @param secondaryKd specifies the Differential constant of the secondary PID controller.
-     * @param secondaryKf specifies the Feed Forward constant of the secondary PID controller.
+     * @param secondaryPidCoefficients specifies the PID coefficients of the secondary PID controller.
      * @param secondaryTolerance specifies the target tolerance of the secondary PID controller.
      * @param secondarySettlingTime specifies the target settling time of the secondary PID controller.
      * @param cascadeInput specifies the object that will provide the Cascade control inputs.
      */
     public TrcCascadePidController(
             final String instanceName,
-            double primaryKp, double primaryKi, double primaryKd, double primaryKf,
-            double primaryTolerance, double primarySettlingTime,
-            double secondaryKp, double secondaryKi, double secondaryKd, double secondaryKf,
-            double secondaryTolerance, double secondarySettlingTime,
+            PidCoefficients primaryPidCoefficients, double primaryTolerance, double primarySettlingTime,
+            PidCoefficients secondaryPidCoefficients, double secondaryTolerance, double secondarySettlingTime,
             CascadeInput cascadeInput)
     {
         super(instanceName + ".primary",
-              primaryKp, primaryKi, primaryKd, primaryKf, primaryTolerance, primarySettlingTime);
+              primaryPidCoefficients, primaryTolerance, primarySettlingTime);
         super.setPidInput(this);
 
         if (debugEnabled)
@@ -103,10 +95,31 @@ public class TrcCascadePidController extends TrcPidController implements TrcPidC
             dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
-        secondaryCtrl = new TrcPidController(instanceName + ".secondary",
-                                             secondaryKp, secondaryKi, secondaryKd, secondaryKf,
-                                             secondaryTolerance, secondarySettlingTime, this);
+        secondaryCtrl = new TrcPidController(
+                instanceName + ".secondary", secondaryPidCoefficients, secondaryTolerance, secondarySettlingTime, this);
         this.cascadeInput = cascadeInput;
+    }   //TrcCascadePidController
+
+    /**
+     * Constructor: Create an instance of the object.
+     *
+     * @param instanceName specifies the instance name.
+     * @param primaryPidCoefficients specifies the PID coefficients of the primary PID controller.
+     * @param primaryTolerance specifies the target tolerance of the primary PID controller.
+     * @param secondaryPidCoefficients specifies the PID coefficients of the secondary PID controller.
+     * @param secondaryTolerance specifies the target tolerance of the secondary PID controller.
+     * @param cascadeInput specifies the object that will provide the Cascade control inputs.
+     */
+    public TrcCascadePidController(
+            final String instanceName,
+            PidCoefficients primaryPidCoefficients, double primaryTolerance,
+            PidCoefficients secondaryPidCoefficients, double secondaryTolerance,
+            CascadeInput cascadeInput)
+    {
+        this(instanceName,
+             primaryPidCoefficients, primaryTolerance, DEF_SETTLING_TIME,
+             secondaryPidCoefficients, secondaryTolerance, DEF_SETTLING_TIME,
+             cascadeInput);
     }   //TrcCascadePidController
 
     /**

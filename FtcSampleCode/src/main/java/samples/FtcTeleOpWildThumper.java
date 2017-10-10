@@ -77,23 +77,17 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.Button
     private static final double VISIONDRIVE_KP          = 0.03;
     private static final double VISIONDRIVE_KI          = 0.0;
     private static final double VISIONDRIVE_KD          = 0.0;
-    private static final double VISIONDRIVE_KF          = 0.0;
     private static final double VISIONDRIVE_TOLERANCE   = 2.0;
-    private static final double VISIONDRIVE_SETTLING    = 0.2;
 
     private static final double GYROTURN_KP             = 0.05;
     private static final double GYROTURN_KI             = 0.0;
     private static final double GYROTURN_KD             = 0.0;
-    private static final double GYROTURN_KF             = 0.0;
     private static final double GYROTURN_TOLERANCE      = 2.0;
-    private static final double GYROTURN_SETTLING       = 0.2;
 
 //    private static final double VISIONTURN_KP           = 0.1;
 //    private static final double VISIONTURN_KI           = 0.0;
 //    private static final double VISIONTURN_KD           = 0.0;
-//    private static final double VISIONTURN_KF           = 0.0;
 //    private static final double VISIONTURN_TOLERANCE    = 2.0;
-//    private static final double VISIONTURN_SETTLING     = 0.2;
 
     private final float MM_PER_INCH = 25.4f;
     private final float ROBOT_WIDTH = 18*MM_PER_INCH;               // in mm
@@ -303,16 +297,12 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.Button
             //
             visionDrivePidCtrl = new TrcPidController(
                     "visionDrivePidCtrl",
-                    VISIONDRIVE_KP, VISIONDRIVE_KI,
-                    VISIONDRIVE_KD, VISIONDRIVE_KF,
-                    VISIONDRIVE_TOLERANCE, VISIONDRIVE_SETTLING,
-                    this);
+                    new TrcPidController.PidCoefficients(VISIONDRIVE_KP, VISIONDRIVE_KI, VISIONDRIVE_KD),
+                    VISIONDRIVE_TOLERANCE, this);
             gyroTurnPidCtrl = new TrcPidController(
                     "gyroTurnPidCtrl",
-                    GYROTURN_KP, GYROTURN_KI,
-                    GYROTURN_KD, GYROTURN_KF,
-                    GYROTURN_TOLERANCE, GYROTURN_SETTLING,
-                    this);
+                    new TrcPidController.PidCoefficients(GYROTURN_KP, GYROTURN_KI, GYROTURN_KD),
+                    GYROTURN_TOLERANCE, this);
             visionPidDrive = new TrcPidDrive(
                     "visionPidDrive", driveBase, null, visionDrivePidCtrl, gyroTurnPidCtrl);
         }

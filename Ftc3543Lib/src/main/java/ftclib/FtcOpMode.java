@@ -317,9 +317,11 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
         startMode();
 
         long nextPeriodTime = TrcUtil.getCurrentTimeMillis();
+        loopCounter = 0;
         while (opModeIsActive())
         {
             loopStartTime = TrcUtil.getCurrentTime();
+            loopCounter++;
             opModeElapsedTime = loopStartTime - opModeStartTime;
 
             if (debugEnabled)

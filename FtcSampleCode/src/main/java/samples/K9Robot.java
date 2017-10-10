@@ -52,9 +52,7 @@ public class K9Robot implements TrcPidController.PidInput, TrcAnalogTrigger.Trig
     private static final double DRIVE_KP                = 0.03;
     private static final double DRIVE_KI                = 0.0;
     private static final double DRIVE_KD                = 0.0;
-    private static final double DRIVE_KF                = 0.0;
     private static final double DRIVE_TOLERANCE         = 1.0;
-    private static final double DRIVE_SETTLING          = 0.2;
     private static final double DRIVE_INCHES_PER_COUNT  = (104.0/7416.5);
     //
     // PID turn constants.
@@ -62,18 +60,14 @@ public class K9Robot implements TrcPidController.PidInput, TrcAnalogTrigger.Trig
     private static final double TURN_KP                 = 0.05;
     private static final double TURN_KI                 = 0.0;
     private static final double TURN_KD                 = 0.0;
-    private static final double TURN_KF                 = 0.0;
     private static final double TURN_TOLERANCE          = 1.0;
-    private static final double TURN_SETTLING           = 0.2;
     //
     // PID line follow constants.
     //
     private static final double COLOR_KP                = 0.1;
     private static final double COLOR_KI                = 0.0;
     private static final double COLOR_KD                = 0.0;
-    private static final double COLOR_KF                = 0.0;
     private static final double COLOR_TOLERANCE         = 2.0;
-    private static final double COLOR_SETTLING          = 0.2;
     private static final double COLOR_BLACK             = 0.0;
     private static final double COLOR_BLUE              = 3.0;
     private static final double COLOR_RED               = 10.0;
@@ -88,9 +82,7 @@ public class K9Robot implements TrcPidController.PidInput, TrcAnalogTrigger.Trig
     private static final double LIGHT_KP                = 0.02;
     private static final double LIGHT_KI                = 0.0;
     private static final double LIGHT_KD                = 0.0;
-    private static final double LIGHT_KF                = 0.0;
     private static final double LIGHT_TOLERANCE         = 5.0;
-    private static final double LIGHT_SETTLING          = 0.2;
 
     private static final double LIGHT_DARK_LEVEL        = 10.0;
     private static final double LIGHT_WHITE_LEVEL       = 60.0;
@@ -101,18 +93,14 @@ public class K9Robot implements TrcPidController.PidInput, TrcAnalogTrigger.Trig
     private static final double IRDRIVE_KP              = 0.8;
     private static final double IRDRIVE_KI              = 0.0;
     private static final double IRDRIVE_KD              = 0.0;
-    private static final double IRDRIVE_KF              = 0.0;
     private static final double IRDRIVE_TOLERANCE       = 0.1;
-    private static final double IRDRIVE_SETTLING        = 0.2;
     //
     // PID IR turn constants.
     //
     private static final double IRTURN_KP               = 0.1;
     private static final double IRTURN_KI               = 0.0;
     private static final double IRTURN_KD               = 0.0;
-    private static final double IRTURN_KF               = 0.0;
     private static final double IRTURN_TOLERANCE        = 1.0;
-    private static final double IRTURN_SETTLING         = 0.2;
 
     public static final double ARM_MIN_RANGE            = 0.2;
     public static final double ARM_MAX_RANGE            = 0.9;
@@ -206,20 +194,20 @@ public class K9Robot implements TrcPidController.PidInput, TrcAnalogTrigger.Trig
         //
         drivePidCtrl = new TrcPidController(
                 "drivePid",
-                DRIVE_KP, DRIVE_KI, DRIVE_KD, DRIVE_KF,
-                DRIVE_TOLERANCE, DRIVE_SETTLING, this);
+                new TrcPidController.PidCoefficients(DRIVE_KP, DRIVE_KI, DRIVE_KD),
+                DRIVE_TOLERANCE, this);
         turnPidCtrl = new TrcPidController(
                 "turnPid",
-                TURN_KP, TURN_KI, TURN_KD, TURN_KF,
-                TURN_TOLERANCE, TURN_SETTLING, this);
+                new TrcPidController.PidCoefficients(TURN_KP, TURN_KI, TURN_KD),
+                TURN_TOLERANCE, this);
         pidDrive = new TrcPidDrive("pidDrive", driveBase, null, drivePidCtrl, turnPidCtrl);
         //
         // PID line follow using color sensor.
         //
         colorPidCtrl = new TrcPidController(
                 "lightPid",
-                COLOR_KP, COLOR_KI, COLOR_KD, COLOR_KF,
-                COLOR_TOLERANCE, COLOR_SETTLING, this);
+                new TrcPidController.PidCoefficients(COLOR_KP, COLOR_KI, COLOR_KD),
+                COLOR_TOLERANCE, this);
         colorPidCtrl.setAbsoluteSetPoint(true);
         pidLineFollow = new TrcPidDrive(
                 "lineFollow", driveBase, null, drivePidCtrl, colorPidCtrl);
@@ -231,8 +219,8 @@ public class K9Robot implements TrcPidController.PidInput, TrcAnalogTrigger.Trig
         //
         lightPidCtrl = new TrcPidController(
                 "lightPid",
-                LIGHT_KP, LIGHT_KI, LIGHT_KD, LIGHT_KF,
-                LIGHT_TOLERANCE, LIGHT_SETTLING, this);
+                new TrcPidController.PidCoefficients(LIGHT_KP, LIGHT_KI, LIGHT_KD),
+                LIGHT_TOLERANCE, this);
         lightPidCtrl.setAbsoluteSetPoint(true);
         lineFollowDrive = new TrcPidDrive(
                 "lineFollow", driveBase, null, drivePidCtrl, lightPidCtrl);
@@ -245,13 +233,13 @@ public class K9Robot implements TrcPidController.PidInput, TrcAnalogTrigger.Trig
         //
         irDrivePidCtrl = new TrcPidController(
                 "irDrivePid",
-                IRDRIVE_KP, IRDRIVE_KI, IRDRIVE_KD, IRDRIVE_KF,
-                IRDRIVE_TOLERANCE, IRDRIVE_SETTLING, this);
+                new TrcPidController.PidCoefficients(IRDRIVE_KP, IRDRIVE_KI, IRDRIVE_KD),
+                IRDRIVE_TOLERANCE, this);
         irDrivePidCtrl.setAbsoluteSetPoint(true);
         irTurnPidCtrl = new TrcPidController(
                 "irTurnPid",
-                IRTURN_KP, IRTURN_KI, IRTURN_KD, IRTURN_KF,
-                IRTURN_TOLERANCE, IRTURN_SETTLING, this);
+                new TrcPidController.PidCoefficients(IRTURN_KP, IRTURN_KI, IRTURN_KD),
+                IRTURN_TOLERANCE, this);
         irDrivePidCtrl.setAbsoluteSetPoint(true);
         pidSeekIr = new TrcPidDrive(
                 "seekIr", driveBase, null, irDrivePidCtrl, irTurnPidCtrl);

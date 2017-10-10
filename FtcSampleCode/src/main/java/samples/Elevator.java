@@ -35,9 +35,7 @@ public class Elevator extends TrcLinearActuator
     private static final double ELEVATOR_KP                     = 0.5;
     private static final double ELEVATOR_KI                     = 0.0;
     private static final double ELEVATOR_KD                     = 0.0;
-    private static final double ELEVATOR_KF                     = 0.0;
     private static final double ELEVATOR_TOLERANCE              = 0.2;
-    private static final double ELEVATOR_SETTLING               = 0.2;
     private static final double ELEVATOR_MIN_HEIGHT             = 0.0;
     private static final double ELEVATOR_MAX_HEIGHT             = 23.5;
     private static final double ELEVATOR_INCHES_PER_COUNT       = (23.5/9700.0);
@@ -61,9 +59,8 @@ public class Elevator extends TrcLinearActuator
         motor = new FtcDcMotor("elevator", lowerLimitSwitch);
         pidCtrl = new TrcPidController(
                 "elevator",
-                ELEVATOR_KP, ELEVATOR_KI, ELEVATOR_KD, ELEVATOR_KF,
-                ELEVATOR_TOLERANCE, ELEVATOR_SETTLING,
-                this);
+                new TrcPidController.PidCoefficients(ELEVATOR_KP, ELEVATOR_KI, ELEVATOR_KD),
+                ELEVATOR_TOLERANCE, this);
         pidCtrl.setAbsoluteSetPoint(true);
         initialize(motor, lowerLimitSwitch, pidCtrl);
         setPositionScale(ELEVATOR_INCHES_PER_COUNT);
