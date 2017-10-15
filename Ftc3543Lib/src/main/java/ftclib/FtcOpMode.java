@@ -293,9 +293,12 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
         {
             dbgTrace.traceInfo(funcName, "Running initPeriodic ...");
         }
+        loopCounter = 0;
         dashboard.displayPrintf(0, "initPeriodic starting...");
         while (!isStarted())
         {
+            loopCounter++;
+            loopStartTime = TrcUtil.getCurrentTime();
             initPeriodic();
         }
         dashboard.displayPrintf(0, "initPeriodic completed!");
@@ -320,8 +323,8 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
         loopCounter = 0;
         while (opModeIsActive())
         {
-            loopStartTime = TrcUtil.getCurrentTime();
             loopCounter++;
+            loopStartTime = TrcUtil.getCurrentTime();
             opModeElapsedTime = loopStartTime - opModeStartTime;
 
             if (debugEnabled)
