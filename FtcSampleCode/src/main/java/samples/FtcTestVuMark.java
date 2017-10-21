@@ -28,6 +28,9 @@ import android.widget.TextView;
 
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.vuforia.Image;
+import com.vuforia.PIXEL_FORMAT;
+import com.vuforia.Vuforia;
 
 import org.firstinspires.ftc.robotcontroller.internal.FtcRobotControllerActivity;
 import org.firstinspires.ftc.robotcore.external.matrices.OpenGLMatrix;
@@ -40,12 +43,11 @@ import org.firstinspires.ftc.robotcore.external.navigation.RelicRecoveryVuMark;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackable;
 
-import java.util.Locale;
-
 import FtcSampleCode.R;
 import ftclib.FtcOpMode;
 import ftclib.FtcVuforia;
 import hallib.HalDashboard;
+import trclib.TrcUtil;
 
 @TeleOp(name="Test: VuMark Tracking", group="3543TestSamples")
 //@Disabled
@@ -123,6 +125,8 @@ public class FtcTestVuMark extends FtcOpMode
                 "cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
         vuforia = new FtcVuforia(VUFORIA_LICENSE_KEY, cameraViewId, CAMERA_DIR, TRACKABLES_FILE, 1);
         vuforia.setTargetInfo(0, "relicVuMarkTemplate");
+        Vuforia.setFrameFormat(PIXEL_FORMAT.RGB565, true);
+        vuforia.localizer.setFrameQueueCapacity(2);
         //
         // Text To Speech.
         //
@@ -157,16 +161,22 @@ public class FtcTestVuMark extends FtcOpMode
     @Override
     public void runPeriodic(double elapsedTime)
     {
+        double startTime;
+
+        startTime = TrcUtil.getCurrentTime();
         RelicRecoveryVuMark vuMark = RelicRecoveryVuMark.from(vuforia.getTarget(0));
+        dashboard.displayPrintf(1, "ElapseTime: getTarget=%f", TrcUtil.getCurrentTime() - startTime);
 
         if (vuMark != RelicRecoveryVuMark.UNKNOWN)
         {
+            startTime = TrcUtil.getCurrentTime();
             VectorF pos = getVuMarkPosition();
             Orientation orientation = getVuMarkOrientation();
+            dashboard.displayPrintf(2, "ElapseTime: getVuMarkInfo=%f", TrcUtil.getCurrentTime() - startTime);
 
-            dashboard.displayPrintf(1, "%s: x=%6.2f,y=%6.2f,z=%6.2f",
+            dashboard.displayPrintf(3, "%s: x=%6.2f,y=%6.2f,z=%6.2f",
                     vuMark.toString(), pos.get(0)/MM_PER_INCH, pos.get(1)/MM_PER_INCH, pos.get(2)/MM_PER_INCH);
-            dashboard.displayPrintf(2, "%s: xRot=%6.2f,yRot=%6.2f,zRot=%6.2f",
+            dashboard.displayPrintf(4, "%s: xRot=%6.2f,yRot=%6.2f,zRot=%6.2f",
                     vuMark.toString(), orientation.firstAngle, orientation.secondAngle, orientation.thirdAngle);
         }
 
@@ -185,7 +195,7 @@ public class FtcTestVuMark extends FtcOpMode
 
             if (sentence != null)
             {
-                dashboard.displayPrintf(3, sentence);
+                dashboard.displayPrintf(5, sentence);
                 if (textToSpeech != null)
                 {
                     //
@@ -197,6 +207,27 @@ public class FtcTestVuMark extends FtcOpMode
             }
 
             prevVuMark = vuMark;
+        }
+
+        VuforiaLocalizer.CloseableFrame frame = null;
+        try
+        {
+            startTime = TrcUtil.getCurrentTime();
+            frame = vuforia.localizer.getFrameQueue().take();
+            dashboard.displayPrintf(6, "ElapseTime: getFrame=%f", TrcUtil.getCurrentTime() - startTime);
+            dashboard.displayPrintf(7, "NumImages=%d", frame.getNumImages());
+            Image image;
+            for (int i = 0; i < frame.getNumImages(); i++)
+            {
+                image = frame.getImage(i);
+                dashboard.displayPrintf(7 + i, "[%d] format=%d,w=%d,h=%d",
+                        i, image.getFormat(), image.getWidth(), image.getHeight());
+            }
+            frame.close();
+        }
+        catch (InterruptedException e)
+        {
+            e.printStackTrace();
         }
     }   //runPeriodic
 

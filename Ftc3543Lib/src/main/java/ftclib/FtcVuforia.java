@@ -78,7 +78,8 @@ public class FtcVuforia
         }   //Target
     }   //class Target
 
-    private VuforiaLocalizer.Parameters params;
+    public VuforiaLocalizer localizer;
+    private VuforiaLocalizer.CameraDirection cameraDir;
     private VuforiaTrackables targetList;
 
     /**
@@ -97,16 +98,16 @@ public class FtcVuforia
             String trackablesFile, int numTargets,
             VuforiaLocalizer.Parameters.CameraMonitorFeedback cameraMonitorFeedback)
     {
+        this.cameraDir = cameraDir;
         //
         // If no camera view ID, do not activate camera monitor view to save power.
         //
-        params = cameraViewId == -1?
-                    new VuforiaLocalizer.Parameters():
-                    new VuforiaLocalizer.Parameters(cameraViewId);
+        VuforiaLocalizer.Parameters params =
+                cameraViewId == -1? new VuforiaLocalizer.Parameters(): new VuforiaLocalizer.Parameters(cameraViewId);
         params.vuforiaLicenseKey = licenseKey;
         params.cameraDirection = cameraDir;
         params.cameraMonitorFeedback = cameraMonitorFeedback;
-        VuforiaLocalizer localizer = ClassFactory.createVuforiaLocalizer(params);
+        localizer = ClassFactory.createVuforiaLocalizer(params);
         Vuforia.setHint(HINT.HINT_MAX_SIMULTANEOUS_IMAGE_TARGETS, numTargets);
         targetList = localizer.loadTrackablesFromAsset(trackablesFile);
     }   //FtcVuforia
@@ -167,7 +168,7 @@ public class FtcVuforia
         if (phoneLocationOnRobot != null)
         {
             ((VuforiaTrackableDefaultListener) target.getListener()).setPhoneInformation(
-                    phoneLocationOnRobot, params.cameraDirection);
+                    phoneLocationOnRobot, cameraDir);
         }
     }   //setTargetInfo
 
