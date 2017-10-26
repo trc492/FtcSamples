@@ -53,6 +53,10 @@ public class FtcRevImu
     private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
 
+    /**
+     * This class implements the gyro part of hte BNO055 IMU. It extends TrcGyro so that it implements the standard
+     * gyro interface.
+     */
     private class Gyro extends TrcGyro
     {
         private AngularVelocity turnRateData = null;
@@ -67,6 +71,10 @@ public class FtcRevImu
          */
         public Gyro(String instanceName)
         {
+            //
+            // REV IMU has a 3-axis gyro. The angular orientation data it returns is in Ordinal system.
+            // So we need to convert it to Cartesian system.
+            //
             super(instanceName, 3,
                     GYRO_HAS_X_AXIS | GYRO_HAS_Y_AXIS | GYRO_HAS_Z_AXIS | GYRO_CONVERT_TO_CARTESIAN, null);
         }   //Gyro
@@ -193,6 +201,10 @@ public class FtcRevImu
                             AxesReference.INTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES);
                     headingTagId = currTagId;
                 }
+                //
+                // The Z-axis returns positive heading in the anticlockwise direction, so we must negate it for
+                // our convention.
+                //
                 value = -headingData.thirdAngle;
             }
             SensorData<Double> data = new SensorData<>(TrcUtil.getCurrentTime(), value);
@@ -209,6 +221,10 @@ public class FtcRevImu
 
     }   //class Gyro
 
+    /**
+     * This class implements the accelerometer part of hte BNO055 IMU. It extends TrcAccelerometer so that it
+     * implements the standard accelerometer interface.
+     */
     public class Accelerometer extends TrcAccelerometer
     {
         private Acceleration accelData = null;
@@ -225,6 +241,9 @@ public class FtcRevImu
          */
         public Accelerometer(String instanceName)
         {
+            //
+            // REV IMU has a 3-axis accelerometer.
+            //
             super(instanceName, 3, ACCEL_HAS_X_AXIS | ACCEL_HAS_Y_AXIS | ACCEL_HAS_Z_AXIS, null);
         }   //Accelerometer
 
@@ -406,7 +425,9 @@ public class FtcRevImu
         {
             dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
-
+        //
+        // Initialize the BNO055 IMU.
+        //
         BNO055IMU.Parameters imuParams = new BNO055IMU.Parameters();
         imuParams.angleUnit = BNO055IMU.AngleUnit.DEGREES;
         imuParams.accelUnit = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
@@ -416,8 +437,16 @@ public class FtcRevImu
         imuParams.accelerationIntegrationAlgorithm = new JustLoggingAccelerationIntegrator();
         imu = hardwareMap.get(BNO055IMU.class, instanceName);
         imu.initialize(imuParams);
+        //
+        // Create the gyro object of the IMU.
+        // Note that the heading data on the z-axis is in Ordinal system with a range of -180 to 180 degrees.
+        // So we need to initialize the Cartesian converter with the range values.
+        //
         gyro = new Gyro(instanceName);
         gyro.setZValueRange(-180.0, 180.0);
+        //
+        // Create the accelerometer object of the IMU.
+        //
         accel = new Accelerometer(instanceName);
     }   //FtcRevImu
 

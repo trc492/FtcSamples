@@ -131,7 +131,7 @@ public class TrcEnhancedServo implements TrcTaskMgr.Task
     public TrcEnhancedServo(
             String instanceName, TrcServo servo, TrcDigitalInput lowerLimitSwitch, TrcDigitalInput upperLimitSwitch)
     {
-        if (servo1 == null)
+        if (servo == null)
         {
             throw new NullPointerException("servo cannot be null.");
         }
