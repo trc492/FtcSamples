@@ -55,6 +55,7 @@ public class TrcCardinalConverter<D> implements TrcTaskMgr.Task
     private double[] cardinalRangeHighs;
     private TrcSensor.SensorData<Double>[] prevData;
     private int[] numCrossovers;
+    private boolean enabled = false;
 
     /**
      * Constructor: Creates an instance of the object.
@@ -105,6 +106,24 @@ public class TrcCardinalConverter<D> implements TrcTaskMgr.Task
     }   //toString
 
     /**
+     * This method returns the state of the cardinal converter task.
+     *
+     * @return true if converter task is enabled, false otherwise.
+     */
+    public boolean isEnabled()
+    {
+        final String funcName = "isEnabled";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", Boolean.toString(enabled));
+        }
+
+        return enabled;
+    }   //isEnabled
+
+    /**
      * This method enables/disables the converter task. It is not automatically enabled when created. You must
      * explicitly call this method to enable the converter.
      *
@@ -120,15 +139,17 @@ public class TrcCardinalConverter<D> implements TrcTaskMgr.Task
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        if (enabled)
+        if (!this.enabled && enabled)
         {
             reset();
             TrcTaskMgr.getInstance().registerTask(instanceName, this, TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
         }
-        else
+        else if (this.enabled && !enabled)
         {
+            reset();
             TrcTaskMgr.getInstance().unregisterTask(this, TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
         }
+        this.enabled = enabled;
     }   //setEnabled
 
     /**
@@ -193,6 +214,7 @@ public class TrcCardinalConverter<D> implements TrcTaskMgr.Task
 
         cardinalRangeLows[index] = rangeLow;
         cardinalRangeHighs[index] = rangeHigh;
+        reset(index);
     }   //setCardinalRange
 
     /**
@@ -207,8 +229,10 @@ public class TrcCardinalConverter<D> implements TrcTaskMgr.Task
         TrcSensor.SensorData<Double> data = new TrcSensor.SensorData<>(
                 prevData[index].timestamp, prevData[index].value);
 
-        data.value = (cardinalRangeHighs[index] - cardinalRangeLows[index])*numCrossovers[index] +
-                     (data.value - cardinalRangeLows[index]);
+        if (enabled)
+        {
+            data.value += (cardinalRangeHighs[index] - cardinalRangeLows[index])*numCrossovers[index];
+        }
 
         if (debugEnabled)
         {
@@ -262,6 +286,7 @@ public class TrcCardinalConverter<D> implements TrcTaskMgr.Task
         for (int i = 0; i < numAxes; i++)
         {
             TrcSensor.SensorData<Double> data = sensor.getProcessedData(i, dataType);
+
             if (Math.abs(data.value - prevData[i].value) > (cardinalRangeHighs[i] - cardinalRangeLows[i])/2.0)
             {
                 if (data.value > prevData[i].value)
