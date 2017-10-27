@@ -28,9 +28,6 @@ import android.widget.TextView;
 
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.vuforia.Image;
-import com.vuforia.PIXEL_FORMAT;
-import com.vuforia.Vuforia;
 
 import org.firstinspires.ftc.robotcontroller.internal.FtcRobotControllerActivity;
 import org.firstinspires.ftc.robotcore.external.matrices.OpenGLMatrix;
@@ -68,8 +65,8 @@ public class FtcTestVuMark extends FtcOpMode
     private final boolean SPEECH_ENABLED = true;
 
     private HalDashboard dashboard;
-    private FtcVuforia vuforia;
     private TextToSpeech textToSpeech = null;
+    private FtcVuforia vuforia = null;
     private RelicRecoveryVuMark prevVuMark = null;
 
     private VectorF getVuMarkPosition()
@@ -120,13 +117,6 @@ public class FtcTestVuMark extends FtcOpMode
         dashboard = HalDashboard.getInstance();
         FtcRobotControllerActivity activity = (FtcRobotControllerActivity)hardwareMap.appContext;
         dashboard.setTextView((TextView)activity.findViewById(R.id.textOpMode));
-
-        int cameraViewId = hardwareMap.appContext.getResources().getIdentifier(
-                "cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
-        vuforia = new FtcVuforia(VUFORIA_LICENSE_KEY, cameraViewId, CAMERA_DIR, TRACKABLES_FILE, 1);
-        vuforia.setTargetInfo(0, "relicVuMarkTemplate");
-        Vuforia.setFrameFormat(PIXEL_FORMAT.RGB565, true);
-        vuforia.localizer.setFrameQueueCapacity(2);
         //
         // Text To Speech.
         //
@@ -134,6 +124,11 @@ public class FtcTestVuMark extends FtcOpMode
         {
             textToSpeech = FtcOpMode.getInstance().getTextToSpeech();
         }
+
+        int cameraViewId = hardwareMap.appContext.getResources().getIdentifier(
+                "cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+        vuforia = new FtcVuforia(VUFORIA_LICENSE_KEY, cameraViewId, CAMERA_DIR, TRACKABLES_FILE, 1);
+        vuforia.setTargetInfo(0, "relicVuMarkTemplate");
     }   //initRobot
 
     //
@@ -207,27 +202,6 @@ public class FtcTestVuMark extends FtcOpMode
             }
 
             prevVuMark = vuMark;
-        }
-
-        VuforiaLocalizer.CloseableFrame frame = null;
-        try
-        {
-            startTime = TrcUtil.getCurrentTime();
-            frame = vuforia.localizer.getFrameQueue().take();
-            dashboard.displayPrintf(6, "ElapseTime: getFrame=%f", TrcUtil.getCurrentTime() - startTime);
-            dashboard.displayPrintf(7, "NumImages=%d", frame.getNumImages());
-            Image image;
-            for (int i = 0; i < frame.getNumImages(); i++)
-            {
-                image = frame.getImage(i);
-                dashboard.displayPrintf(7 + i, "[%d] format=%d,w=%d,h=%d",
-                        i, image.getFormat(), image.getWidth(), image.getHeight());
-            }
-            frame.close();
-        }
-        catch (InterruptedException e)
-        {
-            e.printStackTrace();
         }
     }   //runPeriodic
 

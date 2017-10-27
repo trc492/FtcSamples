@@ -58,7 +58,7 @@ import trclib.TrcDbgTrace;
  * This class implements an OpenCV view for Face Detection.
  */
 @TeleOp(name="Test: OpenCV Face Detection", group="3543TestSamples")
-@Disabled
+//@Disabled
 public class FtcTestOpenCv extends FtcOpMode implements CameraBridgeViewBase.CvCameraViewListener2
 {
     private static final String moduleName = "FtcTestOpenCv";
@@ -70,6 +70,7 @@ public class FtcTestOpenCv extends FtcOpMode implements CameraBridgeViewBase.CvC
 
     private HalDashboard dashboard;
     private FtcRobotControllerActivity activity;
+    private BaseLoaderCallback loaderCallback;
 //    private GLSurfaceView cameraPreview;
 //    private ImageView overlayView;
     private CameraBridgeViewBase cameraView;
@@ -83,82 +84,6 @@ public class FtcTestOpenCv extends FtcOpMode implements CameraBridgeViewBase.CvC
     private boolean doOverlayImage = true;
     private boolean overlayRectangle = false;
 
-    /**
-     * Implements the OpenCV manager loader callback methods.
-     */
-    private BaseLoaderCallback loaderCallback =
-            new BaseLoaderCallback(activity)
-            {
-                /**
-                 * This method is called when the OpenCV manager is connected. It loads the
-                 * OpenCV library and the appropriate CascadeClassifier.
-                 *
-                 * @param status specifies the OpenCV connection status.
-                 */
-                @Override
-                public void onManagerConnected(int status)
-                {
-                    final String funcName = "onManagerConnected";
-
-                    switch (status)
-                    {
-                        case LoaderCallbackInterface.SUCCESS:
-                            File cascadeFile = null;
-                            tracer.traceInfo(funcName, "OpenCV loaded successfully.");
-                            System.loadLibrary("opencv_java3");
-                            try
-                            {
-                                // load cascade file from application resources
-                                InputStream is =
-                                        activity.getResources().openRawResource(classifier);
-                                File cascadeDir = activity.getDir("cascade", Context.MODE_PRIVATE);
-                                cascadeFile = new File(cascadeDir, "frontalface.xml");
-                                FileOutputStream os = new FileOutputStream(cascadeFile);
-
-                                byte[] buffer = new byte[4096];
-                                int bytesRead;
-                                while ((bytesRead = is.read(buffer)) != -1)
-                                {
-                                    os.write(buffer, 0, bytesRead);
-                                }
-                                is.close();
-                                os.close();
-
-                                faceDetector = new CascadeClassifier(cascadeFile.getAbsolutePath());
-                                if (faceDetector.empty())
-                                {
-                                    tracer.traceErr(
-                                            funcName, "Failed to load cascade classifier <%s>",
-                                            cascadeFile.getAbsolutePath());
-                                    faceDetector = null;
-                                }
-                                else
-                                {
-                                    tracer.traceInfo(
-                                            funcName, "Cascade classifier <%s> loaded!",
-                                            cascadeFile.getAbsolutePath());
-                                }
-                                cascadeDir.delete();
-                            }
-                            catch (IOException e)
-                            {
-                                e.printStackTrace();
-                                tracer.traceErr(
-                                        funcName,
-                                        "Failed to load cascade file <%s>",
-                                        cascadeFile.getAbsolutePath());
-                            }
-//                            cameraPreview.onResume();
-                            cameraView.enableView();
-                            break;
-
-                        default:
-                            super.onManagerConnected(status);
-                            break;
-                    }
-                }   //onManagerConnected
-            };
-
     //
     // Implements FtcOpMode abstract methods.
     //
@@ -168,7 +93,79 @@ public class FtcTestOpenCv extends FtcOpMode implements CameraBridgeViewBase.CvC
     {
         hardwareMap.logDevices();
         dashboard = HalDashboard.getInstance();
-        this.activity = (FtcRobotControllerActivity)hardwareMap.appContext;
+        activity = (FtcRobotControllerActivity)hardwareMap.appContext;
+        loaderCallback = new BaseLoaderCallback(activity)
+        {
+            /**
+             * This method is called when the OpenCV manager is connected. It loads the
+             * OpenCV library and the appropriate CascadeClassifier.
+             *
+             * @param status specifies the OpenCV connection status.
+             */
+            @Override
+            public void onManagerConnected(int status)
+            {
+                final String funcName = "onManagerConnected";
+
+                switch (status)
+                {
+                    case LoaderCallbackInterface.SUCCESS:
+                        File cascadeFile = null;
+                        tracer.traceInfo(funcName, "OpenCV loaded successfully.");
+                        System.loadLibrary("opencv_java3");
+                        try
+                        {
+                            // load cascade file from application resources
+                            InputStream is =
+                                    activity.getResources().openRawResource(classifier);
+                            File cascadeDir = activity.getDir("cascade", Context.MODE_PRIVATE);
+                            cascadeFile = new File(cascadeDir, "frontalface.xml");
+                            FileOutputStream os = new FileOutputStream(cascadeFile);
+
+                            byte[] buffer = new byte[4096];
+                            int bytesRead;
+                            while ((bytesRead = is.read(buffer)) != -1)
+                            {
+                                os.write(buffer, 0, bytesRead);
+                            }
+                            is.close();
+                            os.close();
+
+                            faceDetector = new CascadeClassifier(cascadeFile.getAbsolutePath());
+                            if (faceDetector.empty())
+                            {
+                                tracer.traceErr(
+                                        funcName, "Failed to load cascade classifier <%s>",
+                                        cascadeFile.getAbsolutePath());
+                                faceDetector = null;
+                            }
+                            else
+                            {
+                                tracer.traceInfo(
+                                        funcName, "Cascade classifier <%s> loaded!",
+                                        cascadeFile.getAbsolutePath());
+                            }
+                            cascadeDir.delete();
+                        }
+                        catch (IOException e)
+                        {
+                            e.printStackTrace();
+                            tracer.traceErr(
+                                    funcName,
+                                    "Failed to load cascade file <%s>",
+                                    cascadeFile.getAbsolutePath());
+                        }
+//                            cameraPreview.onResume();
+                        cameraView.enableView();
+                        break;
+
+                    default:
+                        super.onManagerConnected(status);
+                        break;
+                }
+            }   //onManagerConnected
+        };
+
 //        cameraPreview = (GLSurfaceView)activity.findViewById(R.id.CameraPreview);
 //        overlayView = (ImageView)activity.findViewById(R.id.OverlayView);
         cameraView = (CameraBridgeViewBase)activity.findViewById(R.id.ImageView01);

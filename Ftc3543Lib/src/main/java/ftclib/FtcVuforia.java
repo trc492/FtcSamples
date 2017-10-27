@@ -23,7 +23,11 @@
 
 package ftclib;
 
+import android.graphics.Bitmap;
+
 import com.vuforia.HINT;
+import com.vuforia.Image;
+import com.vuforia.PIXEL_FORMAT;
 import com.vuforia.Vuforia;
 
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
@@ -36,13 +40,17 @@ import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackable;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackableDefaultListener;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackables;
+import org.opencv.android.Utils;
+import org.opencv.core.Mat;
+
+import hallib.HalVideoSource;
 
 /**
  * This class makes using Vuforia a little easier by minimizing the number of calls to it. It only exposes the
  * minimum things you need to set for the FTC competition. If you want to do more complex stuff, you may want
  * to not use this and call Vuforia directly so you can customize other stuff.
  */
-public class FtcVuforia
+public class FtcVuforia implements HalVideoSource<Mat>
 {
     /**
      * This class contains information required to make a trackable target. It has two constructors. One with all the
@@ -80,7 +88,9 @@ public class FtcVuforia
 
     public VuforiaLocalizer localizer;
     private VuforiaLocalizer.CameraDirection cameraDir;
-    private VuforiaTrackables targetList;
+    private VuforiaTrackables targetList = null;
+    private int imageWidth = 0;
+    private int imageHeight = 0;
 
     /**
      * Constructor: Create an instance of this object. It initializes Vuforia with the specified target images and
@@ -89,7 +99,7 @@ public class FtcVuforia
      * @param licenseKey specifies the Vuforia license key.
      * @param cameraViewId specifies the camera view ID on the activity, -1 if none given.
      * @param cameraDir specifies which camera to use (front or back).
-     * @param trackablesFile specifies the XML file that contains the target info.
+     * @param trackablesFile specifies the XML file that contains the target info, can be null.
      * @param numTargets specifies the number of simultaneous trackable targets.
      * @param cameraMonitorFeedback specifies the feedback image showing the orientation of the target.
      */
@@ -109,7 +119,10 @@ public class FtcVuforia
         params.cameraMonitorFeedback = cameraMonitorFeedback;
         localizer = ClassFactory.createVuforiaLocalizer(params);
         Vuforia.setHint(HINT.HINT_MAX_SIMULTANEOUS_IMAGE_TARGETS, numTargets);
-        targetList = localizer.loadTrackablesFromAsset(trackablesFile);
+        if (trackablesFile != null)
+        {
+            targetList = localizer.loadTrackablesFromAsset(trackablesFile);
+        }
     }   //FtcVuforia
 
     /**
@@ -131,19 +144,34 @@ public class FtcVuforia
     }   //FtcVuforia
 
     /**
+     * Constructor: Create an instance of this object. It initializes Vuforia with the specified target images and
+     * other parameters.
+     *
+     * @param licenseKey specifies the Vuforia license key.
+     * @param cameraViewId specifies the camera view ID on the activity.
+     * @param cameraDir specifies which camera to use (front or back).
+     */
+    public FtcVuforia(String licenseKey, int cameraViewId, VuforiaLocalizer.CameraDirection cameraDir)
+    {
+        this(licenseKey, cameraViewId, cameraDir, null, 0, VuforiaLocalizer.Parameters.CameraMonitorFeedback.AXES);
+    }   //FtcVuforia
+
+    /**
      * This method enables/disables target tracking.
      *
      * @param enabled specifies true to enable target tracking, false otherwise.
      */
     public void setTrackingEnabled(boolean enabled)
     {
-        if (enabled)
+        if (targetList != null)
         {
-            targetList.activate();
-        }
-        else
-        {
-            targetList.deactivate();
+            if (enabled)
+            {
+                targetList.activate();
+            } else
+            {
+                targetList.deactivate();
+            }
         }
     }   //setTrackingEnabled
 
@@ -157,18 +185,21 @@ public class FtcVuforia
      */
     public void setTargetInfo(int index, String name, OpenGLMatrix locationOnField, OpenGLMatrix phoneLocationOnRobot)
     {
-        VuforiaTrackable target = targetList.get(index);
-        target.setName(name);
-
-        if (locationOnField != null)
+        if (targetList != null)
         {
-            target.setLocation(locationOnField);
-        }
+            VuforiaTrackable target = targetList.get(index);
+            target.setName(name);
 
-        if (phoneLocationOnRobot != null)
-        {
-            ((VuforiaTrackableDefaultListener) target.getListener()).setPhoneInformation(
-                    phoneLocationOnRobot, cameraDir);
+            if (locationOnField != null)
+            {
+                target.setLocation(locationOnField);
+            }
+
+            if (phoneLocationOnRobot != null)
+            {
+                ((VuforiaTrackableDefaultListener) target.getListener()).setPhoneInformation(
+                        phoneLocationOnRobot, cameraDir);
+            }
         }
     }   //setTargetInfo
 
@@ -244,7 +275,7 @@ public class FtcVuforia
      */
     public VuforiaTrackable getTarget(int index)
     {
-        return targetList.get(index);
+        return targetList != null? targetList.get(index): null;
     }   //getTarget
 
     /**
@@ -257,16 +288,18 @@ public class FtcVuforia
     {
         VuforiaTrackable target = null;
 
-        for (int i = 0; i < targetList.size(); i++)
+        if (targetList != null)
         {
-            target = targetList.get(i);
-            if (name.equals(target.getName()))
+            for (int i = 0; i < targetList.size(); i++)
             {
-                break;
-            }
-            else
-            {
-                target = null;
+                target = targetList.get(i);
+                if (name.equals(target.getName()))
+                {
+                    break;
+                } else
+                {
+                    target = null;
+                }
             }
         }
 
@@ -308,5 +341,76 @@ public class FtcVuforia
         VuforiaTrackableDefaultListener listener = (VuforiaTrackableDefaultListener)target.getListener();
         return listener.getRobotLocation();
     }   //getRobotLocation
+
+    /**
+     * This method configures Vuforia to capture video frames of the given format.
+     *
+     * @param imageWidth specifies the image width to capture.
+     * @param imageHeight specifies the image height to capture.
+     * @param queueCapacity specifies the frame queue capacity.
+     */
+    public void configVideoSource(int imageWidth, int imageHeight, int queueCapacity)
+    {
+        this.imageWidth = imageWidth;
+        this.imageHeight = imageHeight;
+
+        Vuforia.setFrameFormat(PIXEL_FORMAT.RGB565, true);
+        localizer.setFrameQueueCapacity(queueCapacity);
+    }   //configVideoSource
+
+    //
+    // Implements HalVideoSource interface.
+    //
+
+    /**
+     * This method gets a frame from the frame queue and returns the image that matches the format specified by the
+     * configVideoSource method.
+     *
+     * @param frame specifies the frame object to hold image.
+     * @return true if success, false otherwise.
+     */
+    @Override
+    public boolean getFrame(Mat frame)
+    {
+        boolean success = false;
+
+        try
+        {
+            VuforiaLocalizer.CloseableFrame closeableFrame = localizer.getFrameQueue().take();
+
+            for (int i = 0; i < closeableFrame.getNumImages(); i++)
+            {
+                Image image = closeableFrame.getImage(i);
+                if (image.getWidth() == imageWidth && image.getHeight() == imageHeight &&
+                        image.getFormat() == PIXEL_FORMAT.RGB565)
+                {
+                    Bitmap bm = Bitmap.createBitmap(image.getWidth(), image.getHeight(), Bitmap.Config.RGB_565);
+                    bm.copyPixelsFromBuffer(image.getPixels());
+                    Utils.bitmapToMat(bm, frame);
+                    break;
+                }
+            }
+
+            closeableFrame.close();
+            success = true;
+        }
+        catch (InterruptedException e)
+        {
+            e.printStackTrace();
+        }
+
+        return success;
+    }   //getFrame
+
+    /**
+     * This method draws the given image frame to the display surface.
+     *
+     * @param frame specifies the image frame to be displayed.
+     */
+    @Override
+    public void putFrame(Mat frame)
+    {
+        // TODO: figure out how to render frame back to Vuforia.
+    }   //putFrame
 
 }   //class FtcVuforia
