@@ -63,7 +63,7 @@ public class FtcTeleOpPidElevator extends FtcOpMode implements FtcGamepad.Button
         // Elevator subsystem.
         //
         elevator = new Elevator();
-        elevator.zeroCalibrate(ELEVATOR_CAL_POWER);
+        elevator.actuator.zeroCalibrate(ELEVATOR_CAL_POWER);
     }   //initRobot
 
     //
@@ -89,9 +89,9 @@ public class FtcTeleOpPidElevator extends FtcOpMode implements FtcGamepad.Button
         // Elevator subsystem.
         //
         double elevatorPower = gamepad.getRightStickY(true);
-        elevator.setPower(elevatorPower);
+        elevator.actuator.setPower(elevatorPower);
         dashboard.displayPrintf(1, "Elevator:power=%.2f,height=%.2f",
-                                elevatorPower, elevator.getPosition());
+                                elevatorPower, elevator.actuator.getPosition());
     }   //runPeriodic
 
     //
@@ -106,13 +106,13 @@ public class FtcTeleOpPidElevator extends FtcOpMode implements FtcGamepad.Button
             switch (button)
             {
                 case FtcGamepad.GAMEPAD_RBUMPER:
-                    elevator.setManualOverride(pressed);
+                    elevator.actuator.setManualOverride(pressed);
                     break;
 
                 case FtcGamepad.GAMEPAD_START:
                     if (pressed)
                     {
-                        elevator.zeroCalibrate(ELEVATOR_CAL_POWER);
+                        elevator.actuator.zeroCalibrate(ELEVATOR_CAL_POWER);
                     }
                     break;
             }

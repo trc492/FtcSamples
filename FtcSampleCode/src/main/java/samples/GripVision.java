@@ -49,9 +49,9 @@ public class GripVision extends TrcOpenCvDetector<Rect[]>
     private static final double[] RED_TARGET_HUE = {0.0, 100.0};
     private static final double[] BLUE_TARGET_HUE = {40.0, 160.0};
 
+    private Rect[] targetRects = new Rect[2];
     private GripPipeline gripRedTarget = null;
     private GripPipeline gripBlueTarget = null;
-    private volatile Rect[] targetRects = null;
     private boolean videoOutEnabled = false;
 
     public GripVision(final String instanceName, HalVideoSource videoSource)
@@ -65,7 +65,6 @@ public class GripVision extends TrcOpenCvDetector<Rect[]>
 
         gripRedTarget = new GripPipeline("RedTarget", RED_TARGET_HUE);
         gripBlueTarget = new GripPipeline("BlueTarget", BLUE_TARGET_HUE);
-        targetRects = new Rect[2];
     }   //GripVision
 
     /**
@@ -96,25 +95,6 @@ public class GripVision extends TrcOpenCvDetector<Rect[]>
             targetRects[1] = null;
         }
     }   //retrieveTargetRects
-
-    /**
-     * This method update the video stream with the detected targets overlay on the image as rectangles.
-     *
-     * @param color specifies the color of the rectangle outline overlay onto the detected targets.
-     * @param thickness specifies the thickness of the rectangle outline.
-     */
-    private void putFrame(Mat image, Scalar color, int thickness)
-    {
-        drawRectangles(image, targetRects, color, thickness);
-    }   //putFrame
-
-    /**
-     * This method update the video stream with the detected targets overlay on the image as rectangles.
-     */
-    private void putFrame(Mat image)
-    {
-        drawRectangles(image, targetRects, new Scalar(0, 255, 0), 0);
-    }   //putFrame
 
     private Rect getTargetRect(GripPipeline pipeline, Mat image)
     {
@@ -158,11 +138,11 @@ public class GripVision extends TrcOpenCvDetector<Rect[]>
         {
             targetRects[0] = getTargetRect(gripRedTarget, image);
             targetRects[1] = getTargetRect(gripBlueTarget, image);
-        }
 
-        if (videoOutEnabled)
-        {
-            putFrame(image);
+            if (videoOutEnabled)
+            {
+                drawRectangles(image, targetRects, new Scalar(0, 255, 0), 0);
+            }
         }
 
         return targetRects;

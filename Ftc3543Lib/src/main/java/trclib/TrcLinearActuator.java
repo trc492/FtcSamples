@@ -23,13 +23,14 @@
 package trclib;
 
 /**
- * This class implements a platform independent linear actuator which consists of a motor, an encoder to keep track
- * of its position, a lower limit switch to detect the zero position and a PID controller allowing accurate movement
- * to a set position. It provides methods to allow a joystick to control the actuator to extend and retract within
- * its limited range of movement and will slow down and finally stop when lower or upper limit has been reached. It
- * also provides methods to move the actuator to a specified position and hold it there under load if necessary.
+ * This class implements a platform independent linear actuator extending TrcPidMotor. It consists of a motor,
+ * an encoder to keep track of its position, a lower limit switch to detect the zero position and a PID controller
+ * allowing accurate movement to a set position. It provides methods to allow a joystick to control the actuator
+ * to extend and retract within its limited range of movement and will slow down and finally stop when lower or
+ * upper limit has been reached. It also provides methods to move the actuator to a specified position and hold it
+ * there under load if necessary.
  */
-public class TrcLinearActuator implements TrcDigitalTrigger.TriggerHandler, TrcPidController.PidInput
+public class TrcLinearActuator extends TrcPidMotor
 {
     private static final String moduleName = "TrcLinearActuator";
     private static final boolean debugEnabled = false;
@@ -38,92 +39,34 @@ public class TrcLinearActuator implements TrcDigitalTrigger.TriggerHandler, TrcP
     private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
 
-    private final String instanceName;
     private TrcMotor motor;
-    private TrcDigitalInput lowerLimitSwitch;
-    private TrcPidController pidCtrl;
-    private TrcDigitalTrigger lowerLimitTrigger;
-    private TrcPidMotor pidMotor;
     private double minPos = 0.0;
     private double maxPos = 0.0;
     private boolean manualOverride = false;
 
     /**
-     * This method initializes the linear actuator with a motor, a limit switch and a PID controller.
-     *
-     * @param motor specifies the motor in the actuator.
-     * @param lowerLimitSwitch specifies the lower limit switch keeping track of the zero position.
-     * @param pidCtrl specifies the PID controller for PID controlled movement.
-     */
-    public void initialize(TrcMotor motor, TrcDigitalInput lowerLimitSwitch, TrcPidController pidCtrl)
-    {
-        final String funcName = "initialize";
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
-                    "motor=%s,limitSw=%s,pidCtrl=%s", motor, lowerLimitSwitch, pidCtrl);
-        }
-
-        this.motor = motor;
-        this.lowerLimitSwitch = lowerLimitSwitch;
-        this.pidCtrl = pidCtrl;
-        lowerLimitTrigger = new TrcDigitalTrigger("actuatorLowerLimit", lowerLimitSwitch, this);
-        lowerLimitTrigger.setEnabled(true);
-        pidMotor = new TrcPidMotor("LinearActuator", motor, pidCtrl);
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
-        }
-    }   //initialize
-
-    /**
      * Constructor: Create an instance of the object.
      *
      * @param instanceName specifies the instance name.
+     * @param motor specifies the motor in the actuator.
+     * @param lowerLimitSwitch specifies the lower limit switch. Required for zero calibration.
+     * @param pidCtrl specifies the PID controller for PID controlled movement.
      */
-    public TrcLinearActuator(final String instanceName)
+    public TrcLinearActuator(
+            final String instanceName, TrcMotor motor, TrcDigitalInput lowerLimitSwitch, TrcPidController pidCtrl)
     {
+        super(instanceName, motor, pidCtrl);
+
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
+            dbgTrace = new TrcDbgTrace(
+                    moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
-        this.instanceName = instanceName;
+        this.motor = motor;
+        motor.resetPositionOnDigitalInput(lowerLimitSwitch);
+        pidCtrl.setAbsoluteSetPoint(true);
     }   //TrcLinearActuator
-
-    /**
-     * This method returns the instance name.
-     *
-     * @return instance name.
-     */
-    public String toString()
-    {
-        return instanceName;
-    }   //toString
-
-    /**
-     * This method sets the position scale scaling the encoder count into proper position units.
-     *
-     * @param scale specifies the position scale.
-     */
-    public void setPositionScale(double scale)
-    {
-        final String funcName = "setPositionScale";
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "scale=%f", scale);
-        }
-
-        pidMotor.setPositionScale(scale);
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
-        }
-    }   //setPositionScale
 
     /**
      * This method sets the position range of the actuator.
@@ -144,30 +87,6 @@ public class TrcLinearActuator implements TrcDigitalTrigger.TriggerHandler, TrcP
         this.minPos = minPos;
         this.maxPos = maxPos;
     }   //setPositionRange
-
-    /**
-     * This method does a zero calibration on the actuator by slowly retracting until it hits the lower limit switch.
-     * Then it stops and resets the motor encoder. This is typically called in the robot initialization or before
-     * competition start.
-     *
-     * @param calPower specifies the motor power to retract the actuator.
-     */
-    public void zeroCalibrate(double calPower)
-    {
-        final String funcName = "zeroCalibrate";
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "calPower=%f", calPower);
-        }
-
-        pidMotor.zeroCalibrate(calPower);
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
-        }
-    }   //zeroCalibrate
 
     /**
      * This method sets manual override mode. This is useful to override PID control of the actuator in situations
@@ -197,6 +116,7 @@ public class TrcLinearActuator implements TrcDigitalTrigger.TriggerHandler, TrcP
      *
      * @param power specifies the power to run the actuator.
      */
+    @Override
     public void setPower(double power)
     {
         final String funcName = "setPower";
@@ -212,7 +132,7 @@ public class TrcLinearActuator implements TrcDigitalTrigger.TriggerHandler, TrcP
         }
         else
         {
-            pidMotor.setSpeed(power, minPos, maxPos, true);
+            setSpeed(power, minPos, maxPos, true);
         }
 
         if (debugEnabled)
@@ -235,7 +155,7 @@ public class TrcLinearActuator implements TrcDigitalTrigger.TriggerHandler, TrcP
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "pos=%s", pos);
         }
 
-        pidMotor.setTarget(pos, true);
+        setTarget(pos, true);
 
         if (debugEnabled)
         {
@@ -262,119 +182,12 @@ public class TrcLinearActuator implements TrcDigitalTrigger.TriggerHandler, TrcP
                     "pos=%s,event=%s,timeout=%f", pos, event, timeout);
         }
 
-        pidMotor.setTarget(pos, event, timeout);
+        setTarget(pos, event, timeout);
 
         if (debugEnabled)
         {
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
     }   //setPosition
-
-    /**
-     * This method returns the current position of the actuator.
-     *
-     * @return current position of the actuator.
-     */
-    public double getPosition()
-    {
-        final String funcName = "getPosition";
-        double pos = pidMotor.getPosition();
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", pos);
-        }
-
-        return pos;
-    }   //getPosition
-
-    /**
-     * This method returns the state of the lower limit switch.
-     *
-     * @return true if lower limit switch is engaged, false otherwise.
-     */
-    public boolean isLowerLimitSwitchPressed()
-    {
-        final String funcName = "isLowerLimitSwitchPressed";
-        boolean isPressed = lowerLimitSwitch.isActive();
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", Boolean.toString(isPressed));
-        }
-
-        return isPressed;
-    }   //isLowerLimitSwitchPressed
-
-    /**
-     * This method displays the actuator PID information to the dashboard on the given line number. Note that the
-     * information occupies two dashboard lines.
-     *
-     * @param lineNum specifies the dashboard line number to display the first line.
-     */
-    public void displayDebugInfo(int lineNum)
-    {
-        pidCtrl.displayPidInfo(lineNum);
-    }   //displayPidInfo
-
-    //
-    // Implements TrcDigitalTrigger.TriggerHandler
-    //
-
-    /**
-     * This method is called by the DigitalTrigger object notifying us the lower limit switch has changed state.
-     * Note that we are resetting the encoders on both pressed and released events. This ensures the encoder starts
-     * counting only when the limit switch is disengaged.
-     *
-     * @param digitalTrigger specifies the DigitalTrigger object that gives us the notification.
-     * @param active specifies true if the lower limit switch is pressed, false otherwise.
-     */
-    @Override
-    public void triggerEvent(TrcDigitalTrigger digitalTrigger, boolean active)
-    {
-        final String funcName = "triggerEvent";
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
-                    "trigger=%s,active=%s", digitalTrigger, Boolean.toString(active));
-        }
-
-        if (digitalTrigger == lowerLimitTrigger)
-        {
-            motor.resetPosition(false);
-        }
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
-        }
-    }   //triggerEvent
-
-    //
-    // Implements TrcPidController.PidInput.
-    //
-
-    /**
-     * This method is called by the PID controller to get the current height of the elevator.
-     *
-     * @param pidCtrl specifies the PID controller who is inquiring.
-     *
-     * @return current elevator height.
-     */
-    @Override
-    public double getInput(TrcPidController pidCtrl)
-    {
-        double value = 0.0;
-
-        if (pidCtrl == this.pidCtrl)
-        {
-            value = getPosition();
-        }
-
-        return value;
-    }   //getInput
 
 }   //class TrcLinearActuator

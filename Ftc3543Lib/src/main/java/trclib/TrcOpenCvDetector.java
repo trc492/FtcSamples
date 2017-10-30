@@ -80,7 +80,7 @@ public abstract class TrcOpenCvDetector<O> implements TrcVisionTask.VisionProces
 
         if (USE_VISIONTASK)
         {
-            visionTask = new TrcVisionTask<>(instanceName, this, imageBuffers, detectedObjectBuffers);
+            visionTask = new TrcVisionTask<Mat, O>(instanceName, this, imageBuffers, detectedObjectBuffers);
         }
     }   //TrcOpenCvDetector
 

@@ -31,7 +31,7 @@ package trclib;
  * If the motor controller hardware support these features, the platform dependent class should override these methods
  * to provide the support in hardware.
  */
-public abstract class TrcMotor implements TrcMotorController, TrcTaskMgr.Task
+public abstract class TrcMotor implements TrcMotorController, TrcTaskMgr.Task, TrcDigitalTrigger.TriggerHandler
 {
     private static final String moduleName = "TrcMotor";
     private static final boolean debugEnabled = false;
@@ -41,6 +41,7 @@ public abstract class TrcMotor implements TrcMotorController, TrcTaskMgr.Task
     private TrcDbgTrace dbgTrace = null;
 
     private final String instanceName;
+    private TrcDigitalTrigger digitalTrigger = null;
     private boolean speedTaskEnabled = false;
     private double speed = 0.0;
     private double prevTime = 0.0;
@@ -57,7 +58,8 @@ public abstract class TrcMotor implements TrcMotorController, TrcTaskMgr.Task
 
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
+            dbgTrace = new TrcDbgTrace(
+                    moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
     }   //TrcMotor
 
@@ -70,6 +72,26 @@ public abstract class TrcMotor implements TrcMotorController, TrcTaskMgr.Task
     {
         return instanceName;
     }   //toString
+
+    /**
+     * This method creates a digital trigger on the given digital input sensor. It resets the position sensor
+     * reading when the digital input is triggered.
+     *
+     * @param digitalInput specifies the digital input sensor that will trigger a position reset.
+     */
+    public void resetPositionOnDigitalInput(TrcDigitalInput digitalInput)
+    {
+        final String funcName = "resetPositionOnDigitalInput";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "digitalInput=%s", digitalInput);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+
+        digitalTrigger = new TrcDigitalTrigger(instanceName, digitalInput, this);
+        digitalTrigger.setEnabled(true);
+    }   //resetPositionOnDigitalInput
 
     /**
      * This method enables/disables the task that monitors the motor speed. To determine the motor speed, the task
@@ -208,5 +230,37 @@ public abstract class TrcMotor implements TrcMotorController, TrcTaskMgr.Task
     public void postContinuousTask(TrcRobot.RunMode runMode)
     {
     }   //postContinuousTask
+
+    //
+    // Implements TrcDigitalTrigger.TriggerHandler.
+    //
+
+    /**
+     * This method is called when the digital input device has changed state.
+     *
+     * @param digitalTrigger specifies this DigitalTrigger instance as the source of the event.
+     * @param active specifies true if the digital device state is active, false otherwise.
+     */
+    @Override
+    public void triggerEvent(TrcDigitalTrigger digitalTrigger, boolean active)
+    {
+        final String funcName = "triggerEvent";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
+                    "trigger=%s,active=%s", digitalTrigger, Boolean.toString(active));
+        }
+
+        if (digitalTrigger == this.digitalTrigger)
+        {
+            resetPosition(false);
+        }
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+    }   //triggerEvent
 
 }   //class TrcMotor

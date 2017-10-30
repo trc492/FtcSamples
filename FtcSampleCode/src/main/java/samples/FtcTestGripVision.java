@@ -47,15 +47,15 @@ public class FtcTestGripVision extends FtcOpMode
     //
     private static final String VUFORIA_LICENSE_KEY =
             "AdCwzDH/////AAAAGeDkDS3ukU9+lIXc19LMh+cKk29caNhOl8UqmZOymRGwVwT1ZN8uaPdE3Q+zceDu9AKNsqL9qLblSFV" +
-                    "/x8Y3jfOZdjMFs0CQSQOEyWv3xfJsdSmevXDQDQr+4KI31HY2YSf/KB/kyxfuRMk4Pi+vWS+oLl65o7sWPiyFgzoM74ENyb" +
-                    "j4FgteD/2b6B+UFuwkHWKBNpp18wrpkaiFfr/FCbRFcdWP5mrjlEZM6eOj171dybw97HPeZbGihnnxOeeUv075O7P167AVq" +
-                    "aiPy2eRK7OCubR32KXOqQKoyF6AXp+qu2cOTApXS5dqOOseEm+HE4eMF0S2Pld3i5AWBIR+JlPXDuc9LwoH2Q8iDwUK1+4g";
+            "/x8Y3jfOZdjMFs0CQSQOEyWv3xfJsdSmevXDQDQr+4KI31HY2YSf/KB/kyxfuRMk4Pi+vWS+oLl65o7sWPiyFgzoM74ENyb" +
+            "j4FgteD/2b6B+UFuwkHWKBNpp18wrpkaiFfr/FCbRFcdWP5mrjlEZM6eOj171dybw97HPeZbGihnnxOeeUv075O7P167AVq" +
+            "aiPy2eRK7OCubR32KXOqQKoyF6AXp+qu2cOTApXS5dqOOseEm+HE4eMF0S2Pld3i5AWBIR+JlPXDuc9LwoH2Q8iDwUK1+4g";
     private static final VuforiaLocalizer.CameraDirection CAMERA_DIR = VuforiaLocalizer.CameraDirection.BACK;
 
     private HalDashboard dashboard;
     private FtcVuforia vuforia = null;
     private GripVision gripVision = null;
-    private Rect[] targetRects = null;
+    private Rect[] targetRects = new Rect[2];
 
     //
     // Implements FtcOpMode abstract methods.
@@ -72,8 +72,9 @@ public class FtcTestGripVision extends FtcOpMode
         vuforia = new FtcVuforia(VUFORIA_LICENSE_KEY, cameraViewId, CAMERA_DIR);
         vuforia.configVideoSource(IMAGE_WIDTH, IMAGE_HEIGHT, FRAME_QUEUE_CAPACITY);
 
-        gripVision = new GripVision("gripVision", vuforia);
         targetRects = new Rect[2];
+        gripVision = new GripVision("gripVision", vuforia);
+        gripVision.setVideoOutEnabled(false);
     }   //initRobot
 
     //
@@ -84,21 +85,26 @@ public class FtcTestGripVision extends FtcOpMode
     public void startMode()
     {
         dashboard.clearDisplay();
-        gripVision.setVideoOutEnabled(true);
-        gripVision.setEnabled(true);
+//        gripVision.setEnabled(true);
     }   //startMode
 
     @Override
     public void stopMode()
     {
-        gripVision.setEnabled(false);
-        gripVision.setVideoOutEnabled(false);
+//        gripVision.setEnabled(false);
     }   //stopMode
 
     @Override
     public void runPeriodic(double elapsedTime)
     {
         gripVision.retrieveTargetRects(targetRects);
+        for (int i = 0; i < targetRects.length; i++)
+        {
+            if (targetRects[i] != null)
+            {
+                dashboard.displayPrintf(1 + i, "rect=%s", targetRects[i]);
+            }
+        }
     }   //runPeriodic
 
 }   //class FtcTestGripVision

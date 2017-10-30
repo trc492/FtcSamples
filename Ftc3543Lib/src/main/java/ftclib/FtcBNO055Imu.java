@@ -33,6 +33,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
+import org.firstinspires.ftc.robotcore.external.navigation.Quaternion;
 import org.firstinspires.ftc.robotcore.external.navigation.Velocity;
 
 import trclib.TrcAccelerometer;
@@ -41,17 +42,19 @@ import trclib.TrcGyro;
 import trclib.TrcUtil;
 
 /**
- * This class implements the REV Robotics IMU which is actually an Adafruit BNO055. It encapsulates two sub-classes:
+ * This class implements the BNO055 IMU which is actually an Adafruit BNO055. It encapsulates two sub-classes:
  * a 3-axis gyro and a 3-axis accelerometer.
  */
-public class FtcRevImu
+public class FtcBNO055Imu
 {
-    private static final String moduleName = "FtcRevImu";
+    private static final String moduleName = "FtcBNO055Imu";
     private static final boolean debugEnabled = false;
     private static final boolean tracingEnabled = false;
     private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
     private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
+
+    private static final boolean USE_QUATERNION = true;
 
     /**
      * This class implements the gyro part of hte BNO055 IMU. It extends TrcGyro so that it implements the standard
@@ -61,6 +64,7 @@ public class FtcRevImu
     {
         private AngularVelocity turnRateData = null;
         private long turnRateTagId = -1;
+        private double[] eulerAngles = new double[3];
         private Orientation headingData = null;
         private long headingTagId = -1;
 
@@ -72,12 +76,31 @@ public class FtcRevImu
         public Gyro(String instanceName)
         {
             //
-            // REV IMU has a 3-axis gyro. The angular orientation data it returns is in Ordinal system.
+            // BNO055 IMU has a 3-axis gyro. The angular orientation data it returns is in Ordinal system.
             // So we need to convert it to Cartesian system.
             //
             super(instanceName, 3,
                     GYRO_HAS_X_AXIS | GYRO_HAS_Y_AXIS | GYRO_HAS_Z_AXIS | GYRO_CONVERT_TO_CARTESIAN, null);
         }   //Gyro
+
+        /**
+         * This method returns the Euler angles of all 3 axes from quaternion orientation.
+         *
+         * @param angles specifies the array to hold the angles of the 3 axes.
+         */
+        private void getEulerAngles(double[] angles)
+        {
+            Quaternion q = imu.getQuaternionOrientation();
+            //
+            // 0: roll (x-axis rotation)
+            // 1: pitch (y-axis rotation)
+            // 2: yaw (z-axis rotation)
+            //
+            angles[0] = Math.toDegrees(Math.atan2(2.0*(q.w*q.x + q.y*q.z), 1.0 - 2.0*(q.x*q.x + q.y*q.y)));
+            double sinp = 2.0*(q.w*q.y - q.z*q.x);
+            angles[1] = Math.toDegrees(Math.abs(sinp) >= 1.0? Math.signum(sinp)*(Math.PI/2.0): Math.asin(sinp));
+            angles[2] = Math.toDegrees(Math.atan2(2.0*(q.w*q.z + q.x*q.y), 1.0 - 2.0*(q.y*q.y + q.z*q.z)));
+        }   //getEulerAngles
 
         //
         // Implements TrcGyro abstract methods.
@@ -109,11 +132,26 @@ public class FtcRevImu
             {
                 if (currTagId != headingTagId)
                 {
-                    headingData = imu.getAngularOrientation(
-                            AxesReference.INTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES);
+                    if (USE_QUATERNION)
+                    {
+                        getEulerAngles(eulerAngles);
+                    }
+                    else
+                    {
+                        headingData = imu.getAngularOrientation(
+                                AxesReference.INTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES);
+                    }
                     headingTagId = currTagId;
                 }
-                value = headingData.firstAngle;
+
+                if (USE_QUATERNION)
+                {
+                    value = eulerAngles[0];
+                }
+                else
+                {
+                    value = headingData.firstAngle;
+                }
             }
             SensorData<Double> data = new SensorData<>(TrcUtil.getCurrentTime(), value);
 
@@ -153,11 +191,26 @@ public class FtcRevImu
             {
                 if (currTagId != headingTagId)
                 {
-                    headingData = imu.getAngularOrientation(
-                            AxesReference.INTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES);
+                    if (USE_QUATERNION)
+                    {
+                        getEulerAngles(eulerAngles);
+                    }
+                    else
+                    {
+                        headingData = imu.getAngularOrientation(
+                                AxesReference.INTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES);
+                    }
                     headingTagId = currTagId;
                 }
-                value = headingData.secondAngle;
+
+                if (USE_QUATERNION)
+                {
+                    value = eulerAngles[1];
+                }
+                else
+                {
+                    value = headingData.secondAngle;
+                }
             }
             SensorData<Double> data = new SensorData<>(TrcUtil.getCurrentTime(), value);
 
@@ -197,15 +250,30 @@ public class FtcRevImu
             {
                 if (currTagId != headingTagId)
                 {
-                    headingData = imu.getAngularOrientation(
-                            AxesReference.INTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES);
+                    if (USE_QUATERNION)
+                    {
+                        getEulerAngles(eulerAngles);
+                    }
+                    else
+                    {
+                        headingData = imu.getAngularOrientation(
+                                AxesReference.INTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES);
+                    }
                     headingTagId = currTagId;
                 }
-                //
-                // The Z-axis returns positive heading in the anticlockwise direction, so we must negate it for
-                // our convention.
-                //
-                value = -headingData.thirdAngle;
+
+                if (USE_QUATERNION)
+                {
+                    value = -eulerAngles[2];
+                }
+                else
+                {
+                    //
+                    // The Z-axis returns positive heading in the anticlockwise direction, so we must negate it for
+                    // our convention.
+                    //
+                    value = -headingData.thirdAngle;
+                }
             }
             SensorData<Double> data = new SensorData<>(TrcUtil.getCurrentTime(), value);
 
@@ -242,7 +310,7 @@ public class FtcRevImu
         public Accelerometer(String instanceName)
         {
             //
-            // REV IMU has a 3-axis accelerometer.
+            // BNO055 IMU has a 3-axis accelerometer.
             //
             super(instanceName, 3, ACCEL_HAS_X_AXIS | ACCEL_HAS_Y_AXIS | ACCEL_HAS_Z_AXIS, null);
         }   //Accelerometer
@@ -419,7 +487,7 @@ public class FtcRevImu
      * @param hardwareMap specifies the global hardware map.
      * @param instanceName specifies the instance name.
      */
-    public FtcRevImu(HardwareMap hardwareMap, String instanceName)
+    public FtcBNO055Imu(HardwareMap hardwareMap, String instanceName)
     {
         if (debugEnabled)
         {
@@ -429,9 +497,18 @@ public class FtcRevImu
         // Initialize the BNO055 IMU.
         //
         BNO055IMU.Parameters imuParams = new BNO055IMU.Parameters();
+        if (USE_QUATERNION)
+        {
+            imuParams.mode = BNO055IMU.SensorMode.IMU;
+            imuParams.useExternalCrystal = true;
+            imuParams.pitchMode = BNO055IMU.PitchMode.WINDOWS;
+        }
+        else
+        {
+            imuParams.calibrationDataFile = "BNO055IMUCalibration.json";
+        }
         imuParams.angleUnit = BNO055IMU.AngleUnit.DEGREES;
         imuParams.accelUnit = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
-        imuParams.calibrationDataFile = "BNO055IMUCalibration.json";
         imuParams.loggingEnabled = true;
         imuParams.loggingTag = "IMU";
         imuParams.accelerationIntegrationAlgorithm = new JustLoggingAccelerationIntegrator();
@@ -443,21 +520,29 @@ public class FtcRevImu
         // So we need to initialize the Cartesian converter with the range values.
         //
         gyro = new Gyro(instanceName);
+        //
+        // Note:
+        // We can convert only X (roll) and Z (yaw) axes to Cartesian.
+        // For Y (pitch), when pointing upright, it will return 90-degree but pitching forward or backward will
+        // yield the same decrement. So one can't tell if it is rotating forward or backward. This makes it
+        // impossible to do the Cartesian conversion.
+        //
+        gyro.setXValueRange(-180.0, 180.0);
         gyro.setZValueRange(-180.0, 180.0);
         //
         // Create the accelerometer object of the IMU.
         //
         accel = new Accelerometer(instanceName);
-    }   //FtcRevImu
+    }   //FtcBNO055Imu
 
     /**
      * Constructor: Creates an instance of the object.
      *
      * @param instanceName specifies the instance name.
      */
-    public FtcRevImu(String instanceName)
+    public FtcBNO055Imu(String instanceName)
     {
         this(FtcOpMode.getInstance().hardwareMap, instanceName);
-    }   //FtcRevImu
+    }   //FtcBNO055Imu
 
-}   //class FtcRevImu
+}   //class FtcBNO055Imu

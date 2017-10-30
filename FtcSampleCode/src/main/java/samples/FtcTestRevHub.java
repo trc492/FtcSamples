@@ -22,18 +22,17 @@
 
 package samples;
 
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 
+import ftclib.FtcBNO055Imu;
 import ftclib.FtcColorSensor;
 import ftclib.FtcDigitalInput;
 import ftclib.FtcDistanceSensor;
 import ftclib.FtcOpMode;
-import ftclib.FtcRevImu;
 import hallib.HalDashboard;
 
 @TeleOp(name="Test: REV Expansion Hub", group="3543TestSamples")
@@ -41,7 +40,7 @@ import hallib.HalDashboard;
 public class FtcTestRevHub extends FtcOpMode
 {
     private HalDashboard dashboard;
-    private FtcRevImu imu;
+    private FtcBNO055Imu imu;
     private FtcDigitalInput touchSensor;
     private FtcColorSensor colorSensor;
     private FtcDistanceSensor rangeSensor;
@@ -57,7 +56,7 @@ public class FtcTestRevHub extends FtcOpMode
         // Initializing sensors on or connected to the REV hub.
         //
         dashboard = HalDashboard.getInstance();
-        imu = new FtcRevImu("imu");
+        imu = new FtcBNO055Imu("imu");
         touchSensor = new FtcDigitalInput("touchSensor");
         colorSensor = new FtcColorSensor("colorRangeSensor");
         rangeSensor = new FtcDistanceSensor("colorRangeSensor");

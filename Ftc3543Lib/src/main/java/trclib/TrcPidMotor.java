@@ -52,6 +52,7 @@ public class TrcPidMotor implements TrcTaskMgr.Task
     private boolean active = false;
     private double syncGain = 0.0;
     private double positionScale = 1.0;
+    private double positionOffset = 0.0;
     private boolean holdTarget = false;
     private TrcEvent notifyEvent = null;
     private double expiredTime = 0.0;
@@ -200,18 +201,32 @@ public class TrcPidMotor implements TrcTaskMgr.Task
      * set the scale to convert the unit to something meaningful such as inches or degrees.
      *
      * @param positionScale specifies the position scale value.
+     * @param positionOffset specifies the optional offset that adds to the final position value.
      */
-    public void setPositionScale(double positionScale)
+    public void setPositionScale(double positionScale, double positionOffset)
     {
         final String funcName = "setPositionScale";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "scale=%f", positionScale);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
+                    "scale=%f,offset=%f", positionScale, positionOffset);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
         this.positionScale = positionScale;
+        this.positionOffset = positionOffset;
+    }   //setPositionScale
+
+    /**
+     * This method sets the position scale. Instead of setting PID target with units such as encoder count, one could
+     * set the scale to convert the unit to something meaningful such as inches or degrees.
+     *
+     * @param positionScale specifies the position scale value.
+     */
+    public void setPositionScale(double positionScale)
+    {
+        setPositionScale(positionScale, 0.0);
     }   //setPositionScale
 
     /**
@@ -231,6 +246,7 @@ public class TrcPidMotor implements TrcTaskMgr.Task
             n++;
         }
         pos *= positionScale/n;
+        pos += positionOffset;
 
         if (debugEnabled)
         {

@@ -248,31 +248,35 @@ public class TrcVisionTask<I, O> implements TrcThread.PeriodicTask
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK);
         }
 
-        if (visionProcessor.grabFrame(imageBuffers[imageIndex]))
+        synchronized (imageBuffers[imageIndex])
         {
-            //
-            // Capture an image and subject it for object detection. The object detector produces an array of
-            // rectangles representing objects detected.
-            //
-            startTime = TrcUtil.getCurrentTimeMillis();
-            visionProcessor.detectObjects(
-                imageBuffers[imageIndex], detectedObjectBuffers != null? detectedObjectBuffers[bufferIndex]: null);
-            elapsedTime = TrcUtil.getCurrentTimeMillis() - startTime;
-            totalTime += elapsedTime;
-            totalFrames++;
-            if (tracer != null)
+            if (visionProcessor.grabFrame(imageBuffers[imageIndex]))
             {
-                tracer.traceInfo(funcName, "Average processing time = %.3f msec, Frame rate = %.1f",
-                    (double)totalTime/totalFrames, totalFrames/(TrcUtil.getCurrentTime() - taskStartTime));
-            }
-            //
-            // Switch to the next buffer so that we won't clobber the info while the client is accessing it.
-            //
-            imageIndex = (imageIndex + 1)%imageBuffers.length;
-            if (detectedObjectBuffers != null)
-            {
-                visionTask.setData(detectedObjectBuffers[bufferIndex]);
-                bufferIndex = (bufferIndex + 1)%detectedObjectBuffers.length;
+                //
+                // Capture an image and subject it for object detection. The object detector produces an array of
+                // rectangles representing objects detected.
+                //
+                startTime = TrcUtil.getCurrentTimeMillis();
+                visionProcessor.detectObjects(
+                        imageBuffers[imageIndex],
+                        detectedObjectBuffers != null ? detectedObjectBuffers[bufferIndex] : null);
+                elapsedTime = TrcUtil.getCurrentTimeMillis() - startTime;
+                totalTime += elapsedTime;
+                totalFrames++;
+                if (tracer != null)
+                {
+                    tracer.traceInfo(funcName, "Average processing time = %.3f msec, Frame rate = %.1f",
+                            (double) totalTime / totalFrames, totalFrames / (TrcUtil.getCurrentTime() - taskStartTime));
+                }
+                //
+                // Switch to the next buffer so that we won't clobber the info while the client is accessing it.
+                //
+                imageIndex = (imageIndex + 1) % imageBuffers.length;
+                if (detectedObjectBuffers != null)
+                {
+                    visionTask.setData(detectedObjectBuffers[bufferIndex]);
+                    bufferIndex = (bufferIndex + 1) % detectedObjectBuffers.length;
+                }
             }
         }
 

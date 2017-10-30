@@ -27,7 +27,7 @@ import ftclib.FtcTouchSensor;
 import trclib.TrcLinearActuator;
 import trclib.TrcPidController;
 
-public class Elevator extends TrcLinearActuator
+public class Elevator implements TrcPidController.PidInput
 {
     //
     // Elevator constants.
@@ -41,30 +41,53 @@ public class Elevator extends TrcLinearActuator
     private static final double ELEVATOR_INCHES_PER_COUNT       = (23.5/9700.0);
 
     //
-    // This subsystem consists of an elevator motor, a lower limit switch, and an encoder to keep track of the
-    // position of the elevator.
+    // This subsystem consists of an elevator motor, a lower limit switch, and a PID controller to control the
+    // movement of the elevator.
     //
 
     private FtcTouchSensor lowerLimitSwitch;
     private FtcDcMotor motor;
     private TrcPidController pidCtrl;
+    public TrcLinearActuator actuator;
 
     /**
      * Constructor: Create an instance of the object.
      */
     public Elevator()
     {
-        super("Elevator");
-        lowerLimitSwitch = new FtcTouchSensor("lowerLimitSwitch");
-        motor = new FtcDcMotor("elevator", lowerLimitSwitch);
+        lowerLimitSwitch = new FtcTouchSensor("elevatorLowerLimitSwitch");
+        motor = new FtcDcMotor("elevatorMotor", lowerLimitSwitch);
         pidCtrl = new TrcPidController(
-                "elevator",
+                "elevatorPidCtrl",
                 new TrcPidController.PidCoefficients(ELEVATOR_KP, ELEVATOR_KI, ELEVATOR_KD),
                 ELEVATOR_TOLERANCE, this);
-        pidCtrl.setAbsoluteSetPoint(true);
-        initialize(motor, lowerLimitSwitch, pidCtrl);
-        setPositionScale(ELEVATOR_INCHES_PER_COUNT);
-        setPositionRange(ELEVATOR_MIN_HEIGHT, ELEVATOR_MAX_HEIGHT);
+        actuator = new TrcLinearActuator("elevator", motor, lowerLimitSwitch, pidCtrl);
+        actuator.setPositionScale(ELEVATOR_INCHES_PER_COUNT);
+        actuator.setPositionRange(ELEVATOR_MIN_HEIGHT, ELEVATOR_MAX_HEIGHT);
     }   //Elevator
+
+    //
+    // Implements TrcPidController.PidInput.
+    //
+
+    /**
+     * This method is called by the PID controller to get the current height of the elevator.
+     *
+     * @param pidCtrl specifies the PID controller who is inquiring.
+     *
+     * @return current elevator height.
+     */
+    @Override
+    public double getInput(TrcPidController pidCtrl)
+    {
+        double value = 0.0;
+
+        if (pidCtrl == this.pidCtrl)
+        {
+            value = actuator.getPosition();
+        }
+
+        return value;
+    }   //getInput
 
 }   //class Elevator

@@ -1,4 +1,4 @@
-package samples;
+package team3543;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -47,13 +47,13 @@ public class GripPipelineBlueJewel {
 		// Step HSL_Threshold0:
 		Mat hslThresholdInput = blurOutput;
 		double[] hslThresholdHue = {40.46762589928058, 160.03412969283278};
-		double[] hslThresholdSaturation = {110.07194244604321, 255.0};
+		double[] hslThresholdSaturation = {71.08812949640291, 255.0};
 		double[] hslThresholdLuminance = {0.0, 178.8481228668942};
 		hslThreshold(hslThresholdInput, hslThresholdHue, hslThresholdSaturation, hslThresholdLuminance, hslThresholdOutput);
 
 		// Step Find_Blobs0:
 		Mat findBlobsInput = hslThresholdOutput;
-		double findBlobsMinArea = 1.0;
+		double findBlobsMinArea = 5000.0;
 		double[] findBlobsCircularity = {0.0, 1.0};
 		boolean findBlobsDarkBlobs = false;
 		findBlobs(findBlobsInput, findBlobsMinArea, findBlobsCircularity, findBlobsDarkBlobs, findBlobsOutput);
