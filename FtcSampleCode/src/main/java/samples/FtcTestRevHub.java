@@ -22,6 +22,8 @@
 
 package samples;
 
+import android.graphics.Color;
+
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -44,6 +46,7 @@ public class FtcTestRevHub extends FtcOpMode
     private FtcDigitalInput touchSensor;
     private FtcColorSensor colorSensor;
     private FtcDistanceSensor rangeSensor;
+    private float hsvValues[] = {0.0f, 0.0f, 0.0f};
 
     //
     // Implements FtcOpMode abstract methods.
@@ -107,12 +110,18 @@ public class FtcTestRevHub extends FtcOpMode
                 imu.accel.getYDistance().value,
                 imu.accel.getZDistance().value);
         dashboard.displayPrintf(7, "Touch=%s", touchSensor.isActive());
+        Color.RGBToHSV(
+                colorSensor.getRawData(0, FtcColorSensor.DataType.RED).value,
+                colorSensor.getRawData(0, FtcColorSensor.DataType.GREEN).value,
+                colorSensor.getRawData(0, FtcColorSensor.DataType.BLUE).value,
+                hsvValues);
         dashboard.displayPrintf(8, "Color=%x,rgb=%d/%d/%d",
                 colorSensor.getRawData(0, FtcColorSensor.DataType.COLOR_NUMBER).value,
                 colorSensor.getRawData(0, FtcColorSensor.DataType.RED).value,
                 colorSensor.getRawData(0, FtcColorSensor.DataType.GREEN).value,
                 colorSensor.getRawData(0, FtcColorSensor.DataType.BLUE).value);
-        dashboard.displayPrintf(9, "Range=%f",
+        dashboard.displayPrintf(9, "HSV=%5.1f/%5.1f/%5.1f", hsvValues[0], hsvValues[1], hsvValues[2]);
+        dashboard.displayPrintf(10, "Range=%f",
                 rangeSensor.getRawData(0, FtcDistanceSensor.DataType.DISTANCE_INCH).value);
     }   //runPeriodic
 
