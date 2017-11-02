@@ -22,6 +22,8 @@
 
 package ftclib;
 
+import android.graphics.Color;
+
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
@@ -48,20 +50,18 @@ public class FtcColorSensor extends TrcSensor<FtcColorSensor.DataType>
         RED,
         GREEN,
         BLUE,
-        WHITE
+        ALPHA,
+        HUE,
+        SATURATION,
+        VALUE
     }   //enum DataType
 
     public ColorSensor sensor;
     private int argbData = 0;
     private long argbTagId = -1;
-    private int redData = 0;
-    private long redTagId = -1;
-    private int greenData = 0;
-    private long greenTagId = -1;
-    private int blueData = 0;
-    private long blueTagId = -1;
-    private int alphaData = 0;
-    private long alphaTagId = -1;
+    private int[] rgbaData = new int[4];
+    private long rgbaTagId = -1;
+    private float hsvValues[] = {0.0f, 0.0f, 0.0f};
 
     /**
      * Constructor: Creates an instance of the object.
@@ -103,65 +103,75 @@ public class FtcColorSensor extends TrcSensor<FtcColorSensor.DataType>
      * @return raw sensor data of the specified index and type.
      */
     @Override
-    public SensorData<Integer> getRawData(int index, DataType dataType)
+    public SensorData<Double> getRawData(int index, DataType dataType)
     {
         final String funcName = "getRawData";
-        SensorData<Integer> data = null;
+        SensorData<Double> data = null;
         long currTagId = FtcOpMode.getLoopCounter();
+        double value = 0.0;
 
-        switch (dataType)
+        if (dataType == DataType.COLOR_NUMBER)
         {
-            case COLOR_NUMBER:
-                if (currTagId != argbTagId)
-                {
-                    argbData = sensor.argb();
-                    argbTagId = currTagId;
-                }
-                data = new SensorData<>(TrcUtil.getCurrentTime(), argbData);
-                break;
+            if (currTagId != argbTagId)
+            {
+                argbData = sensor.argb();
+                argbTagId = currTagId;
+            }
 
-            case RED:
-                if (currTagId != redTagId)
-                {
-                    redData = sensor.red();
-                    redTagId = currTagId;
-                }
-                data = new SensorData<>(TrcUtil.getCurrentTime(), redData);
-                break;
-
-            case GREEN:
-                if (currTagId != greenTagId)
-                {
-                    greenData = sensor.green();
-                    greenTagId = currTagId;
-                }
-                data = new SensorData<>(TrcUtil.getCurrentTime(), greenData);
-                break;
-
-            case BLUE:
-                if (currTagId != blueTagId)
-                {
-                    blueData = sensor.blue();
-                    blueTagId = currTagId;
-                }
-                data = new SensorData<>(TrcUtil.getCurrentTime(), blueData);
-                break;
-
-            case WHITE:
-                if (currTagId != alphaTagId)
-                {
-                    alphaData = sensor.alpha();
-                    alphaTagId = currTagId;
-                }
-                data = new SensorData<>(TrcUtil.getCurrentTime(), alphaData);
-                break;
+            value = argbData;
         }
+        else
+        {
+
+            if (currTagId != rgbaTagId)
+            {
+                rgbaData[0] = sensor.red();
+                rgbaData[1] = sensor.green();
+                rgbaData[2] = sensor.blue();
+                rgbaData[3] = sensor.alpha();
+                rgbaTagId = currTagId;
+                Color.RGBToHSV(rgbaData[0], rgbaData[1], rgbaData[2], hsvValues);
+            }
+
+            switch (dataType)
+            {
+                case RED:
+                    value = rgbaData[0];
+                    break;
+
+                case GREEN:
+                    value = rgbaData[1];
+                    break;
+
+                case BLUE:
+                    value = rgbaData[2];
+                    break;
+
+                case ALPHA:
+                    value = rgbaData[3];
+                    break;
+
+                case HUE:
+                    value = hsvValues[0];
+                    break;
+
+                case SATURATION:
+                    value = hsvValues[1];
+                    break;
+
+                case VALUE:
+                    value = hsvValues[2];
+                    break;
+            }
+        }
+
+        data = new SensorData<>(TrcUtil.getCurrentTime(), value);
 
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
-                               "=(timestamp:%.3f,value=%d)", data.timestamp, data.value);
+                               "=(timestamp:%.3f,value=%f)", data.timestamp, data.value);
         }
 
         return data;

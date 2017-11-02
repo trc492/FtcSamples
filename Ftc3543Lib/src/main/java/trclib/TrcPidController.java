@@ -116,6 +116,28 @@ public class TrcPidController
 
     }   //interface PidInput
 
+    /**
+     * PID controller is good at controlling actuators that are linear in nature (i.e. the output power has a linear
+     * relationship with the input. This is not true for some actuators. For example, a rotating arm may be affected
+     * differently by gravity at different positions. To make PID controller works for these actuators, we need to
+     * add a power compensation to the PID equation. However, a generic PID controller doesn't understand the
+     * actuator and has no way to come up with the compensation. Therefore, it is up to the user of the PID controller
+     * to provide this interface for computing the output compensation.
+     */
+    public interface PidOutputCompensation
+    {
+        /**
+         * This method is called by the PID controller to get output compensation. The output compensation will be
+         * added to the output power calculation.
+         *
+         * @param pidCtrl specifies this PID controller so the provider can identify what sensor to read if it is
+         *                a provider for multiple PID controllers.
+         * @return compensation value of the actuator.
+         */
+        double getOutputCompensation(TrcPidController pidCtrl);
+
+    }   //interface PidOutputCompensation
+
     public static final double DEF_SETTLING_TIME = 0.2;
 
     private HalDashboard dashboard;
@@ -124,6 +146,7 @@ public class TrcPidController
     private double tolerance;
     private double settlingTime;
     private PidInput pidInput;
+    private PidOutputCompensation pidOutCompensation;
 
     private boolean inverted = false;
     private boolean absSetPoint = false;
@@ -147,6 +170,7 @@ public class TrcPidController
     private double iTerm;
     private double dTerm;
     private double fTerm;
+    private double compTerm;
 
     /**
      * Constructor: Create an instance of the object.
@@ -156,13 +180,15 @@ public class TrcPidController
      * @param tolerance specifies the target tolerance.
      * @param settlingTime specifies the minimum on target settling time.
      * @param pidInput specifies the input provider.
+     * @param pidOutCompensation specifies the output compensation provider (can be null if none).
      */
     public TrcPidController(
             final String instanceName,
             PidCoefficients pidCoefficients,
             double tolerance,
             double settlingTime,
-            PidInput pidInput)
+            PidInput pidInput,
+            PidOutputCompensation pidOutCompensation)
     {
         if (debugEnabled)
         {
@@ -175,6 +201,70 @@ public class TrcPidController
         this.tolerance = Math.abs(tolerance);
         this.settlingTime = Math.abs(settlingTime);
         this.pidInput = pidInput;
+        this.pidOutCompensation = pidOutCompensation;
+    }   //TrcPidController
+
+    /**
+     * Constructor: Create an instance of the object. This constructor is not public. It is only for classes
+     * extending this class (e.g. Cascade PID Controller) that cannot make itself as an input provider in its
+     * constructor (Java won't allow it). Instead, we provide another protected method setPidInput so it can
+     * set the PidInput outside of the super() call.
+     *
+     * @param instanceName specifies the instance name.
+     * @param pidCoefficients specifies the PID constants.
+     * @param tolerance specifies the target tolerance.
+     * @param settlingTime specifies the minimum on target settling time.
+     * @param pidInput specifies the input provider.
+     */
+    protected TrcPidController(
+            final String instanceName,
+            PidCoefficients pidCoefficients,
+            double       tolerance,
+            double       settlingTime,
+            PidInput     pidInput)
+    {
+        this(instanceName, pidCoefficients, tolerance, settlingTime, pidInput, null);
+    }   //TrcPidController
+
+    /**
+     * Constructor: Create an instance of the object. This constructor is not public. It is only for classes
+     * extending this class (e.g. Cascade PID Controller) that cannot make itself as an input provider in its
+     * constructor (Java won't allow it). Instead, we provide another protected method setPidInput so it can
+     * set the PidInput outside of the super() call.
+     *
+     * @param instanceName specifies the instance name.
+     * @param pidCoefficients specifies the PID constants.
+     * @param tolerance specifies the target tolerance.
+     * @param pidInput specifies the input provider.
+     */
+    public TrcPidController(
+            final String instanceName,
+            PidCoefficients pidCoefficients,
+            double tolerance,
+            PidInput pidInput,
+            PidOutputCompensation pidOutCompensation)
+    {
+        this(instanceName, pidCoefficients, tolerance, DEF_SETTLING_TIME, pidInput, pidOutCompensation);
+    }   //TrcPidController
+
+    /**
+     * Constructor: Create an instance of the object. This constructor is not public. It is only for classes
+     * extending this class (e.g. Cascade PID Controller) that cannot make itself as an input provider in its
+     * constructor (Java won't allow it). Instead, we provide another protected method setPidInput so it can
+     * set the PidInput outside of the super() call.
+     *
+     * @param instanceName specifies the instance name.
+     * @param pidCoefficients specifies the PID constants.
+     * @param tolerance specifies the target tolerance.
+     * @param pidInput specifies the input provider.
+     */
+    public TrcPidController(
+            final String instanceName,
+            PidCoefficients pidCoefficients,
+            double tolerance,
+            PidInput pidInput)
+    {
+        this(instanceName, pidCoefficients, tolerance, DEF_SETTLING_TIME, pidInput, null);
     }   //TrcPidController
 
     /**
@@ -194,27 +284,7 @@ public class TrcPidController
             double       tolerance,
             double       settlingTime)
     {
-        this(instanceName, pidCoefficients, tolerance, settlingTime, null);
-    }   //TrcPidController
-
-    /**
-     * Constructor: Create an instance of the object. This constructor is not public. It is only for classes
-     * extending this class (e.g. Cascade PID Controller) that cannot make itself as an input provider in its
-     * constructor (Java won't allow it). Instead, we provide another protected method setPidInput so it can
-     * set the PidInput outside of the super() call.
-     *
-     * @param instanceName specifies the instance name.
-     * @param pidCoefficients specifies the PID constants.
-     * @param tolerance specifies the target tolerance.
-     * @param pidInput specifies the input provider.
-     */
-    public TrcPidController(
-            final String instanceName,
-            PidCoefficients pidCoefficients,
-            double tolerance,
-            PidInput pidInput)
-    {
-        this(instanceName, pidCoefficients, tolerance, DEF_SETTLING_TIME, pidInput);
+        this(instanceName, pidCoefficients, tolerance, settlingTime, null, null);
     }   //TrcPidController
 
     /**
@@ -232,7 +302,7 @@ public class TrcPidController
             PidCoefficients pidCoefficients,
             double tolerance)
     {
-        this(instanceName, pidCoefficients, tolerance, DEF_SETTLING_TIME, null);
+        this(instanceName, pidCoefficients, tolerance, DEF_SETTLING_TIME, null, null);
     }   //TrcPidController
 
     /**
@@ -288,8 +358,8 @@ public class TrcPidController
         {
             tracer.traceInfo(
                     funcName,
-                    "%s: Target=%6.1f, Input=%6.1f, Error=%6.1f, PIDTerms=%6.3f/%6.3f/%6.3f/%6.3f, Output=%6.3f(%6.3f/%5.3f)",
-                    instanceName, setPoint, input, currError, pTerm, iTerm, dTerm, fTerm, output, minOutput, maxOutput);
+                    "%s: Target=%6.1f, Input=%6.1f, Error=%6.1f, PIDTerms=%6.3f/%6.3f/%6.3f/%6.3f/%6.3f, Output=%6.3f(%6.3f/%5.3f)",
+                    instanceName, setPoint, input, currError, pTerm, iTerm, dTerm, fTerm, compTerm, output, minOutput, maxOutput);
         }
     }   //printPidInfo
 
@@ -686,7 +756,8 @@ public class TrcPidController
         iTerm = pidCoefficients.kI*totalError;
         dTerm = deltaTime > 0.0? pidCoefficients.kD*(currError - prevError)/deltaTime: 0.0;
         fTerm = pidCoefficients.kF*setPoint;
-        output = fTerm + pTerm + iTerm + dTerm;
+        compTerm = pidOutCompensation != null? pidOutCompensation.getOutputCompensation(this): 0.0;
+        output = pTerm + iTerm + dTerm + fTerm + compTerm;
 
         if (output > maxOutput)
         {

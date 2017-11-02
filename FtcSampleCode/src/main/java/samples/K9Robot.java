@@ -347,7 +347,7 @@ public class K9Robot implements TrcPidController.PidInput, TrcAnalogTrigger.Trig
     //
 
     @Override
-    public void AnalogTriggerEvent(
+    public void triggerEvent(
             TrcAnalogTrigger analogTrigger, int zoneIndex, double zoneValue)
     {
         if (analogTrigger == colorTrigger && pidDrive.isActive())
@@ -370,6 +370,6 @@ public class K9Robot implements TrcPidController.PidInput, TrcAnalogTrigger.Trig
                 pidDrive.cancel();
             }
         }
-    }   //AnalogTriggerEvent
+    }   //triggerEvent
 
 }   //class K9Robot

@@ -42,6 +42,7 @@ public class FtcDigitalInput extends TrcDigitalInput
     private TrcDbgTrace dbgTrace = null;
 
     private DigitalChannel digitalInput;
+    private boolean inverted = false;
     private boolean state = false;
     private long stateTagId = -1;
 
@@ -74,6 +75,17 @@ public class FtcDigitalInput extends TrcDigitalInput
         this(FtcOpMode.getInstance().hardwareMap, instanceName);
     }   //FtcDigitalInput
 
+    /**
+     * This method inverts the digital input state. It is useful for changing a limit switch from Normal Open to
+     * Normal Close, for example.
+     *
+     * @param inverted specifies true to invert the digital input, false otherwise.
+     */
+    public void setInverted(boolean inverted)
+    {
+        this.inverted = inverted;
+    }   //setInverted
+
     //
     // Implements TrcDigitalInput abstract methods.
     //
@@ -91,7 +103,7 @@ public class FtcDigitalInput extends TrcDigitalInput
 
         if (currTagId != stateTagId)
         {
-            state = !digitalInput.getState();
+            state = digitalInput.getState() ^ inverted;
             stateTagId = currTagId;
         }
 

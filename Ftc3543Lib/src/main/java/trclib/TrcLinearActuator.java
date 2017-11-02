@@ -115,9 +115,9 @@ public class TrcLinearActuator extends TrcPidMotor
      * Note that if position range is not set, PID control will be disabled.
      *
      * @param power specifies the power to run the actuator.
+     * @param powerCompensation specifies the power compensation (e.g. for gravity).
      */
-    @Override
-    public void setPower(double power)
+    public void setPower(double power, double powerCompensation)
     {
         final String funcName = "setPower";
 
@@ -128,7 +128,7 @@ public class TrcLinearActuator extends TrcPidMotor
 
         if (manualOverride || minPos == 0.0 && maxPos == 0.0)
         {
-            motor.setPower(power);
+            motor.setPower(power + powerCompensation);
         }
         else
         {
@@ -139,6 +139,18 @@ public class TrcLinearActuator extends TrcPidMotor
         {
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
+    }   //setPower
+
+    /**
+     * This method runs the actuator with the specified power. It will hold the current position even if power is zero.
+     * Note that if position range is not set, PID control will be disabled.
+     *
+     * @param power specifies the power to run the actuator.
+     */
+    @Override
+    public void setPower(double power)
+    {
+        setPower(power, 0.0);
     }   //setPower
 
     /**

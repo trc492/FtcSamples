@@ -39,19 +39,8 @@ public class TrcRotationalActuator extends TrcLinearActuator
     private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
 
-    public interface PowerCompensation
-    {
-        /**
-         * This method is called to get compensation power that adds to the power value when doing a set power on
-         * the motor.
-         *
-         * @return compensation power value.
-         */
-        double getCompensation();
-
-    }   //interface PowerCompensation
-
-    private PowerCompensation powerCompensation;
+    private TrcPidController pidCtrl;
+    private TrcPidController.PidOutputCompensation outputCompensation;
 
     /**
      * Constructor: Create an instance of the object.
@@ -60,11 +49,11 @@ public class TrcRotationalActuator extends TrcLinearActuator
      * @param motor specifies the motor in the actuator.
      * @param lowerLimitSwitch specifies the lower limit switch. Required for zero calibration.
      * @param pidCtrl specifies the PID controller for PID controlled movement.
-     * @param powerCompensation specifies who to call to get power compensation value.
+     * @param outputCompensation specifies who to call to get output compensation value.
      */
     public TrcRotationalActuator(
             final String instanceName, TrcMotor motor, TrcDigitalInput lowerLimitSwitch,
-            TrcPidController pidCtrl, PowerCompensation powerCompensation)
+            TrcPidController pidCtrl, TrcPidController.PidOutputCompensation outputCompensation)
     {
         super(instanceName, motor, lowerLimitSwitch, pidCtrl);
 
@@ -74,7 +63,22 @@ public class TrcRotationalActuator extends TrcLinearActuator
                     moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
-        this.powerCompensation = powerCompensation;
+        this.pidCtrl = pidCtrl;
+        this.outputCompensation = outputCompensation;
+    }   //TrcRotationalActuator
+
+    /**
+     * Constructor: Create an instance of the object.
+     *
+     * @param instanceName specifies the instance name.
+     * @param motor specifies the motor in the actuator.
+     * @param lowerLimitSwitch specifies the lower limit switch. Required for zero calibration.
+     * @param pidCtrl specifies the PID controller for PID controlled movement.
+     */
+    public TrcRotationalActuator(
+            final String instanceName, TrcMotor motor, TrcDigitalInput lowerLimitSwitch, TrcPidController pidCtrl)
+    {
+        this(instanceName, motor, lowerLimitSwitch, pidCtrl, null);
     }   //TrcRotationalActuator
 
     /**
@@ -94,7 +98,7 @@ public class TrcRotationalActuator extends TrcLinearActuator
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        super.setPower(power + powerCompensation.getCompensation());
+        super.setPower(power, outputCompensation != null? outputCompensation.getOutputCompensation(pidCtrl): 0.0);
     }   //setPower
 
 }   //class TrcRotationalActuator
