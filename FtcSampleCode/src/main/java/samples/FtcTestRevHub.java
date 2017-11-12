@@ -108,12 +108,12 @@ public class FtcTestRevHub extends FtcOpMode
                 imu.accel.getYDistance().value,
                 imu.accel.getZDistance().value);
         dashboard.displayPrintf(7, "Touch=%s", touchSensor.isActive());
-        dashboard.displayPrintf(8, "Color=%x,rgb=%.0f/%.0f/%.0f",
-                colorSensor.getRawData(0, FtcColorSensor.DataType.COLOR_NUMBER).value,
+        dashboard.displayPrintf(8, "Color=%x,rgb=%f/%f/%f",
+                colorSensor.getRawData(0, FtcColorSensor.DataType.COLOR_NUMBER).value.intValue(),
                 colorSensor.getRawData(0, FtcColorSensor.DataType.RED).value,
                 colorSensor.getRawData(0, FtcColorSensor.DataType.GREEN).value,
                 colorSensor.getRawData(0, FtcColorSensor.DataType.BLUE).value);
-        dashboard.displayPrintf(9, "HSV=%.1f/%.1f/%.1f",
+        dashboard.displayPrintf(9, "HSV=%f/%f/%f",
                 colorSensor.getRawData(0, FtcColorSensor.DataType.HUE).value,
                 colorSensor.getRawData(0, FtcColorSensor.DataType.SATURATION).value,
                 colorSensor.getRawData(0, FtcColorSensor.DataType.VALUE).value);

@@ -23,16 +23,22 @@
 package trclib;
 
 /**
- * This class implements a platform independent linear actuator extending TrcPidMotor. It consists of a motor,
+ * This class implements a platform independent PID controlled actuator extending TrcPidMotor. It consists of a motor,
  * an encoder to keep track of its position, a lower limit switch to detect the zero position and a PID controller
  * allowing accurate movement to a set position. It provides methods to allow a joystick to control the actuator
- * to extend and retract within its limited range of movement and will slow down and finally stop when lower or
+ * to extend/retract or rotate within its limited range of movement and will slow down and finally stop when lower or
  * upper limit has been reached. It also provides methods to move the actuator to a specified position and hold it
  * there under load if necessary.
+ * The PID controlled actuator class supports both linear and non-linear actuators. Elevator is an example of linear
+ * actuators. Rotational arm is an example of non-linear actuators where raising and lowering it against gravity
+ * presents non-linear load as the arm angle changes. PID control is good at controlling load with linear relationship.
+ * Therefore, PID control will yield terrible result in non-linear situation. However, if we add a compensation factor
+ * to linearize the load, then we can still achieve good result with PID control. The power compensation factor is
+ * provided by the caller and is a function of the actuator position.
  */
-public class TrcLinearActuator extends TrcPidMotor
+public class TrcPidActuator extends TrcPidMotor
 {
-    private static final String moduleName = "TrcLinearActuator";
+    private static final String moduleName = "TrcPidActuator";
     private static final boolean debugEnabled = false;
     private static final boolean tracingEnabled = false;
     private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
@@ -51,11 +57,16 @@ public class TrcLinearActuator extends TrcPidMotor
      * @param motor specifies the motor in the actuator.
      * @param lowerLimitSwitch specifies the lower limit switch. Required for zero calibration.
      * @param pidCtrl specifies the PID controller for PID controlled movement.
+     * @param minPos specifies the minimum position of the actuator range.
+     * @param maxPos specifies the maximum position of the actuator range.
+     * @param powerCompensation specifies the object that implements the PowerCompensation interface, null if none
+     *                          provided.
      */
-    public TrcLinearActuator(
-            final String instanceName, TrcMotor motor, TrcDigitalInput lowerLimitSwitch, TrcPidController pidCtrl)
+    public TrcPidActuator(
+            final String instanceName, TrcMotor motor, TrcDigitalInput lowerLimitSwitch, TrcPidController pidCtrl,
+            double minPos,double maxPos,PowerCompensation powerCompensation)
     {
-        super(instanceName, motor, pidCtrl);
+        super(instanceName, motor, pidCtrl, powerCompensation);
 
         if (debugEnabled)
         {
@@ -64,29 +75,28 @@ public class TrcLinearActuator extends TrcPidMotor
         }
 
         this.motor = motor;
+        this.minPos = minPos;
+        this.maxPos = maxPos;
         motor.resetPositionOnDigitalInput(lowerLimitSwitch);
         pidCtrl.setAbsoluteSetPoint(true);
-    }   //TrcLinearActuator
+    }   //TrcPidActuator
 
     /**
-     * This method sets the position range of the actuator.
+     * Constructor: Create an instance of the object.
      *
+     * @param instanceName specifies the instance name.
+     * @param motor specifies the motor in the actuator.
+     * @param lowerLimitSwitch specifies the lower limit switch. Required for zero calibration.
+     * @param pidCtrl specifies the PID controller for PID controlled movement.
      * @param minPos specifies the minimum position of the actuator range.
      * @param maxPos specifies the maximum position of the actuator range.
      */
-    public void setPositionRange(double minPos, double maxPos)
+    public TrcPidActuator(
+            final String instanceName, TrcMotor motor, TrcDigitalInput lowerLimitSwitch, TrcPidController pidCtrl,
+            double minPos, double maxPos)
     {
-        final String funcName = "setPositionRange";
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "min=%f,max=%f", minPos, maxPos);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
-        }
-
-        this.minPos = minPos;
-        this.maxPos = maxPos;
-    }   //setPositionRange
+        this(instanceName, motor, lowerLimitSwitch, pidCtrl, minPos, maxPos, null);
+    }   //TrcPidActuator
 
     /**
      * This method sets manual override mode. This is useful to override PID control of the actuator in situations
@@ -115,9 +125,8 @@ public class TrcLinearActuator extends TrcPidMotor
      * Note that if position range is not set, PID control will be disabled.
      *
      * @param power specifies the power to run the actuator.
-     * @param powerCompensation specifies the power compensation (e.g. for gravity).
      */
-    public void setPower(double power, double powerCompensation)
+    public void setPower(double power)
     {
         final String funcName = "setPower";
 
@@ -128,11 +137,11 @@ public class TrcLinearActuator extends TrcPidMotor
 
         if (manualOverride || minPos == 0.0 && maxPos == 0.0)
         {
-            motor.setPower(power + powerCompensation);
+            super.setPower(power);
         }
         else
         {
-            setSpeed(power, minPos, maxPos, true);
+            setPowerWithinPosRange(power, minPos, maxPos, true);
         }
 
         if (debugEnabled)
@@ -141,65 +150,4 @@ public class TrcLinearActuator extends TrcPidMotor
         }
     }   //setPower
 
-    /**
-     * This method runs the actuator with the specified power. It will hold the current position even if power is zero.
-     * Note that if position range is not set, PID control will be disabled.
-     *
-     * @param power specifies the power to run the actuator.
-     */
-    @Override
-    public void setPower(double power)
-    {
-        setPower(power, 0.0);
-    }   //setPower
-
-    /**
-     * This method runs the actuator to the specified position and hold it there.
-     *
-     * @param pos specifies the target position.
-     */
-    public void setPosition(double pos)
-    {
-        final String funcName = "setPosition";
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "pos=%s", pos);
-        }
-
-        setTarget(pos, true);
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
-        }
-    }   //setPosition
-
-    /**
-     * This method runs the actuator to the specified position and signal the given event when done. Optionally, if a
-     * timeout is specified, the operation will be aborted when specified time has expired. Note that this method
-     * does not hold the actuator in place after reaching target.
-     *
-     * @param pos specifies the target position.
-     * @param event specifies the event to signal when done.
-     * @param timeout specifies timeout for the operation. It can be zero, if no timeout is used.
-     */
-    public void setPosition(double pos, TrcEvent event, double timeout)
-    {
-        final String funcName = "setPosition";
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
-                    "pos=%s,event=%s,timeout=%f", pos, event, timeout);
-        }
-
-        setTarget(pos, event, timeout);
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
-        }
-    }   //setPosition
-
-}   //class TrcLinearActuator
+}   //class TrcPidActuator

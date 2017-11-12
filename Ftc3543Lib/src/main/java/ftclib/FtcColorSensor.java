@@ -26,6 +26,8 @@ import android.graphics.Color;
 
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
+import com.qualcomm.robotcore.hardware.NormalizedRGBA;
 
 import trclib.TrcDbgTrace;
 import trclib.TrcSensor;
@@ -122,13 +124,31 @@ public class FtcColorSensor extends TrcSensor<FtcColorSensor.DataType>
         }
         else
         {
-
             if (currTagId != rgbaTagId)
             {
-                rgbaData[0] = sensor.red();
-                rgbaData[1] = sensor.green();
-                rgbaData[2] = sensor.blue();
-                rgbaData[3] = sensor.alpha();
+                NormalizedRGBA normalizedColors = ((NormalizedColorSensor)sensor).getNormalizedColors();
+                rgbaData[0] = (int)(normalizedColors.red*100000.0);
+                rgbaData[1] = (int)(normalizedColors.green*100000.0);
+                rgbaData[2] = (int)(normalizedColors.blue*100000.0);
+                rgbaData[3] = (int)(normalizedColors.alpha*100000.0);
+
+                int max = rgbaData[0];
+                for (int i = 1; i < rgbaData.length; i++)
+                {
+                    if (rgbaData[i] > max)
+                    {
+                        max = rgbaData[i];
+                    }
+                }
+
+                if (max > 255)
+                {
+                    for (int i = 0; i < rgbaData.length; i++)
+                    {
+                        rgbaData[i] = (int)((rgbaData[i]/(double)max)*255.0);
+                    }
+                }
+
                 rgbaTagId = currTagId;
                 Color.RGBToHSV(rgbaData[0], rgbaData[1], rgbaData[2], hsvValues);
             }

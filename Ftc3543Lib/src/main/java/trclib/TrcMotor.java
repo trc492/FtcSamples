@@ -252,10 +252,7 @@ public abstract class TrcMotor implements TrcMotorController, TrcTaskMgr.Task, T
                     "trigger=%s,active=%s", digitalTrigger, Boolean.toString(active));
         }
 
-        if (digitalTrigger == this.digitalTrigger)
-        {
-            resetPosition(false);
-        }
+        resetPosition(false);
 
         if (debugEnabled)
         {

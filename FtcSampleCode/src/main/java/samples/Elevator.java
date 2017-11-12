@@ -24,7 +24,7 @@ package samples;
 
 import ftclib.FtcDcMotor;
 import ftclib.FtcTouchSensor;
-import trclib.TrcLinearActuator;
+import trclib.TrcPidActuator;
 import trclib.TrcPidController;
 
 public class Elevator implements TrcPidController.PidInput
@@ -48,7 +48,7 @@ public class Elevator implements TrcPidController.PidInput
     private FtcTouchSensor lowerLimitSwitch;
     private FtcDcMotor motor;
     private TrcPidController pidCtrl;
-    public TrcLinearActuator actuator;
+    public TrcPidActuator actuator;
 
     /**
      * Constructor: Create an instance of the object.
@@ -61,9 +61,9 @@ public class Elevator implements TrcPidController.PidInput
                 "elevatorPidCtrl",
                 new TrcPidController.PidCoefficients(ELEVATOR_KP, ELEVATOR_KI, ELEVATOR_KD),
                 ELEVATOR_TOLERANCE, this);
-        actuator = new TrcLinearActuator("elevator", motor, lowerLimitSwitch, pidCtrl);
+        actuator = new TrcPidActuator(
+                "elevator", motor, lowerLimitSwitch, pidCtrl, ELEVATOR_MIN_HEIGHT, ELEVATOR_MAX_HEIGHT);
         actuator.setPositionScale(ELEVATOR_INCHES_PER_COUNT);
-        actuator.setPositionRange(ELEVATOR_MIN_HEIGHT, ELEVATOR_MAX_HEIGHT);
     }   //Elevator
 
     //
