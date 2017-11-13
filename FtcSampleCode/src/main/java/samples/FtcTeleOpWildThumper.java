@@ -50,6 +50,7 @@ import hallib.HalDashboard;
 import trclib.TrcBooleanState;
 import trclib.TrcDriveBase;
 import trclib.TrcEvent;
+import trclib.TrcGameController;
 import trclib.TrcPidController;
 import trclib.TrcPidDrive;
 import trclib.TrcSong;
@@ -57,7 +58,8 @@ import trclib.TrcSongPlayer;
 
 @TeleOp(name="TeleOp: Wild Thumper", group="3543TeleOpSamples")
 @Disabled
-public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.ButtonHandler, TrcPidController.PidInput
+public class FtcTeleOpWildThumper extends FtcOpMode
+        implements TrcGameController.ButtonHandler, TrcPidController.PidInput
 {
     private static final double ATTACK = 0.0;           // in seconds
     private static final double DECAY = 0.0;            // in seconds
@@ -367,12 +369,6 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.Button
     {
         dashboard.clearDisplay();
         driveBase.resetPosition();
-        //
-        // There is an issue with the gamepad objects that may not be valid
-        // before waitForStart() is called. So we call the setGamepad method
-        // here to update their references in case they have changed.
-        //
-        gamepad.setGamepad(gamepad1);
     }   //startMode
 
     @Override
@@ -473,11 +469,11 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.Button
     }   //runPeriodic
 
     //
-    // Implements FtcGamepad.ButtonHandler interface.
+    // Implements TrcGameController.ButtonHandler interface.
     //
 
     @Override
-    public void gamepadButtonEvent(FtcGamepad gamepad, int button, boolean pressed)
+    public void buttonEvent(TrcGameController gamepad, int button, boolean pressed)
     {
         if (gamepad == this.gamepad)
         {
@@ -654,7 +650,7 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements FtcGamepad.Button
                     break;
             }
         }
-    }   //gamepadButtonEvent
+    }   //buttonEvent
 
     //
     // Implements TrcPidController.PidInput

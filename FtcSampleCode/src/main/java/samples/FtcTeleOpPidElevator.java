@@ -28,10 +28,11 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import ftclib.FtcGamepad;
 import ftclib.FtcOpMode;
 import hallib.HalDashboard;
+import trclib.TrcGameController;
 
 @TeleOp(name="TeleOp: PID Elevator", group="3543TeleOpSamples")
 @Disabled
-public class FtcTeleOpPidElevator extends FtcOpMode implements FtcGamepad.ButtonHandler
+public class FtcTeleOpPidElevator extends FtcOpMode implements TrcGameController.ButtonHandler
 {
     private static final double ELEVATOR_CAL_POWER = 0.3;
 
@@ -74,12 +75,6 @@ public class FtcTeleOpPidElevator extends FtcOpMode implements FtcGamepad.Button
     public void startMode()
     {
         dashboard.clearDisplay();
-        //
-        // There is an issue with the gamepad objects that may not be valid
-        // before waitForStart() is called. So we call the setGamepad method
-        // here to update their references in case they have changed.
-        //
-        gamepad.setGamepad(gamepad1);
     }   //startMode
 
     @Override
@@ -95,11 +90,11 @@ public class FtcTeleOpPidElevator extends FtcOpMode implements FtcGamepad.Button
     }   //runPeriodic
 
     //
-    // Implements FtcGamepad.ButtonHandler interface.
+    // Implements TrcGameController.ButtonHandler interface.
     //
 
     @Override
-    public void gamepadButtonEvent(FtcGamepad gamepad, int button, boolean pressed)
+    public void buttonEvent(TrcGameController gamepad, int button, boolean pressed)
     {
         if (gamepad == this.gamepad)
         {
@@ -117,6 +112,6 @@ public class FtcTeleOpPidElevator extends FtcOpMode implements FtcGamepad.Button
                     break;
             }
         }
-    }   //gamepadButtonEvent
+    }   //buttonEvent
 
 }   //class FtcTeleOpPidElevator

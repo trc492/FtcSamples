@@ -27,11 +27,12 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import ftclib.FtcGamepad;
 import ftclib.FtcOpMode;
+import trclib.TrcGameController;
 import trclib.TrcRobot;
 
 @TeleOp(name="TeleOp: K9Bot Arcade Drive", group="3543TeleOpSamples")
 @Disabled
-public class FtcTeleOpK9ArcadeDrive extends FtcOpMode implements FtcGamepad.ButtonHandler
+public class FtcTeleOpK9ArcadeDrive extends FtcOpMode implements TrcGameController.ButtonHandler
 {
     private K9Robot robot;
     private FtcGamepad gamepad;
@@ -59,12 +60,6 @@ public class FtcTeleOpK9ArcadeDrive extends FtcOpMode implements FtcGamepad.Butt
     public void startMode()
     {
         robot.startMode(TrcRobot.RunMode.TELEOP_MODE);
-        //
-        // There is an issue with the gamepad objects that may not be valid
-        // before waitForStart() is called. So we call the setGamepad method
-        // here to update their references in case they have changed.
-        //
-        gamepad.setGamepad(gamepad1);
     }   //startMode
 
     @Override
@@ -92,11 +87,11 @@ public class FtcTeleOpK9ArcadeDrive extends FtcOpMode implements FtcGamepad.Butt
     }   //runPeriodic
 
     //
-    // Implements FtcGamepad.ButtonHandler interface.
+    // Implements TrcGameController.ButtonHandler interface.
     //
 
     @Override
-    public void gamepadButtonEvent(FtcGamepad gamepad, int button, boolean pressed)
+    public void buttonEvent(TrcGameController gamepad, int button, boolean pressed)
     {
         if (gamepad == this.gamepad)
         {
@@ -147,6 +142,6 @@ public class FtcTeleOpK9ArcadeDrive extends FtcOpMode implements FtcGamepad.Butt
                     break;
             }
         }
-    }   //gamepadButtonEvent
+    }   //buttonEvent
 
 }   //class FtcTeleOpK9ArcadeDrive

@@ -81,12 +81,6 @@ public class FtcTeleOpVariableSpeedServo extends FtcOpMode
     public void startMode()
     {
         dashboard.clearDisplay();
-        //
-        // There is an issue with the gamepad objects that may not be valid
-        // before waitForStart() is called. So we call the setGamepad method
-        // here to update their references in case they have changed.
-        //
-        gamepad.setGamepad(gamepad1);
     }   //startMode
 
     @Override

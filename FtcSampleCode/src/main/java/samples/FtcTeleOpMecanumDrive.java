@@ -36,10 +36,11 @@ import ftclib.FtcMRGyro;
 import ftclib.FtcOpMode;
 import hallib.HalDashboard;
 import trclib.TrcDriveBase;
+import trclib.TrcGameController;
 
 @TeleOp(name="TeleOp: Mecanum Drive", group="3543TeleOpSamples")
 @Disabled
-public class FtcTeleOpMecanumDrive extends FtcOpMode implements FtcGamepad.ButtonHandler
+public class FtcTeleOpMecanumDrive extends FtcOpMode implements TrcGameController.ButtonHandler
 {
     private HalDashboard dashboard;
     private FtcMRGyro gyro;
@@ -95,12 +96,6 @@ public class FtcTeleOpMecanumDrive extends FtcOpMode implements FtcGamepad.Butto
         dashboard.clearDisplay();
         gyro.setEnabled(true);
         driveBase.resetPosition();
-        //
-        // There is an issue with the gamepad objects that may not be valid
-        // before waitForStart() is called. So we call the setGamepad method
-        // here to update their references in case they have changed.
-        //
-        gamepad.setGamepad(gamepad1);
     }   //startMode
 
     @Override
@@ -133,11 +128,11 @@ public class FtcTeleOpMecanumDrive extends FtcOpMode implements FtcGamepad.Butto
     }   //runPeriodic
 
     //
-    // Implements FtcGamepad.ButtonHandler interface.
+    // Implements TrcGameController.ButtonHandler interface.
     //
 
     @Override
-    public void gamepadButtonEvent(FtcGamepad gamepad, int button, boolean pressed)
+    public void buttonEvent(TrcGameController gamepad, int button, boolean pressed)
     {
         if (gamepad == this.gamepad)
         {
@@ -160,6 +155,6 @@ public class FtcTeleOpMecanumDrive extends FtcOpMode implements FtcGamepad.Butto
                     break;
             }
         }
-    }   //gamepadButtonEvent
+    }   //buttonEvent
 
 }   //class FtcTeleOpMecanumDrive

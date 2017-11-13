@@ -29,10 +29,11 @@ import ftclib.FtcGamepad;
 import ftclib.FtcOpMode;
 import ftclib.FtcServo;
 import trclib.TrcEnhancedServo;
+import trclib.TrcGameController;
 
 @TeleOp(name="TeleOp: Dual Servo Grabber", group="3543TeleOpSamples")
 @Disabled
-public class FtcTeleOpGrabber extends FtcOpMode implements FtcGamepad.ButtonHandler
+public class FtcTeleOpGrabber extends FtcOpMode implements TrcGameController.ButtonHandler
 {
     private FtcGamepad gamepad;
     private FtcServo leftServo;
@@ -65,28 +66,17 @@ public class FtcTeleOpGrabber extends FtcOpMode implements FtcGamepad.ButtonHand
     //
 
     @Override
-    public void startMode()
-    {
-        //
-        // There is an issue with the gamepad objects that may not be valid
-        // before waitForStart() is called. So we call the setGamepad method
-        // here to update their references in case they have changed.
-        //
-        gamepad.setGamepad(gamepad1);
-    }   //startMode
-
-    @Override
     public void runPeriodic(double elapsedTime)
     {
         grabber.setPosition(gamepad.getRightTrigger());
     }   //runPeriodic
 
     //
-    // Implements FtcGamepad.ButtonHandler interface.
+    // Implements TrcGameController.ButtonHandler interface.
     //
 
     @Override
-    public void gamepadButtonEvent(FtcGamepad gamepad, int button, boolean pressed)
+    public void buttonEvent(TrcGameController gamepad, int button, boolean pressed)
     {
         if (gamepad == this.gamepad)
         {
@@ -108,6 +98,6 @@ public class FtcTeleOpGrabber extends FtcOpMode implements FtcGamepad.ButtonHand
                     break;
             }
         }
-    }   //gamepadButtonEvent
+    }   //buttonEvent
 
 }   //class FtcGrabber

@@ -25,22 +25,14 @@ package ftclib;
 import com.qualcomm.robotcore.hardware.Gamepad;
 
 import trclib.TrcDbgTrace;
-import trclib.TrcRobot;
-import trclib.TrcTaskMgr;
+import trclib.TrcGameController;
 
 /**
  * This class implements the platform dependent gamepad. It provides monitoring of the gamepad buttons. If the caller
  * of this class provides a button notification handler, it will call it when there are button events.
  */
-public class FtcGamepad implements TrcTaskMgr.Task
+public class FtcGamepad extends TrcGameController
 {
-    private static final String moduleName = "FtcGamepad";
-    private static final boolean debugEnabled = false;
-    private static final boolean tracingEnabled = false;
-    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
-    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
-    private TrcDbgTrace dbgTrace = null;
-
     public static final int GAMEPAD_A           = ((int)1 << 0);
     public static final int GAMEPAD_B           = ((int)1 << 1);
     public static final int GAMEPAD_X           = ((int)1 << 2);
@@ -56,28 +48,7 @@ public class FtcGamepad implements TrcTaskMgr.Task
     public static final int GAMEPAD_DPAD_UP     = ((int)1 << 12);
     public static final int GAMEPAD_DPAD_DOWN   = ((int)1 << 13);
 
-    /**
-     * This interface, if provided, will allow this class to do a notification callback when there are button
-     * activities.
-     */
-    public interface ButtonHandler
-    {
-        /**
-         * This method is called when button event is detected.
-         *
-         * @param gamepad specifies the gamepad object that generated the event.
-         * @param button specifies the button ID that generates the event
-         * @param pressed specifies true if the button is pressed, false otherwise.
-         */
-        void gamepadButtonEvent(FtcGamepad gamepad, int button, boolean pressed);
-
-    }   //interface ButonHandler
-
-    private String instanceName;
     private Gamepad gamepad;
-    private ButtonHandler buttonHandler;
-    private int prevButtons;
-    private int ySign;
 
     /**
      * Constructor: Create an instance of the object.
@@ -89,26 +60,8 @@ public class FtcGamepad implements TrcTaskMgr.Task
      */
     public FtcGamepad(final String instanceName, Gamepad gamepad, ButtonHandler buttonHandler)
     {
-        if (debugEnabled)
-        {
-            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
-        }
-
-        if (instanceName == null || gamepad == null)
-        {
-            throw new NullPointerException("InstanceName/Gamepad must not be null");
-        }
-
-        this.instanceName = instanceName;
+        super(instanceName, 0.0, buttonHandler);
         this.gamepad = gamepad;
-        this.buttonHandler = buttonHandler;
-        prevButtons = getButtons();
-        ySign = 1;
-
-        if (buttonHandler != null)
-        {
-            TrcTaskMgr.getInstance().registerTask(instanceName, this, TrcTaskMgr.TaskType.PREPERIODIC_TASK);
-        }
     }   //FtcGamepad
 
     /**
@@ -151,33 +104,363 @@ public class FtcGamepad implements TrcTaskMgr.Task
     }   //FtcGamepad
 
     /**
-     * This method returns the instance name.
+     * This method returns the x-axis value of the left stick.
      *
-     * @return instance name.
+     * @param doExp specifies true if the value should be raised exponentially, false otherwise. If the value is
+     *              raised exponentially, it gives you more precise control on the low end values.
+     *
+     * @return x-axis value of the left stick.
      */
-    public String toString()
+    public double getLeftStickX(boolean doExp)
     {
-        return instanceName;
-    }   //toString
+        final String funcName = "getLeftStickX";
+        double value = adjustAnalogControl(gamepad.left_stick_x, doExp);
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "exp=%s", Boolean.toString(doExp));
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", value);
+        }
+
+        return value;
+    }   //getLeftStickX
 
     /**
-     * This method sets the gamepad association. Normally, this method should not exist. However, there is an issue
-     * with the FIRST SDK where the gamepad objects passed into our constructor could be invalid after "Init" and
-     * before the competition starts. Therefore, we provide this method so one can call to re-associate the gamepad
-     * instances in the startMode() method.
+     * This method returns the x-axis value of the left stick.
      *
-     * @param gamepad specifies the gamepad associated with this instance.
+     * @return x-axis value of the left stick.
      */
-    public void setGamepad(Gamepad gamepad)
+    public double getLeftStickX()
     {
-        this.gamepad = gamepad;
-    }   //setGamepad
+        return getLeftStickX(false);
+    }   //getLeftStickX
+
+    /**
+     * This method returns the y-axis value of the left stick.
+     *
+     * @param doExp specifies true if the value should be raised exponentially, false otherwise. If the value is
+     *              raised exponentially, it gives you more precise control on the low end values.
+     *
+     * @return y-axis value of the left stick.
+     */
+    public double getLeftStickY(boolean doExp)
+    {
+        final String funcName = "getLeftStickY";
+        double value = adjustAnalogControl(gamepad.left_stick_y, doExp);
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "exp=%s", Boolean.toString(doExp));
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", value);
+        }
+
+        return value;
+    }   //getLeftStickY
+
+    /**
+     * This method returns the y-axis value of the left stick.
+     *
+     * @return y-axis value of the left stick.
+     */
+    public double getLeftStickY()
+    {
+        return getLeftStickY(false);
+    }   //getLeftStickY
+
+    /**
+     * This method returns the x-axis value of the right stick.
+     *
+     * @param doExp specifies true if the value should be raised exponentially, false otherwise. If the value is
+     *              raised exponentially, it gives you more precise control on the low end values.
+     *
+     * @return x-axis value of the right stick.
+     */
+    public double getRightStickX(boolean doExp)
+    {
+        final String funcName = "getRightStickX";
+        double value = adjustAnalogControl(gamepad.right_stick_x, doExp);
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "exp=%s", Boolean.toString(doExp));
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", value);
+        }
+
+        return value;
+    }   //getRightStickX
+
+    /**
+     * This method returns the x-axis value of the right stick.
+     *
+     * @return x-axis value of the right stick.
+     */
+    public double getRightStickX()
+    {
+        return getRightStickX(false);
+    }   //getRightStickX
+
+    /**
+     * This method returns the y-axis value of the right stick.
+     *
+     * @param doExp specifies true if the value should be raised exponentially, false otherwise. If the value is
+     *              raised exponentially, it gives you more precise control on the low end values.
+     *
+     * @return y-axis value of the right stick.
+     */
+    public double getRightStickY(boolean doExp)
+    {
+        final String funcName = "getRightStickY";
+        double value = adjustAnalogControl(gamepad.right_stick_y, doExp);
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "exp=%s", Boolean.toString(doExp));
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", value);
+        }
+
+        return value;
+    }   //getRightStickY
+
+    /**
+     * This method returns the y-axis value of the right stick.
+     *
+     * @return y-axis value of the right stick.
+     */
+    public double getRightStickY()
+    {
+        return getRightStickY(false);
+    }   //getRightStickY
+
+    /**
+     * This method returns the left trigger value.
+     *
+     * @param doExp specifies true if the value should be raised exponentially, false otherwise. If the value is
+     *              raised exponentially, it gives you more precise control on the low end values.
+     *
+     * @return left trigger value.
+     */
+    public double getLeftTrigger(boolean doExp)
+    {
+        final String funcName = "getLeftTrigger";
+        double value = adjustAnalogControl(gamepad.left_trigger, doExp);
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "exp=%s", Boolean.toString(doExp));
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", value);
+        }
+
+        return value;
+    }   //getLeftTrigger
+
+    /**
+     * This method returns the left trigger value.
+     *
+     * @return left trigger value.
+     */
+    public double getLeftTrigger()
+    {
+        return getLeftTrigger(false);
+    }   //getLeftTrigger
+
+    /**
+     * This method returns the right trigger value.
+     *
+     * @param doExp specifies true if the value should be raised exponentially, false otherwise. If the value is
+     *              raised exponentially, it gives you more precise control on the low end values.
+     *
+     * @return right trigger value.
+     */
+    public double getRightTrigger(boolean doExp)
+    {
+        final String funcName = "getRightTrigger";
+        double value = adjustAnalogControl(gamepad.right_trigger, doExp);
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "exp=%s", Boolean.toString(doExp));
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", value);
+        }
+
+        return value;
+    }   //getRightTrigger
+
+    /**
+     * This method returns the right trigger value.
+     *
+     * @return right trigger value.
+     */
+    public double getRightTrigger()
+    {
+        return getRightTrigger(false);
+    }   //getRightTrigger
+
+    /**
+     * This method returns the left stick magnitude combining the x and y axes.
+     *
+     * @param doExp specifies true if the value should be raised exponentially, false otherwise. If the value is
+     *              raised exponentially, it gives you more precise control on the low end values.
+     *
+     * @return left stick magnitude.
+     */
+    public double getLeftStickMagnitude(boolean doExp)
+    {
+        return getMagnitude(getLeftStickX(doExp), getLeftStickY(doExp));
+    }   //getLeftStickMagnitude
+
+    /**
+     * This method returns the left stick magnitude combining the x and y axes.
+     *
+     * @return left stick magnitude.
+     */
+    public double getLeftStickMagnitude()
+    {
+        return getLeftStickMagnitude(false);
+    }   //getLeftStickMagnitude
+
+    /**
+     * This method returns the right stick magnitude combining the x and y axes.
+     *
+     * @param doExp specifies true if the value should be raised exponentially, false otherwise. If the value is
+     *              raised exponentially, it gives you more precise control on the low end values.
+     *
+     * @return right stick magnitude.
+     */
+    public double getRightStickMagnitude(boolean doExp)
+    {
+        return getMagnitude(getRightStickX(doExp), getRightStickY(doExp));
+    }   //getRightStickMagnitude
+
+    /**
+     * This method returns the right stick magnitude combining the x and y axes.
+     *
+     * @return right stick magnitude.
+     */
+    public double getRightStickMagnitude()
+    {
+        return getRightStickMagnitude(false);
+    }   //getRightStickMagnitude
+
+    /**
+     * This method returns the left stick direction in radians combining the x and y axes.
+     *
+     * @param doExp specifies true if the value should be raised exponentially, false otherwise. If the value is
+     *              raised exponentially, it gives you more precise control on the low end values.
+     *
+     * @return left stick direction in radians.
+     */
+    public double getLeftStickDirectionRadians(boolean doExp)
+    {
+        final String funcName = "getLeftStickDirectionRadians";
+        double value = getDirection(gamepad.left_stick_x, gamepad.left_stick_y, doExp);
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "exp=%s", Boolean.toString(doExp));
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", value);
+        }
+
+        return value;
+    }   //getLeftStickDirectionRadians
+
+    /**
+     * This method returns the left stick direction in radians combining the x and y axes.
+     *
+     * @return left stick direction in radians.
+     */
+    public double getLeftStickDirectionRadians()
+    {
+        return getLeftStickDirectionRadians(false);
+    }   //getLeftStickDirectionRadians
+
+    /**
+     * This method returns the right stick direction in radians combining the x and y axes.
+     *
+     * @param doExp specifies true if the value should be raised exponentially, false otherwise. If the value is
+     *              raised exponentially, it gives you more precise control on the low end values.
+     *
+     * @return right stick direction in radians.
+     */
+    public double getRightStickDirectionRadians(boolean doExp)
+    {
+        final String funcName = "getRightStickDirectionRadians";
+        double value = getDirection(gamepad.right_stick_x, gamepad.right_stick_y, doExp);
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "exp=%s", Boolean.toString(doExp));
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", value);
+        }
+
+        return value;
+    }   //getRightStickDirectionRadians
+
+    /**
+     * This method returns the right stick direction in radians combining the x and y axes.
+     *
+     * @return right stick direction in radians.
+     */
+    public double getRightStickDirectionRadians()
+    {
+        return getRightStickDirectionRadians(false);
+    }   //getRightStickDirectionRadians
+
+    /**
+     * This method returns the left stick direction in degrees combining the x and y axes.
+     *
+     * @param doExp specifies true if the value should be raised exponentially, false otherwise. If the value is
+     *              raised exponentially, it gives you more precise control on the low end values.
+     *
+     * @return left stick direction in degrees.
+     */
+    public double getLeftStickDirectionDegrees(boolean doExp)
+    {
+        return Math.toDegrees(getLeftStickDirectionRadians(doExp));
+    }   //getLeftStickDirectionDegrees
+
+    /**
+     * This method returns the left stick direction in degrees combining the x and y axes.
+     *
+     * @return left stick direction in degrees.
+     */
+    public double getLeftStickDirectionDegrees()
+    {
+        return getLeftStickDirectionDegrees(false);
+    }   //getLeftStickDirectionDegrees
+
+    /**
+     * This method returns the right stick direction in degrees combining the x and y axes.
+     *
+     * @param doExp specifies true if the value should be raised exponentially, false otherwise. If the value is
+     *              raised exponentially, it gives you more precise control on the low end values.
+     *
+     * @return right stick direction in degrees.
+     */
+    public double getRightStickDirectionDegrees(boolean doExp)
+    {
+        return Math.toDegrees(getRightStickDirectionRadians(doExp));
+    }   //getRightStickDirectionDegrees
+
+    /**
+     * This method returns the right stick direction in degrees combining the x and y axes.
+     *
+     * @return right stick direction in degrees.
+     */
+    public double getRightStickDirectionDegrees()
+    {
+        return getRightStickDirectionDegrees(false);
+    }   //getRightStickDirectionDegrees
+
+    //
+    // Implements TrcGameController abstract methods.
+    //
 
     /**
      * This method returns the button states in an integer by combining all the button states.
      *
      * @return button states.
      */
+    @Override
     public int getButtons()
     {
         final String funcName = "getButtons";
@@ -206,501 +489,5 @@ public class FtcGamepad implements TrcTaskMgr.Task
 
         return buttons;
     }   //getButtons
-
-    /**
-     * This method inverts the y-axis of the analog sticks.
-     *
-     * @param inverted specifies true if inverting the y-axis, false otherwise.
-     */
-    public void setYInverted(boolean inverted)
-    {
-        final String funcName = "setYInverted";
-
-        ySign = inverted? -1: 1;
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "inverted=%s", Boolean.toString(inverted));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
-        }
-    }   //setYInverted
-
-    /**
-     * This method returns the x-axis value of the left stick.
-     *
-     * @param squared specifies true if the value should be squared, false otherwise. If the value is squared, it
-     *                gives you more precise control on the low end values.
-     *
-     * @return x-axis value of the left stick.
-     */
-    public double getLeftStickX(boolean squared)
-    {
-        final String funcName = "getLeftStickX";
-        double value = squareValue((double) gamepad.left_stick_x, squared);
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "squared=%s", Boolean.toString(squared));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", value);
-        }
-
-        return value;
-    }   //getLeftStickX
-
-    /**
-     * This method returns the x-axis value of the left stick.
-     *
-     * @return x-axis value of the left stick.
-     */
-    public double getLeftStickX()
-    {
-        return getLeftStickX(false);
-    }   //getLeftStickX
-
-    /**
-     * This method returns the y-axis value of the left stick.
-     *
-     * @param squared specifies true if the value should be squared, false otherwise. If the value is squared, it
-     *                gives you more precise control on the low end values.
-     *
-     * @return y-axis value of the left stick.
-     */
-    public double getLeftStickY(boolean squared)
-    {
-        final String funcName = "getLeftStickY";
-        double value = squareValue((double)(ySign*gamepad.left_stick_y), squared);
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "squared=%s", Boolean.toString(squared));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", value);
-        }
-
-        return value;
-    }   //getLeftStickY
-
-    /**
-     * This method returns the y-axis value of the left stick.
-     *
-     * @return y-axis value of the left stick.
-     */
-    public double getLeftStickY()
-    {
-        return getLeftStickY(false);
-    }   //getLeftStickY
-
-    /**
-     * This method returns the x-axis value of the right stick.
-     *
-     * @param squared specifies true if the value should be squared, false otherwise. If the value is squared, it
-     *                gives you more precise control on the low end values.
-     *
-     * @return x-axis value of the right stick.
-     */
-    public double getRightStickX(boolean squared)
-    {
-        final String funcName = "getRightStickX";
-        double value = squareValue((double)gamepad.right_stick_x, squared);
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "squared=%s", Boolean.toString(squared));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", value);
-        }
-
-        return value;
-    }   //getRightStickX
-
-    /**
-     * This method returns the x-axis value of the right stick.
-     *
-     * @return x-axis value of the right stick.
-     */
-    public double getRightStickX()
-    {
-        return getRightStickX(false);
-    }   //getRightStickX
-
-    /**
-     * This method returns the y-axis value of the right stick.
-     *
-     * @param squared specifies true if the value should be squared, false otherwise. If the value is squared, it
-     *                gives you more precise control on the low end values.
-     *
-     * @return y-axis value of the right stick.
-     */
-    public double getRightStickY(boolean squared)
-    {
-        final String funcName = "getRightStickY";
-        double value = squareValue((double)(ySign*gamepad.right_stick_y), squared);
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "squared=%s", Boolean.toString(squared));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", value);
-        }
-
-        return value;
-    }   //getRightStickY
-
-    /**
-     * This method returns the y-axis value of the right stick.
-     *
-     * @return y-axis value of the right stick.
-     */
-    public double getRightStickY()
-    {
-        return getRightStickY(false);
-    }   //getRightStickY
-
-    /**
-     * This method returns the left trigger value.
-     *
-     * @param squared specifies true if the value should be squared, false otherwise. If the value is squared, it
-     *                gives you more precise control on the low end values.
-     *
-     * @return left trigger value.
-     */
-    public double getLeftTrigger(boolean squared)
-    {
-        final String funcName = "getLeftTrigger";
-        double value = squareValue((double)gamepad.left_trigger, squared);
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "squared=%s", Boolean.toString(squared));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", value);
-        }
-
-        return value;
-    }   //getLeftTrigger
-
-    /**
-     * This method returns the left trigger value.
-     *
-     * @return left trigger value.
-     */
-    public double getLeftTrigger()
-    {
-        return getLeftTrigger(false);
-    }   //getLeftTrigger
-
-    /**
-     * This method returns the right trigger value.
-     *
-     * @param squared specifies true if the value should be squared, false otherwise. If the value is squared, it
-     *                gives you more precise control on the low end values.
-     *
-     * @return right trigger value.
-     */
-    public double getRightTrigger(boolean squared)
-    {
-        final String funcName = "getRightTrigger";
-        double value = squareValue((double)gamepad.right_trigger, squared);
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "squared=%s", Boolean.toString(squared));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", value);
-        }
-
-        return value;
-    }   //getRightTrigger
-
-    /**
-     * This method returns the right trigger value.
-     *
-     * @return right trigger value.
-     */
-    public double getRightTrigger()
-    {
-        return getRightTrigger(false);
-    }   //getRightTrigger
-
-    /**
-     * This method returns the left stick magnitude combining the x and y axes.
-     *
-     * @param squared specifies true if both x and y should be squared, false otherwise. If the value is squared,
-     *                it gives you more precise control on the low end values.
-     *
-     * @return left stick magnitude.
-     */
-    public double getLeftStickMagnitude(boolean squared)
-    {
-        return getMagnitude(getLeftStickX(squared), getLeftStickY(squared));
-    }   //getLeftStickMagnitude
-
-    /**
-     * This method returns the left stick magnitude combining the x and y axes.
-     *
-     * @return left stick magnitude.
-     */
-    public double getLeftStickMagnitude()
-    {
-        return getLeftStickMagnitude(false);
-    }   //getLeftStickMagnitude
-
-    /**
-     * This method returns the right stick magnitude combining the x and y axes.
-     *
-     * @param squared specifies true if both x and y should be squared, false otherwise. If the value is squared,
-     *                it gives you more precise control on the low end values.
-     *
-     * @return right stick magnitude.
-     */
-    public double getRightStickMagnitude(boolean squared)
-    {
-        return getMagnitude(getRightStickX(squared), getRightStickY(squared));
-    }   //getRightStickMagnitude
-
-    /**
-     * This method returns the right stick magnitude combining the x and y axes.
-     *
-     * @return right stick magnitude.
-     */
-    public double getRightStickMagnitude()
-    {
-        return getRightStickMagnitude(false);
-    }   //getRightStickMagnitude
-
-    /**
-     * This method returns the left stick direction in radians combining the x and y axes.
-     *
-     * @param squared specifies true if both x and y should be squared, false otherwise. If the value is squared,
-     *                it gives you more precise control on the low end values.
-     *
-     * @return left stick direction in radians.
-     */
-    public double getLeftStickDirectionRadians(boolean squared)
-    {
-        final String funcName = "getLeftStickDirectionRadians";
-        double value = Math.atan2(getLeftStickY(squared), getLeftStickX(squared));
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "squared=%s", Boolean.toString(squared));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", value);
-        }
-
-        return value;
-    }   //getLeftStickDirectionRadians
-
-    /**
-     * This method returns the left stick direction in radians combining the x and y axes.
-     *
-     * @return left stick direction in radians.
-     */
-    public double getLeftStickDirectionRadians()
-    {
-        return getLeftStickDirectionRadians(false);
-    }   //getLeftStickDirectionRadians
-
-    /**
-     * This method returns the right stick direction in radians combining the x and y axes.
-     *
-     * @param squared specifies true if both x and y should be squared, false otherwise. If the value is squared,
-     *                it gives you more precise control on the low end values.
-     *
-     * @return right stick direction in radians.
-     */
-    public double getRightStickDirectionRadians(boolean squared)
-    {
-        final String funcName = "getRightStickDirectionRadians";
-        double value = Math.atan2(getRightStickY(squared), getRightStickX(squared));
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "squared=%s", Boolean.toString(squared));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", value);
-        }
-
-        return value;
-    }   //getRightStickDirectionRadian
-
-    /**
-     * This method returns the right stick direction in radians combining the x and y axes.
-     *
-     * @return right stick direction in radians.
-     */
-    public double getRightStickDirectionRadians()
-    {
-        return getRightStickDirectionRadians(false);
-    }   //getRightStickDirectionRadians
-
-    /**
-     * This method returns the left stick direction in degrees combining the x and y axes.
-     *
-     * @param squared specifies true if both x and y should be squared, false otherwise. If the value is squared,
-     *                it gives you more precise control on the low end values.
-     *
-     * @return left stick direction in degrees.
-     */
-    public double getLeftStickDirectionDegrees(boolean squared)
-    {
-        return Math.toDegrees(getLeftStickDirectionRadians(squared));
-    }   //getLeftStickDirectionDegrees
-
-    /**
-     * This method returns the left stick direction in degrees combining the x and y axes.
-     *
-     * @return left stick direction in degrees.
-     */
-    public double getLeftStickDirectionDegrees()
-    {
-        return getLeftStickDirectionDegrees(false);
-    }   //getLeftStickDirectionDegrees
-
-    /**
-     * This method returns the right stick direction in degrees combining the x and y axes.
-     *
-     * @param squared specifies true if both x and y should be squared, false otherwise. If the value is squared,
-     *                it gives you more precise control on the low end values.
-     *
-     * @return right stick direction in degrees.
-     */
-    public double getRightStickDirectionDegrees(boolean squared)
-    {
-        return Math.toDegrees(getRightStickDirectionRadians(squared));
-    }   //getRightStickDirectionDegrees
-
-    /**
-     * This method returns the right stick direction in degrees combining the x and y axes.
-     *
-     * @return right stick direction in degrees.
-     */
-    public double getRightStickDirectionDegrees()
-    {
-        return getRightStickDirectionDegrees(false);
-    }   //getRightStickDirectionDegrees
-
-    /**
-     * This method returns the square of the given value.
-     *
-     * @param value specifies the value to be squared.
-     * @param squared specifies true if the value will be squared, false otherwise.
-     * @return squared value.
-     */
-    private double squareValue(double value, boolean squared)
-    {
-        if (squared)
-        {
-            int dir = (value >= 0.0)? 1: -1;
-            value = dir*value*value;
-        }
-        return value;
-    }   //squareValue
-
-    /**
-     * This method returns the magnitude value combining the x and y values. The magnitude is calculated by squaring
-     * both x and y, sum them and take the square root.
-     *
-     * @param x specifies the x value.
-     * @param y specifies the y value.
-     * @return returns the magnitude value.
-     */
-    private double getMagnitude(double x, double y)
-    {
-        final String funcName = "getMagnitude";
-        double value = Math.sqrt(x*x + y*y);
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC, "x=%f,y=%f", x, y);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC, "=%f", value);
-        }
-
-        return value;
-    }   //getMagnitude
-
-    //
-    // Implements TrcTaskMgr.Task
-    //
-
-    @Override
-    public void startTask(TrcRobot.RunMode runMode)
-    {
-    }   //startTask
-
-    @Override
-    public void stopTask(TrcRobot.RunMode runMode)
-    {
-    }   //stopTask
-
-    /**
-     * This method runs periodically and checks for changes in the button states. If any button changed state,
-     * the button handler is called if one exists.
-     *
-     * @param runMode specifies the current robot run mode.
-     */
-    @Override
-    public void prePeriodicTask(TrcRobot.RunMode runMode)
-    {
-        final String funcName = "prePeriodic";
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "mode=%s", runMode.toString());
-        }
-
-        int currButtons = getButtons();
-        int changedButtons = prevButtons^currButtons;
-        int buttonMask;
-
-        while (changedButtons != 0)
-        {
-            //
-            // buttonMask contains the least significant set bit.
-            //
-            buttonMask = changedButtons & ~(changedButtons^-changedButtons);
-            if ((currButtons & buttonMask) != 0)
-            {
-                //
-                // Button is pressed.
-                //
-                if (debugEnabled)
-                {
-                    dbgTrace.traceInfo(funcName, "Button %x pressed", buttonMask);
-                }
-                buttonHandler.gamepadButtonEvent(this, buttonMask, true);
-            }
-            else
-            {
-                //
-                // Button is released.
-                //
-                if (debugEnabled)
-                {
-                    dbgTrace.traceInfo(funcName, "Button %x released", buttonMask);
-                }
-                buttonHandler.gamepadButtonEvent(
-                        this, buttonMask, false);
-            }
-            //
-            // Clear the least significant set bit.
-            //
-            changedButtons &= ~buttonMask;
-        }
-        prevButtons = currButtons;
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
-        }
-    }   //prePeriodicTask
-
-    @Override
-    public void postPeriodicTask(TrcRobot.RunMode runMode)
-    {
-    }   //postPeriodicTask
-
-    @Override
-    public void preContinuousTask(TrcRobot.RunMode runMode)
-    {
-    }   //preContinuousTask
-
-    @Override
-    public void postContinuousTask(TrcRobot.RunMode runMode)
-    {
-    }   //postContinuousTask
 
 }   //class FtcGamepad
