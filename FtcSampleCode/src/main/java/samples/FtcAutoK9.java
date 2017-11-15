@@ -417,14 +417,14 @@ public class FtcAutoK9 extends FtcOpMode implements FtcMenu.MenuButtons
         //
         FtcValueMenu delayMenu = new FtcValueMenu("Delay time:", null, this,
                 0.0, 10.0, 1.0, 0.0, "%.0f sec");
-        FtcChoiceMenu strategyMenu = new FtcChoiceMenu("Auto Strategies:", delayMenu, this);
+        FtcChoiceMenu<AutoStrategy> strategyMenu = new FtcChoiceMenu<>("Auto Strategies:", delayMenu, this);
         FtcValueMenu driveTimeMenu = new FtcValueMenu("Drive time:", strategyMenu, this,
                 0.0, 10.0, 1.0, 4.0, "%.0f sec");
         FtcValueMenu distanceMenu = new FtcValueMenu("Drive distance:", strategyMenu, this,
                 1.0, 8.0, 1.0, 1.0, "%.0f ft");
         FtcValueMenu degreesMenu = new FtcValueMenu("Turn degrees", strategyMenu, this,
                 -360.0, 360.0, 90.0, 360.0, "%.0f deg");
-        FtcChoiceMenu allianceMenu = new FtcChoiceMenu("Alliance:", strategyMenu, this);
+        FtcChoiceMenu<Alliance> allianceMenu = new FtcChoiceMenu<>("Alliance:", strategyMenu, this);
 
         delayMenu.setChildMenu(strategyMenu);
 
