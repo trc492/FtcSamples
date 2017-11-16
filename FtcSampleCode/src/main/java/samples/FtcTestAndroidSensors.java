@@ -77,7 +77,7 @@ public class FtcTestAndroidSensors extends FtcOpMode
             dashboard.displayPrintf(lineNum, "%02d->%s, %s, %d",
                                     sensor.getType(), sensor.getVendor(), sensor.getName(), sensor.getVersion());
             lineNum++;
-            if (lineNum >= HalDashboard.MAX_NUM_TEXTLINES)
+            if (lineNum >= dashboard.getNumTextLines())
             {
                 break;
             }

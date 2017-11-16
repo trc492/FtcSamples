@@ -24,7 +24,6 @@ package ftclib;
 
 import java.util.ArrayList;
 
-import hallib.HalDashboard;
 import trclib.TrcDbgTrace;
 
 /**
@@ -93,6 +92,7 @@ public class FtcChoiceMenu<T> extends FtcMenu
     private ArrayList<ChoiceItem> choiceItems = new ArrayList<>();
     private int currChoice = -1;
     private int firstDisplayedChoice = 0;
+    private int numDashboardLines;
 
     /**
      * Constructor: Creates an instance of the object.
@@ -105,6 +105,7 @@ public class FtcChoiceMenu<T> extends FtcMenu
     public FtcChoiceMenu(String menuTitle, FtcMenu parent, MenuButtons menuButtons)
     {
         super(menuTitle, parent, menuButtons);
+        numDashboardLines = dashboard.getNumTextLines();
     }   //FtcChoiceMenu
 
     /**
@@ -270,15 +271,13 @@ public class FtcChoiceMenu<T> extends FtcMenu
                 currChoice = 0;
             }
 
-            int lastDisplayedChoice =
-                    Math.min(firstDisplayedChoice + HalDashboard.MAX_NUM_TEXTLINES - 2,
-                             choiceItems.size() - 1);
+            int lastDisplayedChoice = Math.min(firstDisplayedChoice + numDashboardLines - 2, choiceItems.size() - 1);
             if (currChoice > lastDisplayedChoice)
             {
                 //
                 // Scroll down.
                 //
-                firstDisplayedChoice = currChoice - (HalDashboard.MAX_NUM_TEXTLINES - 2);
+                firstDisplayedChoice = currChoice - (numDashboardLines - 2);
             }
         }
 
@@ -328,9 +327,7 @@ public class FtcChoiceMenu<T> extends FtcMenu
         //
         // Determine the choice of the last display line on the dashboard.
         //
-        int lastDisplayedChoice =
-                Math.min(firstDisplayedChoice + HalDashboard.MAX_NUM_TEXTLINES - 2,
-                         choiceItems.size() - 1);
+        int lastDisplayedChoice = Math.min(firstDisplayedChoice + numDashboardLines - 2, choiceItems.size() - 1);
         dashboard.clearDisplay();
         dashboard.displayPrintf(0, getTitle());
         //

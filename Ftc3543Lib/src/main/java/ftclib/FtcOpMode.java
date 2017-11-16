@@ -60,6 +60,7 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
     private final static String OPMODE_TELEOP   = "FtcTeleOp";
     private final static String OPMODE_TEST     = "FtcTest";
 
+    protected final static int NUM_DASHBOARD_LINES = 16;
     private final static long LOOP_PERIOD = 20;
     private static FtcOpMode instance = null;
     private static double opModeStartTime = 0.0;
@@ -228,14 +229,18 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
     public void runOpMode()
     {
         final String funcName = "runOpMode";
-        HalDashboard dashboard = HalDashboard.createInstance(telemetry);
+        //
+        // Create dashboard here. If any earlier, telemetry may not exist yet.
+        //
+        HalDashboard dashboard = HalDashboard.createInstance(telemetry, NUM_DASHBOARD_LINES);
         TrcRobot.RunMode runMode;
 
         if (debugEnabled)
         {
             if (dbgTrace == null)
             {
-                dbgTrace = new TrcDbgTrace(moduleName, false, TrcDbgTrace.TraceLevel.API, TrcDbgTrace.MsgLevel.INFO);
+                dbgTrace = new TrcDbgTrace(
+                        moduleName, false, TrcDbgTrace.TraceLevel.API, TrcDbgTrace.MsgLevel.INFO);
             }
         }
 
@@ -267,7 +272,8 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
         }
         else
         {
-            throw new IllegalStateException("Invalid OpMode (must be either FtcAuto, FtcTeleOp or FtcTest.");
+            throw new IllegalStateException(
+                    "Invalid OpMode, OpMode name must have prefix \"FtcAuto\", \"FtcTeleOp\" or \"FtcTest\".");
         }
 
         if (debugEnabled)
