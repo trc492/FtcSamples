@@ -148,6 +148,14 @@ public class TrcTaskMgr
         private HashSet<TaskType> taskTypes;
         private final String taskName;
         private Task task;
+        private long prePeriodicTaskTotalNanoTime;
+        private int prePeriodicTaskTimeSlotCount;
+        private long postPeriodicTaskTotalNanoTime;
+        private int postPeriodicTaskTimeSlotCount;
+        private long preContinuousTaskTotalNanoTime;
+        private int preContinuousTaskTimeSlotCount;
+        private long postContinuousTaskTotalNanoTime;
+        private int postContinuousTaskTimeSlotCount;
 
         /**
          * Constructor: Creates an instgance of the task object with the given name
@@ -161,6 +169,14 @@ public class TrcTaskMgr
             taskTypes = new HashSet<>();
             this.taskName = taskName;
             this.task = task;
+            prePeriodicTaskTotalNanoTime = 0;
+            prePeriodicTaskTimeSlotCount = 0;
+            postPeriodicTaskTotalNanoTime = 0;
+            postPeriodicTaskTimeSlotCount = 0;
+            preContinuousTaskTotalNanoTime = 0;
+            preContinuousTaskTimeSlotCount = 0;
+            postContinuousTaskTotalNanoTime = 0;
+            postContinuousTaskTimeSlotCount = 0;
         }   //TaskObject
 
         /**
@@ -344,8 +360,10 @@ public class TrcTaskMgr
     public void executeTaskType(TaskType type, TrcRobot.RunMode mode)
     {
         final String funcName = "executeTaskType";
+        long startNanoTime;
 
         for (int i = 0; i < taskList.size(); i++)
+//        for (TaskObject taskObj: taskList)
         {
             TaskObject taskObj = taskList.get(i);
             if (taskObj.hasType(type))
@@ -374,7 +392,10 @@ public class TrcTaskMgr
                         {
                             dbgTrace.traceInfo(funcName, "Executing PrePeriodicTask %s", taskObj.toString());
                         }
+                        startNanoTime = TrcUtil.getCurrentTimeNanos();
                         task.prePeriodicTask(mode);
+                        taskObj.prePeriodicTaskTotalNanoTime += TrcUtil.getCurrentTimeNanos() - startNanoTime;
+                        taskObj.prePeriodicTaskTimeSlotCount++;
                         break;
 
                     case POSTPERIODIC_TASK:
@@ -382,7 +403,10 @@ public class TrcTaskMgr
                         {
                             dbgTrace.traceInfo(funcName, "Executing PostPeriodicTask %s", taskObj.toString());
                         }
+                        startNanoTime = TrcUtil.getCurrentTimeNanos();
                         task.postPeriodicTask(mode);
+                        taskObj.postPeriodicTaskTotalNanoTime += TrcUtil.getCurrentTimeNanos() - startNanoTime;
+                        taskObj.postPeriodicTaskTimeSlotCount++;
                         break;
 
                     case PRECONTINUOUS_TASK:
@@ -390,7 +414,10 @@ public class TrcTaskMgr
                         {
                             dbgTrace.traceInfo(funcName, "Executing PreContinuousTask %s", taskObj.toString());
                         }
+                        startNanoTime = TrcUtil.getCurrentTimeNanos();
                         task.preContinuousTask(mode);
+                        taskObj.preContinuousTaskTotalNanoTime += TrcUtil.getCurrentTimeNanos() - startNanoTime;
+                        taskObj.preContinuousTaskTimeSlotCount++;
                         break;
 
                     case POSTCONTINUOUS_TASK:
@@ -398,12 +425,35 @@ public class TrcTaskMgr
                         {
                             dbgTrace.traceInfo(funcName, "Executing PostContinuousTask %s", taskObj.toString());
                         }
+                        startNanoTime = TrcUtil.getCurrentTimeNanos();
                         task.postContinuousTask(mode);
+                        taskObj.postContinuousTaskTotalNanoTime += TrcUtil.getCurrentTimeNanos() - startNanoTime;
+                        taskObj.postContinuousTaskTimeSlotCount++;
                         break;
                 }
             }
         }
     }   //executeTaskType
+
+    /**
+     * This method prints the performance metrics of all tasks with the given tracer.
+     *
+     * @param tracer specifies the tracer to be used for printing the task performance metrics.
+     */
+    public void printTaskPerformanceMetrics(TrcDbgTrace tracer)
+    {
+        for (TaskObject taskObj: taskList)
+        {
+            tracer.traceInfo(
+                    "TaskPerformance",
+                    "%16s: PrePeriodic=%.6f, PostPeriodic=%.6f, PreContinuous=%.6f, PostContinous=%.6f",
+                    taskObj.taskName,
+                    (double)taskObj.prePeriodicTaskTotalNanoTime/taskObj.prePeriodicTaskTimeSlotCount/1000000000,
+                    (double)taskObj.postPeriodicTaskTotalNanoTime/taskObj.postPeriodicTaskTimeSlotCount/1000000000,
+                    (double)taskObj.preContinuousTaskTotalNanoTime/taskObj.preContinuousTaskTimeSlotCount/1000000000,
+                    (double)taskObj.postContinuousTaskTotalNanoTime/taskObj.postContinuousTaskTimeSlotCount/1000000000);
+        }
+    }   //printTaskPerformanceMetrics
 
     /**
      * This method finds the given task in the task list and return it.

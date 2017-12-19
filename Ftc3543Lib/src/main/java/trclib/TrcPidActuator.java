@@ -99,6 +99,24 @@ public class TrcPidActuator extends TrcPidMotor
     }   //TrcPidActuator
 
     /**
+     * This method returns the state of manual override.
+     *
+     * @return true if manual override is ON, false otherwise.
+     */
+    public boolean isManualOverride()
+    {
+        final String funcName = "isManualOverride";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", manualOverride);
+        }
+
+        return manualOverride;
+    }   //isManualOverride
+
+    /**
      * This method sets manual override mode. This is useful to override PID control of the actuator in situations
      * where the encoder is not zero calibrated or malfunctioning. Note that this only overrides the encoder but not
      * the limit switch. So if the lower limit switch is engaged, the actuator will not retract even though manual
@@ -125,8 +143,9 @@ public class TrcPidActuator extends TrcPidMotor
      * Note that if position range is not set, PID control will be disabled.
      *
      * @param power specifies the power to run the actuator.
+     * @param hold specifies true to hold position when power is zero, false otherwise.
      */
-    public void setPower(double power)
+    public void setPower(double power, boolean hold)
     {
         final String funcName = "setPower";
 
@@ -141,13 +160,25 @@ public class TrcPidActuator extends TrcPidMotor
         }
         else
         {
-            setPowerWithinPosRange(power, minPos, maxPos, true);
+            setPowerWithinPosRange(power, minPos, maxPos, hold);
         }
 
         if (debugEnabled)
         {
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
+    }   //setPower
+
+    /**
+     * This method runs the actuator with the specified power. It will hold the current position even if power is zero.
+     * Note that if position range is not set, PID control will be disabled.
+     *
+     * @param power specifies the power to run the actuator.
+     */
+    @Override
+    public void setPower(double power)
+    {
+        setPower(power, false);
     }   //setPower
 
 }   //class TrcPidActuator

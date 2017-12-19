@@ -318,8 +318,8 @@ public class TrcPidMotor implements TrcTaskMgr.Task
             pos += motor2.getPosition();
             n++;
         }
-        pos *= positionScale/n;
         pos += positionOffset;
+        pos *= positionScale/n;
 
         if (debugEnabled)
         {

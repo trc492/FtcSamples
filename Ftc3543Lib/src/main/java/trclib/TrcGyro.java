@@ -396,7 +396,7 @@ public abstract class TrcGyro extends TrcSensor<TrcGyro.DataType>
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        setScale(xIndex, scale);
+        setScale(xIndex, scale, 0.0);
     }   //setXScale
 
     /**
@@ -414,7 +414,7 @@ public abstract class TrcGyro extends TrcSensor<TrcGyro.DataType>
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        setScale(yIndex, scale);
+        setScale(yIndex, scale, 0.0);
     }   //setYScale
 
     /**
@@ -432,7 +432,7 @@ public abstract class TrcGyro extends TrcSensor<TrcGyro.DataType>
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        setScale(zIndex, scale);
+        setScale(zIndex, scale, 0.0);
     }   //setZScale
 
     /**

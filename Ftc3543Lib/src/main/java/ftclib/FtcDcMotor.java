@@ -26,6 +26,7 @@ import com.qualcomm.hardware.modernrobotics.ModernRoboticsUsbDcMotorController;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
+import trclib.TrcAnalogInput;
 import trclib.TrcDigitalInput;
 import trclib.TrcDbgTrace;
 import trclib.TrcMotor;
@@ -49,6 +50,7 @@ public class FtcDcMotor extends TrcMotor
     private String instanceName;
     private TrcDigitalInput lowerLimitSwitch = null;
     private TrcDigitalInput upperLimitSwitch = null;
+    private TrcAnalogInput analogSensor = null;
     public DcMotor motor;
     private int zeroEncoderValue;
     private int prevEncPos;
@@ -66,9 +68,10 @@ public class FtcDcMotor extends TrcMotor
      * @param instanceName specifies the instance name.
      * @param lowerLimitSwitch specifies the lower limit switch object.
      * @param upperLimitSwitch specifies the upper limit switch object.
+     * @param analogSensor specifies an analog position sensor instead of the motor encoder.
      */
     public FtcDcMotor(HardwareMap hardwareMap, String instanceName,
-                      TrcDigitalInput lowerLimitSwitch, TrcDigitalInput upperLimitSwitch)
+                      TrcDigitalInput lowerLimitSwitch, TrcDigitalInput upperLimitSwitch, TrcAnalogInput analogSensor)
     {
         super(instanceName);
 
@@ -80,6 +83,7 @@ public class FtcDcMotor extends TrcMotor
         this.instanceName = instanceName;
         this.lowerLimitSwitch = lowerLimitSwitch;
         this.upperLimitSwitch = upperLimitSwitch;
+        this.analogSensor = analogSensor;
         motor = hardwareMap.dcMotor.get(instanceName);
         zeroEncoderValue = motor.getCurrentPosition();
         prevEncPos = zeroEncoderValue;
@@ -91,10 +95,24 @@ public class FtcDcMotor extends TrcMotor
      * @param instanceName specifies the instance name.
      * @param lowerLimitSwitch specifies the lower limit switch object.
      * @param upperLimitSwitch specifies the upper limit switch object.
+     * @param analogSensor specifies an analog position sensor instead of the motor encoder.
+     */
+    public FtcDcMotor(String instanceName, TrcDigitalInput lowerLimitSwitch, TrcDigitalInput upperLimitSwitch,
+                      TrcAnalogInput analogSensor)
+    {
+        this(FtcOpMode.getInstance().hardwareMap, instanceName, lowerLimitSwitch, upperLimitSwitch, analogSensor);
+    }   //FtcDcMotor
+
+    /**
+     * Constructor: Create an instance of the object.
+     *
+     * @param instanceName specifies the instance name.
+     * @param lowerLimitSwitch specifies the lower limit switch object.
+     * @param upperLimitSwitch specifies the upper limit switch object.
      */
     public FtcDcMotor(String instanceName, TrcDigitalInput lowerLimitSwitch, TrcDigitalInput upperLimitSwitch)
     {
-        this(FtcOpMode.getInstance().hardwareMap, instanceName, lowerLimitSwitch, upperLimitSwitch);
+        this(FtcOpMode.getInstance().hardwareMap, instanceName, lowerLimitSwitch, upperLimitSwitch, null);
     }   //FtcDcMotor
 
     /**
@@ -105,7 +123,7 @@ public class FtcDcMotor extends TrcMotor
      */
     public FtcDcMotor(String instanceName, TrcDigitalInput lowerLimitSwitch)
     {
-        this(instanceName, lowerLimitSwitch, null);
+        this(FtcOpMode.getInstance().hardwareMap, instanceName, lowerLimitSwitch, null, null);
     }   //FtcDcMotor
 
     /**
@@ -115,7 +133,7 @@ public class FtcDcMotor extends TrcMotor
      */
     public FtcDcMotor(String instanceName)
     {
-        this(instanceName, null, null);
+        this(FtcOpMode.getInstance().hardwareMap, instanceName, null, null, null);
     }   //FtcDcMotor
 
     /**
@@ -162,40 +180,48 @@ public class FtcDcMotor extends TrcMotor
     public double getPosition()
     {
         final String funcName = "getPosition";
-        int currEncPos = motor.getCurrentPosition();
+        double currPos = analogSensor == null?
+                motor.getCurrentPosition(): analogSensor.getRawData(0, TrcAnalogInput.DataType.INPUT_DATA).value;
 
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        if (currEncPos == 0 && Math.abs(prevEncPos) > 1000)
+        //
+        // Somebody said if motor controller got disconnected, we may get a zero. Let's detect this and see if this
+        // really happened.
+        //
+        if (analogSensor == null)
         {
-            //
-            // Somebody said if motor controller got disconnected, we may get a zero. Let's detect this and see if
-            // this really happened.
-            //
-            if (debugEnabled)
+            if (currPos == 0.0 && Math.abs(prevEncPos) > 1000)
             {
-                dbgTrace.traceWarn(funcName,
-                                   "Detected possible motor controller disconnect for %s (prevEncPos=%d).",
-                                   instanceName, prevEncPos);
+                if (debugEnabled)
+                {
+                    dbgTrace.traceWarn(funcName,
+                            "Detected possible motor controller disconnect for %s (prevEncPos=%d).",
+                            instanceName, prevEncPos);
+                }
+                currPos = prevEncPos;
             }
-            currEncPos = prevEncPos;
-        }
-        else
-        {
-            prevEncPos = currEncPos;
+            else
+            {
+                prevEncPos = (int)currPos;
+            }
         }
 
-        int position = positionSensorSign*(currEncPos - zeroEncoderValue);
+        if (analogSensor == null)
+        {
+            currPos -= zeroEncoderValue;
+        }
+        currPos *= positionSensorSign;
 
         if (debugEnabled)
         {
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%d", position);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%d", currPos);
         }
 
-        return (double)position;
+        return currPos;
     }   //getPosition
 
     /**

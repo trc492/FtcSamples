@@ -41,6 +41,23 @@ public class TrcPidDrive implements TrcTaskMgr.Task
     private TrcDbgTrace dbgTrace = null;
 
     /**
+     * This interface provides a stuck wheel notification handler. It is useful for detecting drive base motor
+     * malfunctions. A stuck wheel could happen if the motor is malfunctioning, the motor power wire is unplugged,
+     * the motor encoder is malfunctioning or the motor encoder wire is unplugged.
+     */
+    public interface StuckWheelHandler
+    {
+        /**
+         * This method is called when a stuck wheel is detected.
+         *
+         * @param pidDrive specifies this TrcPidDrive instance.
+         * @param motorType specifies which wheel in the DriveBase is stuck.
+         */
+        void stuckWheel(TrcPidDrive pidDrive, TrcDriveBase.MotorType motorType);
+
+    }   //interface StuckWheelHandler
+
+    /**
      * Turn mode specifies how PID controlled drive is turning the robot.
      */
     public enum TurnMode
@@ -58,6 +75,8 @@ public class TrcPidDrive implements TrcTaskMgr.Task
     private TrcPidController xPidCtrl;
     private TrcPidController yPidCtrl;
     private TrcPidController turnPidCtrl;
+    private StuckWheelHandler stuckWheelHandler = null;
+    private double stuckTimeout = 0.0;
     private TurnMode turnMode = TurnMode.IN_PLACE;
     private TrcTone beepDevice = null;
     private double beepFrequency = DEF_BEEP_FREQUENCY;
@@ -108,6 +127,84 @@ public class TrcPidDrive implements TrcTaskMgr.Task
     {
         return instanceName;
     }   //toString
+
+    /**
+     * This method returns the X PID controller if any.
+     *
+     * @return X PID controller.
+     */
+    public TrcPidController getXPidCtrl()
+    {
+        final String funcName = "getXPidCtrl";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s",
+                    xPidCtrl != null? xPidCtrl.toString(): "null");
+        }
+
+        return xPidCtrl;
+    }   //getXPidCtrl
+
+    /**
+     * This method returns the Y PID controller if any.
+     *
+     * @return Y PID controller.
+     */
+    public TrcPidController getYPidCtrl()
+    {
+        final String funcName = "getYPidCtrl";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s",
+                    yPidCtrl != null? yPidCtrl.toString(): "null");
+        }
+
+        return yPidCtrl;
+    }   //getYPidCtrl
+
+    /**
+     * This method returns the Turn PID controller if any.
+     *
+     * @return Turn PID controller.
+     */
+    public TrcPidController getTurnPidCtrl()
+    {
+        final String funcName = "getTurnPidCtrl";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s",
+                    turnPidCtrl != null? turnPidCtrl.toString(): "null");
+        }
+
+        return turnPidCtrl;
+    }   //getTurnPidCtrl
+
+    /**
+     * This method sets a stuck wheel handler to enable stuck wheel detection.
+     *
+     * @param stuckWheelHandler specifies the stuck wheel handler.
+     * @param stuckTimeout specifies the stuck timeout in seconds.
+     */
+    public void setStuckWheelHandler(StuckWheelHandler stuckWheelHandler, double stuckTimeout)
+    {
+        final String funcName = "setStuckWheelHandler";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
+                    "stuckWheelHandler=%s,timeout=%f", stuckWheelHandler, stuckTimeout);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+
+        this.stuckWheelHandler = stuckWheelHandler;
+        this.stallTimeout = stuckTimeout;
+    }   //setStuckWheelHandler
 
     /**
      * This methods sets the turn mode. Supported modes are in-place (default), pivot and curve.
@@ -583,6 +680,32 @@ public class TrcPidDrive implements TrcTaskMgr.Task
         boolean xOnTarget = xPidCtrl == null || xPidCtrl.isOnTarget();
         boolean yOnTarget = yPidCtrl == null || yPidCtrl.isOnTarget();
         boolean turnOnTarget = turnPidCtrl == null || turnPidCtrl.isOnTarget();
+
+        if (stuckWheelHandler != null)
+        {
+            if (driveBase.getNumMotors() > 2)
+            {
+                if (driveBase.isStalled(TrcDriveBase.MotorType.LEFT_FRONT, stuckTimeout))
+                {
+                    stuckWheelHandler.stuckWheel(this, TrcDriveBase.MotorType.LEFT_FRONT);
+                }
+
+                if (driveBase.isStalled(TrcDriveBase.MotorType.RIGHT_FRONT, stuckTimeout))
+                {
+                    stuckWheelHandler.stuckWheel(this, TrcDriveBase.MotorType.RIGHT_FRONT);
+                }
+            }
+
+            if (driveBase.isStalled(TrcDriveBase.MotorType.LEFT_REAR, stuckTimeout))
+            {
+                stuckWheelHandler.stuckWheel(this, TrcDriveBase.MotorType.LEFT_REAR);
+            }
+
+            if (driveBase.isStalled(TrcDriveBase.MotorType.RIGHT_REAR, stuckTimeout))
+            {
+                stuckWheelHandler.stuckWheel(this, TrcDriveBase.MotorType.RIGHT_REAR);
+            }
+        }
 
         if ((stalled || expired) && beepDevice != null)
         {

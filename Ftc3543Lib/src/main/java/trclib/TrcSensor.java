@@ -106,6 +106,7 @@ public abstract class TrcSensor<D>
     private TrcFilter[] filters;
     private int[] signs;
     private double[] scales;
+    private double[] offsets;
     private TrcSensorCalibrator<D> calibrator = null;
 
     /**
@@ -151,10 +152,12 @@ public abstract class TrcSensor<D>
         this.filters = filters;
         signs = new int[numAxes];
         scales = new double[numAxes];
+        offsets = new double[numAxes];
         for (int i = 0; i < numAxes; i++)
         {
             signs[i] = 1;
             scales[i] = 1.0;
+            offsets[i] = 0.0;
         }
     }   //TrcSensor
 
@@ -223,8 +226,9 @@ public abstract class TrcSensor<D>
      *
      * @param index specifies the axis index.
      * @param scale specifies the scale factor for the axis.
+     * @param offset specifies the offset to be subtracted from the scaled data.
      */
-    public void setScale(int index, double scale)
+    public void setScale(int index, double scale, double offset)
     {
         final String funcName = "setScale";
 
@@ -235,6 +239,7 @@ public abstract class TrcSensor<D>
         }
 
         scales[index] = scale;
+        offsets[index] = offset;
     }   //setScale
 
     /**
@@ -311,7 +316,7 @@ public abstract class TrcSensor<D>
             value = calibrator.getCalibratedData(index, value);
         }
 
-        value *= signs[index]*scales[index];
+        value *= signs[index]*scales[index] + offsets[index];
         data.value = value;
 
         if (debugEnabled)

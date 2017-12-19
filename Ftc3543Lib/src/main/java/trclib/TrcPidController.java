@@ -275,6 +275,33 @@ public class TrcPidController
      * use the debug tracer in this module but if the debug tracer is not enabled, no output will be produced.
      *
      * @param tracer specifies the tracer object to print the PID info to.
+     * @param timestamp specifies the timestamp to be printed.
+     */
+    public void printPidInfo(TrcDbgTrace tracer, double timestamp)
+    {
+        final String funcName = "printPidInfo";
+
+        if (tracer == null)
+        {
+            tracer = dbgTrace;
+        }
+
+        if (tracer != null)
+        {
+            tracer.traceInfo(
+                    funcName,
+                    "[%.3f] %s: Target=%6.1f, Input=%6.1f, Error=%6.1f, " +
+                    "PIDTerms=%6.3f/%6.3f/%6.3f/%6.3f, Output=%6.3f(%6.3f/%5.3f)",
+                    timestamp, instanceName, setPoint, input, currError,
+                    pTerm, iTerm, dTerm, fTerm, output, minOutput, maxOutput);
+        }
+    }   //printPidInfo
+
+    /**
+     * This method prints the PID information to the tracer console. If no tracer is provided, it will attempt to
+     * use the debug tracer in this module but if the debug tracer is not enabled, no output will be produced.
+     *
+     * @param tracer specifies the tracer object to print the PID info to.
      */
     public void printPidInfo(TrcDbgTrace tracer)
     {
@@ -289,8 +316,10 @@ public class TrcPidController
         {
             tracer.traceInfo(
                     funcName,
-                    "%s: Target=%6.1f, Input=%6.1f, Error=%6.1f, PIDTerms=%6.3f/%6.3f/%6.3f/%6.3f, Output=%6.3f(%6.3f/%5.3f)",
-                    instanceName, setPoint, input, currError, pTerm, iTerm, dTerm, fTerm, output, minOutput, maxOutput);
+                    "%s: Target=%6.1f, Input=%6.1f, Error=%6.1f, " +
+                    "PIDTerms=%6.3f/%6.3f/%6.3f/%6.3f, Output=%6.3f(%6.3f/%5.3f)",
+                    instanceName, setPoint, input, currError,
+                    pTerm, iTerm, dTerm, fTerm, output, minOutput, maxOutput);
         }
     }   //printPidInfo
 

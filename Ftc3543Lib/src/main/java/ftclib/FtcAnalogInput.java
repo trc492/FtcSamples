@@ -119,20 +119,22 @@ public class FtcAnalogInput extends TrcAnalogInput
         //
         // Ultrasonic sensor supports only INPUT_DATA type.
         //
-        if (dataType == DataType.INPUT_DATA)
+        if (dataType == DataType.INPUT_DATA || dataType == DataType.NORMALIZED_DATA)
         {
             long currTagId = FtcOpMode.getLoopCounter();
             if (currTagId != dataTagId)
             {
-                sensorData = sensor.getVoltage()/maxVoltage;
+                sensorData = sensor.getVoltage();
                 dataTagId = currTagId;
             }
 
-            data = new SensorData<>(TrcUtil.getCurrentTime(), sensorData);
+            data = new SensorData<>(
+                    TrcUtil.getCurrentTime(), dataType == DataType.INPUT_DATA? sensorData: sensorData/maxVoltage);
         }
         else
         {
-            throw new UnsupportedOperationException("AnalogInput sensor only support INPUT_DATA type.");
+            throw new UnsupportedOperationException(
+                    "AnalogInput sensor only support INPUT_DATA/NORMALIZED_DATA types.");
         }
 
         if (debugEnabled)

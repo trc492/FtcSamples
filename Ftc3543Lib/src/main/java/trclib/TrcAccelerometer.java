@@ -281,7 +281,7 @@ public abstract class TrcAccelerometer extends TrcSensor<TrcAccelerometer.DataTy
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        setScale(xIndex, scale);
+        setScale(xIndex, scale, 0.0);
     }   //setXScale
 
     /**
@@ -299,7 +299,7 @@ public abstract class TrcAccelerometer extends TrcSensor<TrcAccelerometer.DataTy
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        setScale(yIndex, scale);
+        setScale(yIndex, scale, 0.0);
     }   //setYScale
 
     /**
@@ -317,7 +317,7 @@ public abstract class TrcAccelerometer extends TrcSensor<TrcAccelerometer.DataTy
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        setScale(zIndex, scale);
+        setScale(zIndex, scale, 0.0);
     }   //setZScale
 
     /**

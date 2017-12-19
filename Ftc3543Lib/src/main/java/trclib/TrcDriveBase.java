@@ -71,10 +71,13 @@ public class TrcDriveBase implements TrcTaskMgr.Task
     private boolean gyroAssistEnabled = false;
 
     private double prevLeftFrontPos = 0.0;
-    private double prevLeftRearPos = 0.0;
     private double prevRightFrontPos = 0.0;
+    private double prevLeftRearPos = 0.0;
     private double prevRightRearPos = 0.0;
-    private double stallStartTime = 0.0;
+    private double lfStallStartTime = 0.0;
+    private double rfStallStartTime = 0.0;
+    private double lrStallStartTime = 0.0;
+    private double rrStallStartTime = 0.0;
 
     private double xPos;
     private double yPos;
@@ -625,6 +628,47 @@ public class TrcDriveBase implements TrcTaskMgr.Task
         return turnSpeed;
     }   //getTurnSpeed
 
+    public boolean isStalled(MotorType motorType, double stallTime)
+    {
+        final String funcName = "isStalled";
+        double currTime = TrcUtil.getCurrentTime();
+        boolean stalled = false;
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
+                    "motorType=%s,stallTime=%.3f", motorType, stallTime);
+        }
+
+        switch (motorType)
+        {
+            case LEFT_FRONT:
+                stalled = currTime - lfStallStartTime > stallTime;
+                break;
+
+            case RIGHT_FRONT:
+                stalled = currTime - rfStallStartTime > stallTime;
+                break;
+
+            case LEFT_MID:
+            case LEFT_REAR:
+                stalled = currTime - lrStallStartTime > stallTime;
+                break;
+
+            case RIGHT_MID:
+            case RIGHT_REAR:
+                stalled = currTime - rrStallStartTime > stallTime;
+                break;
+        }
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", Boolean.toString(stalled));
+        }
+
+        return stalled;
+    }   //isStalled
+
     /**
      * This method checks if all motors on the drive base have been stalled for at least the specified stallTime.
      *
@@ -634,7 +678,8 @@ public class TrcDriveBase implements TrcTaskMgr.Task
     public boolean isStalled(double stallTime)
     {
         final String funcName = "isStalled";
-        boolean stalled = TrcUtil.getCurrentTime() - stallStartTime > stallTime;
+        boolean stalled = isStalled(MotorType.LEFT_FRONT, stallTime) && isStalled(MotorType.RIGHT_FRONT, stallTime) &&
+                          isStalled(MotorType.LEFT_REAR, stallTime) && isStalled(MotorType.RIGHT_REAR, stallTime);
 
         if (debugEnabled)
         {
@@ -1266,16 +1311,17 @@ public class TrcDriveBase implements TrcTaskMgr.Task
             heading = rotPos;
         }
 
+        double currTime = TrcUtil.getCurrentTime();
         double lfPower = leftFrontMotor != null? leftFrontMotor.getPower(): 0.0;
         double rfPower = rightFrontMotor != null? rightFrontMotor.getPower(): 0.0;
         double lrPower = leftRearMotor != null? leftRearMotor.getPower(): 0.0;
         double rrPower = rightRearMotor != null? rightRearMotor.getPower(): 0.0;
-        if (lfEnc != prevLeftFrontPos || rfEnc != prevRightFrontPos ||
-            lrEnc != prevLeftRearPos || rrEnc != prevRightRearPos ||
-            lfPower == 0.0 && rfPower == 0.0 && lrPower == 0.0 && rrPower == 0.0)
-        {
-            stallStartTime = TrcUtil.getCurrentTime();
-        }
+
+        if (lfEnc != prevLeftFrontPos || lfPower == 0.0) lfStallStartTime = currTime;
+        if (rfEnc != prevRightFrontPos || rfPower == 0.0) rfStallStartTime = currTime;
+        if (lrEnc != prevLeftRearPos || lrPower == 0.0) lrStallStartTime = currTime;
+        if (rrEnc != prevRightRearPos || rrPower == 0.0) rrStallStartTime = currTime;
+
         prevLeftFrontPos = lfEnc;
         prevRightFrontPos = rfEnc;
         prevLeftRearPos = lrEnc;

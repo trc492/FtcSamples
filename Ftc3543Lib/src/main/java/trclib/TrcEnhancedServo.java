@@ -52,6 +52,7 @@ public class TrcEnhancedServo implements TrcTaskMgr.Task
     private double currStepRate = 0.0;
     private double prevTime = 0.0;
     private double currPosition = 0.0;
+    private double currPower = 0.0;
     private double maxStepRate = 0.0;
     private double minPos = 0.0;
     private double maxPos = 1.0;
@@ -327,8 +328,8 @@ public class TrcEnhancedServo implements TrcTaskMgr.Task
         power = TrcUtil.clipRange(power, -1.0, 1.0);
         if (continuousServo)
         {
-            if (lowerLimitSwitch != null && lowerLimitSwitch.isActive() ||
-                upperLimitSwitch != null && upperLimitSwitch.isActive())
+            if (lowerLimitSwitch != null && lowerLimitSwitch.isActive() && power < 0.0 ||
+                upperLimitSwitch != null && upperLimitSwitch.isActive() && power > 0.0)
             {
                 //
                 // One of the limit switches is hit, so stop!
@@ -337,7 +338,8 @@ public class TrcEnhancedServo implements TrcTaskMgr.Task
             }
             else
             {
-                power = TrcUtil.scaleRange(power, -1.0, 1.0, SERVO_CONTINUOUS_REV_MAX, SERVO_CONTINUOUS_FWD_MAX);
+                power = TrcUtil.scaleRange(
+                        power, -1.0, 1.0, SERVO_CONTINUOUS_REV_MAX, SERVO_CONTINUOUS_FWD_MAX);
                 servo1.setPosition(power);
             }
         }
@@ -354,7 +356,26 @@ public class TrcEnhancedServo implements TrcTaskMgr.Task
         {
             setSteppingEnabled(false);
         }
+        currPower = power;
     }   //setPower
+
+    /**
+     * This method returns the last set power value.
+     *
+     * @return last power set to the motor.
+     */
+    public double getPower()
+    {
+        final String funcName = "getPower";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", currPower);
+        }
+
+        return currPower;
+    }   //getPower
 
     //
     // Implements TrcTaskMgr.Task

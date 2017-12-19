@@ -243,6 +243,7 @@ public abstract class TrcGameController implements TrcTaskMgr.Task
     private double expValue(double value, boolean doExp)
     {
         final String funcName = "expValue";
+        double output;
 
         if (debugEnabled)
         {
@@ -253,21 +254,20 @@ public abstract class TrcGameController implements TrcTaskMgr.Task
         if (doExp)
         {
             double sign = Math.signum(value);
-
             value = Math.abs(value);
-            for (int i = 0; i < exponent - 1; i++)
-            {
-                value *= value;
-            }
-            value *= sign;
+            output = Math.pow(value, exponent)*sign;
+        }
+        else
+        {
+            output = value;
         }
 
         if (debugEnabled)
         {
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC, "=%f", value);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC, "=%f", output);
         }
 
-        return value;
+        return output;
     }   //expValue
 
     //
