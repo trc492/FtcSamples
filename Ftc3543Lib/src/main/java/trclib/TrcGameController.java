@@ -162,24 +162,48 @@ public abstract class TrcGameController implements TrcTaskMgr.Task
     }   //adjustAnalogControl
 
     /**
-     * This method returns the stick direction in radians combining the x and y axes.
+     * This method adjusts the analog control curve by using the cubic polynomial: coeff*value^3 + (1 - coeff)*value.
      *
-     * @param xValue specifies the x-axis value.
-     * @param yValue specifies the y-axis value.
-     * @param doExp specifies true if the value should be raised exponentially, false otherwise. If the value is
-     *              raised exponentially, it gives you more precise control on the low end values.
-     *
-     * @return stick direction in radians.
+     * @param value specifies the analog control value.
+     * @param cubicCoefficient specifies the cubic coefficient.
      */
-    protected double getDirectionRadians(double xValue, double yValue, boolean doExp)
+    protected double adjustAnalogControl(double value, double cubicCoefficient)
     {
-        final String funcName = "getDirectionRadians";
-        double value = Math.atan2(expValue(yValue, doExp), expValue(xValue, doExp));
+        final String funcName = "adjustAnalogControl";
 
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC,
-                    "x=%f,y=%f,exp=%s", xValue, yValue, Boolean.toString(doExp));
+                    "value=%f,cubicCoeff=%f", value, cubicCoefficient);
+        }
+
+        value = (Math.abs(value) >= deadbandThreshold)? value: 0.0;
+        value = cubicCoefficient*Math.pow(value, 3) + (1 - cubicCoefficient)*value;
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC, "=%f", value);
+        }
+
+        return value;
+    }   //adjustAnalogControl
+
+    /**
+     * This method returns the stick direction in radians combining the x and y axes.
+     *
+     * @param xValue specifies the x-axis value.
+     * @param yValue specifies the y-axis value.
+     *
+     * @return stick direction in radians.
+     */
+    protected double getDirectionRadians(double xValue, double yValue)
+    {
+        final String funcName = "getDirectionRadians";
+        double value = Math.atan2(yValue, xValue);
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC,"x=%f,y=%f", xValue, yValue);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC, "=%f", value);
         }
 
@@ -191,20 +215,17 @@ public abstract class TrcGameController implements TrcTaskMgr.Task
      *
      * @param xValue specifies the x-axis value.
      * @param yValue specifies the y-axis value.
-     * @param doExp specifies true if the value should be raised exponentially, false otherwise. If the value is
-     *              raised exponentially, it gives you more precise control on the low end values.
      *
      * @return stick direction in degrees.
      */
-    protected double getDirectionDegrees(double xValue, double yValue, boolean doExp)
+    protected double getDirectionDegrees(double xValue, double yValue)
     {
         final String funcName = "getDirectionDegrees";
-        double value = Math.toDegrees(getDirectionRadians(xValue, yValue, doExp));
+        double value = Math.toDegrees(getDirectionRadians(xValue, yValue));
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC,
-                    "x=%f,y=%f,exp=%s", xValue, yValue, Boolean.toString(doExp));
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC,"x=%f,y=%f", xValue, yValue);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC, "=%f", value);
         }
 

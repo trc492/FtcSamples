@@ -125,6 +125,27 @@ public class FtcGamepad extends TrcGameController
     }   //setYInverted
 
     /**
+     * This method returns the x-axis value of the left stick using the cubic polynomial curve.
+     *
+     * @param cubicCoefficient specifies the cubic coefficient.
+     *
+     * @return x-axis value of the left stick.
+     */
+    public double getLeftStickX(double cubicCoefficient)
+    {
+        final String funcName = "getLeftStickX";
+        double value = adjustAnalogControl(gamepad.left_stick_x, cubicCoefficient);
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "cubicCoeff=%f", cubicCoefficient);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", value);
+        }
+
+        return value;
+    }   //getLeftStickX
+
+    /**
      * This method returns the x-axis value of the left stick.
      *
      * @param doExp specifies true if the value should be raised exponentially, false otherwise. If the value is
@@ -155,6 +176,27 @@ public class FtcGamepad extends TrcGameController
     {
         return getLeftStickX(false);
     }   //getLeftStickX
+
+    /**
+     * This method returns the y-axis value of the left stick using the cubic polynomial curve.
+     *
+     * @param cubicCoefficient specifies the cubic coefficient.
+     *
+     * @return y-axis value of the left stick.
+     */
+    public double getLeftStickY(double cubicCoefficient)
+    {
+        final String funcName = "getLeftStickY";
+        double value = adjustAnalogControl(gamepad.left_stick_y, cubicCoefficient);
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "cubicCoeff=%f", cubicCoefficient);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", value);
+        }
+
+        return value;
+    }   //getLeftStickY
 
     /**
      * This method returns the y-axis value of the left stick.
@@ -189,6 +231,27 @@ public class FtcGamepad extends TrcGameController
     }   //getLeftStickY
 
     /**
+     * This method returns the x-axis value of the right stick using the cubic polynomial curve.
+     *
+     * @param cubicCoefficient specifies the cubic coefficient.
+     *
+     * @return x-axis value of the right stick.
+     */
+    public double getRightStickX(double cubicCoefficient)
+    {
+        final String funcName = "getRightStickX";
+        double value = adjustAnalogControl(gamepad.right_stick_x, cubicCoefficient);
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "cubicCoeff=%f", cubicCoefficient);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", value);
+        }
+
+        return value;
+    }   //getRightStickX
+
+    /**
      * This method returns the x-axis value of the right stick.
      *
      * @param doExp specifies true if the value should be raised exponentially, false otherwise. If the value is
@@ -219,6 +282,27 @@ public class FtcGamepad extends TrcGameController
     {
         return getRightStickX(false);
     }   //getRightStickX
+
+    /**
+     * This method returns the y-axis value of the right stick using the cubic polynomial curve.
+     *
+     * @param cubicCoefficient specifies the cubic coefficient.
+     *
+     * @return y-axis value of the right stick.
+     */
+    public double getRightStickY(double cubicCoefficient)
+    {
+        final String funcName = "getRightStickY";
+        double value = adjustAnalogControl(gamepad.right_stick_y, cubicCoefficient);
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "cubicCoeff=%f", cubicCoefficient);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", value);
+        }
+
+        return value;
+    }   //getRightStickY
 
     /**
      * This method returns the y-axis value of the right stick.
@@ -253,6 +337,27 @@ public class FtcGamepad extends TrcGameController
     }   //getRightStickY
 
     /**
+     * This method returns the left trigger value using the cubic polynomial curve.
+     *
+     * @param cubicCoefficient specifies the cubic coefficient.
+     *
+     * @return left trigger value.
+     */
+    public double getLeftTrigger(double cubicCoefficient)
+    {
+        final String funcName = "getLeftTrigger";
+        double value = adjustAnalogControl(gamepad.left_trigger, cubicCoefficient);
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "cubicCoeff=%f", cubicCoefficient);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", value);
+        }
+
+        return value;
+    }   //getLeftTrigger
+
+    /**
      * This method returns the left trigger value.
      *
      * @param doExp specifies true if the value should be raised exponentially, false otherwise. If the value is
@@ -283,6 +388,27 @@ public class FtcGamepad extends TrcGameController
     {
         return getLeftTrigger(false);
     }   //getLeftTrigger
+
+    /**
+     * This method returns the right trigger value using the cubic polynomial curve.
+     *
+     * @param cubicCoefficient specifies the cubic coefficient.
+     *
+     * @return right trigger value.
+     */
+    public double getRightTrigger(double cubicCoefficient)
+    {
+        final String funcName = "getRightTrigger";
+        double value = adjustAnalogControl(gamepad.right_trigger, cubicCoefficient);
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "cubicCoeff=%f", cubicCoefficient);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", value);
+        }
+
+        return value;
+    }   //getRightTrigger
 
     /**
      * This method returns the right trigger value.
@@ -317,6 +443,18 @@ public class FtcGamepad extends TrcGameController
     }   //getRightTrigger
 
     /**
+     * This method returns the left stick magnitude combining the x and y axes and applying the cubic polynomial curve.
+     *
+     * @param cubicCoefficient specifies the cubic coefficient.
+     *
+     * @return left stick magnitude.
+     */
+    public double getLeftStickMagnitude(double cubicCoefficient)
+    {
+        return getMagnitude(getLeftStickX(cubicCoefficient), getLeftStickY(cubicCoefficient));
+    }   //getLeftStickMagnitude
+
+    /**
      * This method returns the left stick magnitude combining the x and y axes.
      *
      * @param doExp specifies true if the value should be raised exponentially, false otherwise. If the value is
@@ -338,6 +476,18 @@ public class FtcGamepad extends TrcGameController
     {
         return getLeftStickMagnitude(false);
     }   //getLeftStickMagnitude
+
+    /**
+     * This method returns the right stick magnitude combining the x and y axes and applying the cubic polynomial curve.
+     *
+     * @param cubicCoefficient specifies the cubic coefficient.
+     *
+     * @return right stick magnitude.
+     */
+    public double getRightStickMagnitude(double cubicCoefficient)
+    {
+        return getMagnitude(getRightStickX(cubicCoefficient), getRightStickY(cubicCoefficient));
+    }   //getRightStickMagnitude
 
     /**
      * This method returns the right stick magnitude combining the x and y axes.
@@ -363,6 +513,19 @@ public class FtcGamepad extends TrcGameController
     }   //getRightStickMagnitude
 
     /**
+     * This method returns the left stick direction in radians combining the x and y axes and applying the
+     * cubic polynomial curve.
+     *
+     * @param cubicCoefficient specifies the cubic coefficient.
+     *
+     * @return left stick direction in radians.
+     */
+    public double getLeftStickDirectionRadians(double cubicCoefficient)
+    {
+        return getDirectionRadians(getLeftStickX(cubicCoefficient), getLeftStickY(cubicCoefficient));
+    }   //getLeftStickDirectionRadians
+
+    /**
      * This method returns the left stick direction in radians combining the x and y axes.
      *
      * @param doExp specifies true if the value should be raised exponentially, false otherwise. If the value is
@@ -372,16 +535,7 @@ public class FtcGamepad extends TrcGameController
      */
     public double getLeftStickDirectionRadians(boolean doExp)
     {
-        final String funcName = "getLeftStickDirectionRadians";
-        double value = getDirectionRadians(gamepad.left_stick_x, gamepad.left_stick_y, doExp);
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "exp=%s", Boolean.toString(doExp));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", value);
-        }
-
-        return value;
+        return getDirectionRadians(getLeftStickX(doExp), getLeftStickY(doExp));
     }   //getLeftStickDirectionRadians
 
     /**
@@ -395,6 +549,19 @@ public class FtcGamepad extends TrcGameController
     }   //getLeftStickDirectionRadians
 
     /**
+     * This method returns the right stick direction in radians combining the x and y axes and applying the
+     * cubic polynomial curve.
+     *
+     * @param cubicCoefficient specifies the cubic coefficient.
+     *
+     * @return right stick direction in radians.
+     */
+    public double getRightStickDirectionRadians(double cubicCoefficient)
+    {
+        return getDirectionRadians(getRightStickX(cubicCoefficient), getRightStickY(cubicCoefficient));
+    }   //getRightStickDirectionRadians
+
+    /**
      * This method returns the right stick direction in radians combining the x and y axes.
      *
      * @param doExp specifies true if the value should be raised exponentially, false otherwise. If the value is
@@ -404,16 +571,7 @@ public class FtcGamepad extends TrcGameController
      */
     public double getRightStickDirectionRadians(boolean doExp)
     {
-        final String funcName = "getRightStickDirectionRadians";
-        double value = getDirectionRadians(gamepad.right_stick_x, gamepad.right_stick_y, doExp);
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "exp=%s", Boolean.toString(doExp));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", value);
-        }
-
-        return value;
+        return getDirectionRadians(getRightStickX(doExp), getRightStickY(doExp));
     }   //getRightStickDirectionRadians
 
     /**
@@ -427,6 +585,19 @@ public class FtcGamepad extends TrcGameController
     }   //getRightStickDirectionRadians
 
     /**
+     * This method returns the left stick direction in degrees combining the x and y axes and applying the
+     * cubic polynomial curve.
+     *
+     * @param cubicCoefficient specifies the cubic coefficient.
+     *
+     * @return left stick direction in degrees.
+     */
+    public double getLeftStickDirectionDegrees(double cubicCoefficient)
+    {
+        return getDirectionDegrees(getLeftStickX(cubicCoefficient), getLeftStickY(cubicCoefficient));
+    }   //getLeftStickDirectionDegrees
+
+    /**
      * This method returns the left stick direction in degrees combining the x and y axes.
      *
      * @param doExp specifies true if the value should be raised exponentially, false otherwise. If the value is
@@ -436,16 +607,7 @@ public class FtcGamepad extends TrcGameController
      */
     public double getLeftStickDirectionDegrees(boolean doExp)
     {
-        final String funcName = "getLeftStickDirectionDegrees";
-        double value = getDirectionDegrees(gamepad.left_stick_x, gamepad.left_stick_y, doExp);
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "exp=%s", Boolean.toString(doExp));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", value);
-        }
-
-        return value;
+        return getDirectionDegrees(getLeftStickX(doExp), getLeftStickY(doExp));
     }   //getLeftStickDirectionDegrees
 
     /**
@@ -459,6 +621,19 @@ public class FtcGamepad extends TrcGameController
     }   //getLeftStickDirectionDegrees
 
     /**
+     * This method returns the right stick direction in degrees combining the x and y axes and applying the
+     * cubic polynomial curve.
+     *
+     * @param cubicCoefficient specifies the cubic coefficient.
+     *
+     * @return right stick direction in degrees.
+     */
+    public double getRightStickDirectionDegrees(double cubicCoefficient)
+    {
+        return getDirectionDegrees(getRightStickX(cubicCoefficient), getRightStickY(cubicCoefficient));
+    }   //getRightStickDirectionDegrees
+
+    /**
      * This method returns the right stick direction in degrees combining the x and y axes.
      *
      * @param doExp specifies true if the value should be raised exponentially, false otherwise. If the value is
@@ -468,16 +643,7 @@ public class FtcGamepad extends TrcGameController
      */
     public double getRightStickDirectionDegrees(boolean doExp)
     {
-        final String funcName = "getRightStickDirectionDegrees";
-        double value = getDirectionDegrees(gamepad.right_stick_x, gamepad.right_stick_y, doExp);
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "exp=%s", Boolean.toString(doExp));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", value);
-        }
-
-        return value;
+        return getDirectionDegrees(getRightStickX(doExp), getRightStickY(doExp));
     }   //getRightStickDirectionDegrees
 
     /**
