@@ -45,7 +45,6 @@ public class TrcPidActuator extends TrcPidMotor
     private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
 
-    private TrcMotor motor;
     private double minPos = 0.0;
     private double maxPos = 0.0;
     private boolean manualOverride = false;
@@ -74,7 +73,6 @@ public class TrcPidActuator extends TrcPidMotor
                     moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
-        this.motor = motor;
         this.minPos = minPos;
         this.maxPos = maxPos;
         motor.resetPositionOnDigitalInput(lowerLimitSwitch);

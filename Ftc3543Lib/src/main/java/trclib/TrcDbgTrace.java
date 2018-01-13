@@ -90,6 +90,7 @@ public class TrcDbgTrace
 
     }   //enum MsgLevel
 
+    private static TrcDbgTrace globalTracer = null;
     private static int indentLevel = 0;
 
     private String instanceName;
@@ -113,6 +114,39 @@ public class TrcDbgTrace
         setDbgTraceConfig(traceEnabled, traceLevel, msgLevel);
         this.nextTraceTime = TrcUtil.getCurrentTime();
     }   //TrcDbgTrace
+
+    /**
+     * This method returns a global debug trace object for tracing OpMode code. If it doesn't exist yet, one is
+     * created. This is an easy way to quickly get some debug output without a whole lot of setup overhead as the
+     * full module-based debug tracing.
+     *
+     * @return global opMode trace object.
+     */
+    public static TrcDbgTrace getGlobalTracer()
+    {
+        if (globalTracer == null)
+        {
+            globalTracer = new TrcDbgTrace(
+                "GlobalTracer", false, TrcDbgTrace.TraceLevel.API, TrcDbgTrace.MsgLevel.INFO);
+        }
+
+        return globalTracer;
+    }   //getGlobalTracer
+
+    /**
+     * This method sets the global tracer configuration. The OpMode trace object was created with default
+     * configuration of disabled method tracing, method tracing level is set to API and message trace level
+     * set to INFO. Call this method if you want to change the configuration.
+     *
+     * @param traceEnabled specifies true if enabling method tracing.
+     * @param traceLevel specifies the method tracing level.
+     * @param msgLevel specifies the message tracing level.
+     */
+    public static void setGlobalTracerConfig(
+            boolean traceEnabled, TrcDbgTrace.TraceLevel traceLevel, TrcDbgTrace.MsgLevel msgLevel)
+    {
+        globalTracer.setDbgTraceConfig(traceEnabled, traceLevel, msgLevel);
+    }   //setGlobalTracerConfig
 
     /**
      * This method opens a log file for writing all the trace messages to it.
@@ -343,11 +377,11 @@ public class TrcDbgTrace
             if (currTime >= nextTraceTime)
             {
                 nextTraceTime = currTime + traceInterval;
-                String msg = msgPrefix(funcName, level) + String.format(format, args) + "\n";
-                HalDbgLog.msg(level, msg);
+                String msg = msgPrefix(funcName, level) + String.format(format, args);
+                HalDbgLog.msg(level, msg + "\n");
                 if (traceLog != null)
                 {
-                    traceLog.print(msg);
+                    traceLog.print(msg + "\r\n");
                     traceLog.flush();
                 }
             }

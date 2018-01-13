@@ -276,8 +276,9 @@ public class TrcPidController
      *
      * @param tracer specifies the tracer object to print the PID info to.
      * @param timestamp specifies the timestamp to be printed.
+     * @param battery specifies the battery object to get battery info, can be null if not provided.
      */
-    public void printPidInfo(TrcDbgTrace tracer, double timestamp)
+    public void printPidInfo(TrcDbgTrace tracer, double timestamp, TrcRobotBattery battery)
     {
         final String funcName = "printPidInfo";
 
@@ -288,13 +289,38 @@ public class TrcPidController
 
         if (tracer != null)
         {
-            tracer.traceInfo(
+            if (battery != null)
+            {
+                tracer.traceInfo(
+                        funcName,
+                        "[%.3f] %s: Target=%6.1f, Input=%6.1f, Error=%6.1f, " +
+                        "PIDTerms=%6.3f/%6.3f/%6.3f/%6.3f, Output=%6.3f(%6.3f/%5.3f), Volt=%.1f(%.1f)",
+                        timestamp, instanceName, setPoint, input, currError,
+                        pTerm, iTerm, dTerm, fTerm, output, minOutput, maxOutput,
+                        battery.getVoltage(), battery.getLowestVoltage());
+            }
+            else
+            {
+                tracer.traceInfo(
                     funcName,
                     "[%.3f] %s: Target=%6.1f, Input=%6.1f, Error=%6.1f, " +
                     "PIDTerms=%6.3f/%6.3f/%6.3f/%6.3f, Output=%6.3f(%6.3f/%5.3f)",
                     timestamp, instanceName, setPoint, input, currError,
                     pTerm, iTerm, dTerm, fTerm, output, minOutput, maxOutput);
+            }
         }
+    }   //printPidInfo
+
+    /**
+     * This method prints the PID information to the tracer console. If no tracer is provided, it will attempt to
+     * use the debug tracer in this module but if the debug tracer is not enabled, no output will be produced.
+     *
+     * @param tracer specifies the tracer object to print the PID info to.
+     * @param timestamp specifies the timestamp to be printed.
+     */
+    public void printPidInfo(TrcDbgTrace tracer, double timestamp)
+    {
+        printPidInfo(tracer, timestamp, null);
     }   //printPidInfo
 
     /**

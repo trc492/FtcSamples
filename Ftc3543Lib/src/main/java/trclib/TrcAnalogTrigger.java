@@ -66,7 +66,7 @@ public class TrcAnalogTrigger<D> implements TrcTaskMgr.Task
     private double value = 0.0;
 
     /**
-     * Contructor: Create an instance of the object.
+     * Constructor: Create an instance of the object.
      *
      * @param instanceName specifies the instance name.
      * @param sensor specifies the sensor that is used to detect the trigger.

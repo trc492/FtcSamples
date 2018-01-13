@@ -20,7 +20,7 @@
  * SOFTWARE.
  */
 
-package hallib;
+package trclib;
 
 /**
  * This interface provides methods to get a video frame from a video source and render a video frame to a display
@@ -28,7 +28,7 @@ package hallib;
  *
  * @param <O> specifies the type of the video frame.
  */
-public interface HalVideoSource<O>
+public interface TrcVideoSource<O>
 {
     /**
      * This method takes a snapshot of the video frame.
@@ -45,4 +45,4 @@ public interface HalVideoSource<O>
      */
     void putFrame(O frame);
 
-}   //interface HalVideoSource
+}   //interface TrcVideoSource

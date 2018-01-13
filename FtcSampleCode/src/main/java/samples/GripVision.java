@@ -30,9 +30,9 @@ import org.opencv.core.Scalar;
 
 import ftclib.FtcOpMode;
 import hallib.HalDashboard;
-import hallib.HalVideoSource;
 import trclib.TrcDbgTrace;
 import trclib.TrcOpenCvDetector;
+import trclib.TrcVideoSource;
 
 public class GripVision extends TrcOpenCvDetector<Rect[]>
 {
@@ -54,7 +54,7 @@ public class GripVision extends TrcOpenCvDetector<Rect[]>
     private GripPipeline gripBlueTarget = null;
     private boolean videoOutEnabled = false;
 
-    public GripVision(final String instanceName, HalVideoSource videoSource)
+    public GripVision(final String instanceName, TrcVideoSource videoSource)
     {
         super(instanceName, videoSource, NUM_IMAGE_BUFFERS, null);
 

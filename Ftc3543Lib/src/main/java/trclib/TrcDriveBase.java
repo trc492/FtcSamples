@@ -129,6 +129,7 @@ public class TrcDriveBase implements TrcTaskMgr.Task
         yScale = 1.0;
         rotScale = 1.0;
         resetPosition(true);
+        resetStallTimer();
 
         TrcTaskMgr taskMgr = TrcTaskMgr.getInstance();
         taskMgr.registerTask(moduleName, this, TrcTaskMgr.TaskType.STOP_TASK);
@@ -668,6 +669,22 @@ public class TrcDriveBase implements TrcTaskMgr.Task
 
         return stalled;
     }   //isStalled
+
+    /**
+     * This method resets the stall timer.
+     */
+    public void resetStallTimer()
+    {
+        final String funcName = "resetStallTimer";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+
+        lfStallStartTime = rfStallStartTime = lrStallStartTime = rrStallStartTime = TrcUtil.getCurrentTime();
+    }   //resetStallTimer
 
     /**
      * This method checks if all motors on the drive base have been stalled for at least the specified stallTime.

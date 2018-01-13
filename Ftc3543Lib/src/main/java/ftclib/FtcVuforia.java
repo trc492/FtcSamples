@@ -43,14 +43,14 @@ import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackables;
 import org.opencv.android.Utils;
 import org.opencv.core.Mat;
 
-import hallib.HalVideoSource;
+import trclib.TrcVideoSource;
 
 /**
  * This class makes using Vuforia a little easier by minimizing the number of calls to it. It only exposes the
  * minimum things you need to set for the FTC competition. If you want to do more complex stuff, you may want
  * to not use this and call Vuforia directly so you can customize other stuff.
  */
-public class FtcVuforia implements HalVideoSource<Mat>
+public class FtcVuforia implements TrcVideoSource<Mat>
 {
     /**
      * This class contains information required to make a trackable target. It has two constructors. One with all the

@@ -28,8 +28,6 @@ import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
-import hallib.HalVideoSource;
-
 /**
  * This class implements a generic OpenCV detector. Typically, it is extended by a specific detector that provides
  * the algorithm to process an image for detecting objects using OpenCV APIs.
@@ -47,7 +45,7 @@ public abstract class TrcOpenCvDetector<O> implements TrcVisionTask.VisionProces
     private static final boolean USE_VISIONTASK = false;
 
     private final String instanceName;
-    private HalVideoSource<Mat> videoSource;
+    private TrcVideoSource<Mat> videoSource;
     private TrcVisionTask<Mat, O> visionTask;
 
     /**
@@ -59,7 +57,7 @@ public abstract class TrcOpenCvDetector<O> implements TrcVisionTask.VisionProces
      * @param detectedObjectBuffers specifies the array of preallocated detected object buffers.
      */
     public TrcOpenCvDetector(
-        final String instanceName, HalVideoSource<Mat> videoSource, int numImageBuffers, O[] detectedObjectBuffers)
+        final String instanceName, TrcVideoSource<Mat> videoSource, int numImageBuffers, O[] detectedObjectBuffers)
     {
         if (debugEnabled)
         {
