@@ -38,13 +38,6 @@ package trclib;
  */
 public class TrcPidActuator extends TrcPidMotor
 {
-    private static final String moduleName = "TrcPidActuator";
-    private static final boolean debugEnabled = false;
-    private static final boolean tracingEnabled = false;
-    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
-    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
-    private TrcDbgTrace dbgTrace = null;
-
     private double minPos = 0.0;
     private double maxPos = 0.0;
     private boolean manualOverride = false;
@@ -63,16 +56,9 @@ public class TrcPidActuator extends TrcPidMotor
      */
     public TrcPidActuator(
             final String instanceName, TrcMotor motor, TrcDigitalInput lowerLimitSwitch, TrcPidController pidCtrl,
-            double minPos,double maxPos,PowerCompensation powerCompensation)
+            double minPos,double maxPos, PowerCompensation powerCompensation)
     {
         super(instanceName, motor, pidCtrl, powerCompensation);
-
-        if (debugEnabled)
-        {
-            dbgTrace = new TrcDbgTrace(
-                    moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
-        }
-
         this.minPos = minPos;
         this.maxPos = maxPos;
         motor.resetPositionOnDigitalInput(lowerLimitSwitch);

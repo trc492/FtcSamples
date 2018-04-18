@@ -29,11 +29,12 @@ import java.util.Arrays;
  * values. If the sensor reading crosses any of the thresholds in the array, it will call a notification handler so
  * that an action could be performed.
  */
-public class TrcAnalogTrigger<D> implements TrcTaskMgr.Task
+public class TrcAnalogTrigger<D>
 {
     private static final String moduleName = "TrcAnalogTrigger";
     private static final boolean debugEnabled = false;
     private static final boolean tracingEnabled = false;
+    private static final boolean useGlobalTracer = false;
     private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
     private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
@@ -47,20 +48,21 @@ public class TrcAnalogTrigger<D> implements TrcTaskMgr.Task
         /**
          * This method is called when a threshold has been crossed.
          *
-         * @param analogTrigger specifies the TrcAnalogTrigger object that detected the trigger.
-         * @param zoneIndex specifies the zone index it is crossing into.
+         * @param currZone specifies the zone it is going into.
+         * @param prevZone specifies the zone it is coming out of.
          * @param zoneValue specifies the actual sensor value.
          */
-        void triggerEvent(TrcAnalogTrigger<?> analogTrigger, int zoneIndex, double zoneValue);
+        void triggerEvent(int currZone, int prevZone, double zoneValue);
 
     }   //interface TriggerHandler
 
-    private String instanceName;
-    private TrcSensor<D> sensor;
-    private int index;
-    private D dataType;
+    private final String instanceName;
+    private final TrcSensor<D> sensor;
+    private final int index;
+    private final D dataType;
+    private final TriggerHandler triggerHandler;
+    private final TrcTaskMgr.TaskObject preContinuousTaskObj;
     private double[] thresholds;
-    private TriggerHandler triggerHandler;
     private boolean enabled = false;
     private int zone = -1;
     private double value = 0.0;
@@ -76,12 +78,14 @@ public class TrcAnalogTrigger<D> implements TrcTaskMgr.Task
      * @param triggerHandler specifies the object to handle the trigger event.
      */
     public TrcAnalogTrigger(
-            final String instanceName, TrcSensor<D> sensor, int index, D dataType, final double[] triggerPoints,
-            TriggerHandler triggerHandler)
+        final String instanceName, final TrcSensor<D> sensor, final int index, final D dataType,
+        final double[] triggerPoints, final TriggerHandler triggerHandler)
     {
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
+            dbgTrace = useGlobalTracer?
+                TrcDbgTrace.getGlobalTracer():
+                new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         if (sensor == null || triggerHandler == null)
@@ -95,6 +99,8 @@ public class TrcAnalogTrigger<D> implements TrcTaskMgr.Task
         this.index = index;
         this.dataType = dataType;
         this.triggerHandler = triggerHandler;
+        preContinuousTaskObj = TrcTaskMgr.getInstance().createTask(
+            instanceName + ".preContinuous", this::preContinuousTask);
     }   //TrcAnalogTrigger
 
     /**
@@ -149,26 +155,33 @@ public class TrcAnalogTrigger<D> implements TrcTaskMgr.Task
      *
      * @param enabled specifies true to enable, false to disable.
      */
-    public void setEnabled(boolean enabled)
+    public void setTaskEnabled(boolean enabled)
     {
-        final String funcName = "setEnabled";
+        final String funcName = "setTaskEnabled";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC, "enabled=%s", Boolean.toString(enabled));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC, "enabled=%b", enabled);
         }
 
         this.enabled = enabled;
+
         if (enabled)
         {
-            TrcTaskMgr.getInstance().registerTask(instanceName, this, TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            zone = -1;
+            value = 0.0;
+            preContinuousTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
         }
         else
         {
-            TrcTaskMgr.getInstance().unregisterTask(this, TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            preContinuousTaskObj.unregisterTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
         }
-    }   //setEnabled
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC);
+        }
+    }   //setTaskEnabled
 
     /**
      * This method checks if the task is enabled.
@@ -204,39 +217,24 @@ public class TrcAnalogTrigger<D> implements TrcTaskMgr.Task
     // Implements TrcTaskMgr.Task
     //
 
-    @Override
-    public void startTask(TrcRobot.RunMode runMode)
-    {
-    }   //startTask
-
-    @Override
-    public void stopTask(TrcRobot.RunMode runMode)
-    {
-    }   //stopTask
-
-    @Override
-    public void prePeriodicTask(TrcRobot.RunMode runMode)
-    {
-    }   //prePeriodicTask
-
-    @Override
-    public void postPeriodicTask(TrcRobot.RunMode runMode)
-    {
-    }   //postPeriodicTask
-
     /**
      * This method is called periodically to check the current sensor value against the threshold array to see it
      * crosses a new threshold.
      *
+     * @param taskType specifies the type of task being run.
      * @param runMode specifies the competition mode that is running. (e.g. Autonomous, TeleOp, Test).
      */
-    @Override
-    public void preContinuousTask(TrcRobot.RunMode runMode)
+    public void preContinuousTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
         final String funcName = "preContinuousTask";
         TrcSensor.SensorData<Double> data = sensor.getProcessedData(index, dataType);
 
-        if (data.value != null)
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "taskType=%s,runMode=%s", taskType, runMode);
+        }
+
+        if (data != null && data.value != null)
         {
             double sample = (double)data.value;
             int currZone = -1;
@@ -269,22 +267,24 @@ public class TrcAnalogTrigger<D> implements TrcTaskMgr.Task
                 //
                 if (triggerHandler != null)
                 {
-                    triggerHandler.triggerEvent(this, currZone, sample);
+                    triggerHandler.triggerEvent(currZone, zone, sample);
                 }
-                zone = currZone;
-                value = sample;
 
                 if (debugEnabled)
                 {
-                    dbgTrace.traceInfo(funcName, "%s entering zone %d (value=%f)", instanceName, zone, value);
+                    dbgTrace.traceInfo(funcName, "%s going to zone %d from zone %d (value=%f)",
+                        instanceName, currZone, zone, value);
                 }
+
+                zone = currZone;
+                value = sample;
             }
         }
-    }   //preContinuousTask
 
-    @Override
-    public void postContinuousTask(TrcRobot.RunMode runMode)
-    {
-    }   //postContinuousTask
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
+        }
+    }   //preContinuousTask
 
 }   //class TrcAnalogTrigger

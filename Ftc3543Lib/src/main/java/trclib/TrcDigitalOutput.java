@@ -27,6 +27,14 @@ package trclib;
  */
 public abstract class TrcDigitalOutput
 {
+    protected static final String moduleName = "TrcDigitalOutput";
+    protected static final boolean debugEnabled = false;
+    protected static final boolean tracingEnabled = false;
+    protected static final boolean useGlobalTracer = false;
+    protected static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    protected static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
+    protected TrcDbgTrace dbgTrace = null;
+
     /**
      * This method is provided by the platform dependent digital output port device to set the state of the output
      * port.
@@ -44,6 +52,13 @@ public abstract class TrcDigitalOutput
      */
     public TrcDigitalOutput(String instanceName)
     {
+        if (debugEnabled)
+        {
+            dbgTrace = useGlobalTracer?
+                TrcDbgTrace.getGlobalTracer():
+                new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
+        }
+
         this.instanceName = instanceName;
     }   //TrcDigitalOutput
 

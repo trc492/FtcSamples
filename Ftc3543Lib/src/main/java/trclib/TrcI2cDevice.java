@@ -31,14 +31,15 @@ import java.util.Queue;
  * I2C device class. The platform dependent I2C device class must implement the abstract methods required by this
  * class. The abstract methods allow this class to perform platform independent operations on the I2C device.
  */
-public abstract class TrcI2cDevice implements TrcTaskMgr.Task
+public abstract class TrcI2cDevice
 {
-    private static final String moduleName = "TrcI2cDevice";
-    private static final boolean debugEnabled = false;
-    private static final boolean tracingEnabled = false;
-    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
-    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
-    private TrcDbgTrace dbgTrace = null;
+    protected static final String moduleName = "TrcI2cDevice";
+    protected static final boolean debugEnabled = false;
+    protected static final boolean tracingEnabled = false;
+    protected static final boolean useGlobalTracer = false;
+    protected static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    protected static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
+    protected TrcDbgTrace dbgTrace = null;
 
     /**
      * This method checks if the I2C port is ready for bus transaction.
@@ -169,9 +170,10 @@ public abstract class TrcI2cDevice implements TrcTaskMgr.Task
 
     }   //class Request
 
-    private String instanceName;
-    private TrcStateMachine<PortCommandState> portCommandSM;
-    private Queue<Request> requestQueue = new LinkedList<>();
+    private final String instanceName;
+    private final TrcTaskMgr.TaskObject preContinuousTaskObj;
+    private final TrcStateMachine<PortCommandState> portCommandSM;
+    private final Queue<Request> requestQueue = new LinkedList<>();
     private Request currRequest = null;
     private double expiredTime = 0.0;
     private byte[] dataRead = null;
@@ -181,14 +183,18 @@ public abstract class TrcI2cDevice implements TrcTaskMgr.Task
      *
      * @param instanceName specifies the instance name.
      */
-    public TrcI2cDevice(String instanceName)
+    public TrcI2cDevice(final String instanceName)
     {
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
+            dbgTrace = useGlobalTracer?
+                TrcDbgTrace.getGlobalTracer():
+                new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         this.instanceName = instanceName;
+        preContinuousTaskObj = TrcTaskMgr.getInstance().createTask(
+            instanceName + ".preContinuous", this::preContinuousTask);
         portCommandSM = new TrcStateMachine<>(instanceName);
     }   //TrcI2cDevice
 
@@ -213,19 +219,23 @@ public abstract class TrcI2cDevice implements TrcTaskMgr.Task
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "enabled=%s", Boolean.toString(enabled));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "enabled=%b", enabled);
         }
 
         if (enabled)
         {
-            TrcTaskMgr.getInstance().registerTask(instanceName, this, TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            preContinuousTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
             portCommandSM.start(PortCommandState.START);
         }
         else
         {
             portCommandSM.stop();
-            TrcTaskMgr.getInstance().unregisterTask(this, TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            preContinuousTaskObj.unregisterTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+        }
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
     }   //setTaskEnabled
 
@@ -382,39 +392,19 @@ public abstract class TrcI2cDevice implements TrcTaskMgr.Task
     // Implements TrcTaskMgr.Task
     //
 
-    @Override
-    public void startTask(TrcRobot.RunMode runMode)
-    {
-    }   //startTask
-
-    @Override
-    public void stopTask(TrcRobot.RunMode runMode)
-    {
-    }   //stopTask
-
-    @Override
-    public void prePeriodicTask(TrcRobot.RunMode runMode)
-    {
-    }   //prePeriodicTask
-
-    @Override
-    public void postPeriodicTask(TrcRobot.RunMode runMode)
-    {
-    }   //postPeriodicTask
-
     /**
      * This method is called periodically to run the PortCommand state machines.
      *
+     * @param taskType specifies the type of task being run.
      * @param runMode specifies the competition mode that is running.
      */
-    @Override
-    public void preContinuousTask(TrcRobot.RunMode runMode)
+    public void preContinuousTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
         final String funcName = "preContinuousTask";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "runMode=%s", runMode.toString());
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "taskType=%s,runMode=%s", taskType, runMode);
         }
 
         if (portCommandSM.isReady())
@@ -606,10 +596,5 @@ public abstract class TrcI2cDevice implements TrcTaskMgr.Task
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
         }
     }   //preContinuousTask
-
-    @Override
-    public void postContinuousTask(TrcRobot.RunMode runMode)
-    {
-    }   //postContinuousTask
 
 }   //class TrcI2cDevice

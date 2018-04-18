@@ -37,7 +37,7 @@ import trclib.TrcUtil;
  * The Analog Output port can be programmed to generate sine, square or triangle wave with specified amplitude
  * so it is perfect to be used as a tone generator.
  */
-public class FtcAnalogOutTone extends TrcTone implements TrcTaskMgr.Task
+public class FtcAnalogOutTone extends TrcTone
 {
     private static final String moduleName = "FtcAnalogOutTone";
     private static final boolean debugEnabled = false;
@@ -51,6 +51,8 @@ public class FtcAnalogOutTone extends TrcTone implements TrcTaskMgr.Task
 
     private String instanceName;
     private AnalogOutput analogOut;
+    private TrcTaskMgr.TaskObject stopTaskObj;
+    private TrcTaskMgr.TaskObject postContinuousTaskObj;
     private boolean playing = false;
     private double expiredTime = 0.0;
 
@@ -72,6 +74,10 @@ public class FtcAnalogOutTone extends TrcTone implements TrcTaskMgr.Task
 
         this.instanceName = instanceName;
         analogOut = hardwareMap.analogOutput.get(instanceName);
+        stopTaskObj = TrcTaskMgr.getInstance().createTask(
+                instanceName + ".stopTask", this::stopTask);
+        postContinuousTaskObj = TrcTaskMgr.getInstance().createTask(
+                instanceName + ".postContinuous", this::postContinuousTask);
     }   //FtcAnalogOutTone
 
     /**
@@ -112,13 +118,13 @@ public class FtcAnalogOutTone extends TrcTone implements TrcTaskMgr.Task
 
         if (enabled)
         {
-            TrcTaskMgr.getInstance().registerTask(instanceName, this, TrcTaskMgr.TaskType.STOP_TASK);
-            TrcTaskMgr.getInstance().registerTask(instanceName, this, TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
+            stopTaskObj.registerTask(TrcTaskMgr.TaskType.STOP_TASK);
+            postContinuousTaskObj.registerTask(TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
         }
         else
         {
-            TrcTaskMgr.getInstance().unregisterTask(this, TrcTaskMgr.TaskType.STOP_TASK);
-            TrcTaskMgr.getInstance().unregisterTask(this, TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
+            stopTaskObj.unregisterTask(TrcTaskMgr.TaskType.STOP_TASK);
+            postContinuousTaskObj.unregisterTask(TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
         }
     }   //setTaskEnabled
 
@@ -240,47 +246,27 @@ public class FtcAnalogOutTone extends TrcTone implements TrcTaskMgr.Task
     // Implements TrcTaskMgr.Task interface.
     //
 
-    @Override
-    public void startTask(TrcRobot.RunMode runMode)
-    {
-    }   //startTask
-
     /**
      * This method contains code that will clean up the task before
      * a competition mode is about to end. It stops the sound playing.
      *
+     * @param taskType specifies the type of task being run.
      * @param runMode specifies the competition mode that is about to
      *                end (e.g. Autonomous, TeleOp).
      */
-    @Override
-    public void stopTask(TrcRobot.RunMode runMode)
+    public void stopTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
         stop();
     }   //stopTask
-
-    @Override
-    public void prePeriodicTask(TrcRobot.RunMode runMode)
-    {
-    }   //prePeriodicTask
-
-    @Override
-    public void postPeriodicTask(TrcRobot.RunMode runMode)
-    {
-    }   //postPeriodicTask
-
-    @Override
-    public void preContinuousTask(TrcRobot.RunMode runMode)
-    {
-    }   //preContinuousTask
 
     /**
      * This method is called periodically to check if the duration of the sound playing has expired.
      * If so, it will stop the sound.
      *
+     * @param taskType specifies the type of task being run.
      * @param runMode specifies the competition mode that is running.
      */
-    @Override
-    public void postContinuousTask(TrcRobot.RunMode runMode)
+    public void postContinuousTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
         final String funcName = "postContinuousTask";
 

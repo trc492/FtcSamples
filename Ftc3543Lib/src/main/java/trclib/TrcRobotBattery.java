@@ -26,14 +26,15 @@ package trclib;
  * This class monitors the robot battery level and provides methods to get the current battery voltage as well as
  * the lowest voltage it has ever seen during the monitoring session.
  */
-public abstract class TrcRobotBattery implements TrcTaskMgr.Task
+public abstract class TrcRobotBattery
 {
-    private static final String moduleName = "TrcRobotBattery";
-    private static final boolean debugEnabled = false;
-    private static final boolean tracingEnabled = false;
-    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
-    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
-    private TrcDbgTrace dbgTrace = null;
+    protected static final String moduleName = "TrcRobotBattery";
+    protected static final boolean debugEnabled = false;
+    protected static final boolean tracingEnabled = false;
+    protected static final boolean useGlobalTracer = false;
+    protected static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    protected static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
+    protected TrcDbgTrace dbgTrace = null;
 
     /**
      * This method returns the robot battery voltage.
@@ -56,25 +57,39 @@ public abstract class TrcRobotBattery implements TrcTaskMgr.Task
      */
     public abstract double getPower();
 
+    private boolean voltageSupported = true;
+    private boolean currentSupported = true;
+    private boolean powerSupported = true;
+    private final TrcTaskMgr.TaskObject preContinuousTaskObj;
     private double lowestVoltage = 0.0;
     private double highestVoltage = 0.0;
-    private boolean voltageSupported = true;
     private double lowestCurrent = 0.0;
     private double highestCurrent = 0.0;
-    private boolean currentSupported = true;
     private double lowestPower = 0.0;
     private double highestPower = 0.0;
-    private boolean powerSupported = true;
+    private double totalEnergy = 0.0;
+    private double lastTimestamp = 0.0;
 
     /**
-     * Constructor: create an instance of the object.
      */
-    public TrcRobotBattery()
+    /**
+     * Constructor: create an instance of the object.
+     *
+     * @param voltageSupported specifies true if getVoltage is supported, false otherwise.
+     * @param currentSupported specifies true if getCurrent is supported, false otherwise.
+     * @param powerSupported specifies true if getPower is supported, false otherwise.
+     */
+    public TrcRobotBattery(boolean voltageSupported, boolean currentSupported, boolean powerSupported)
     {
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(moduleName, tracingEnabled, traceLevel, msgLevel);
+            dbgTrace = useGlobalTracer?
+                TrcDbgTrace.getGlobalTracer():
+                new TrcDbgTrace(moduleName, tracingEnabled, traceLevel, msgLevel);
         }
+
+        preContinuousTaskObj = TrcTaskMgr.getInstance().createTask(
+            moduleName + ".preContinuous", this::preContinuousTask);
     }   //TrcRobotBattery
 
     /**
@@ -83,14 +98,13 @@ public abstract class TrcRobotBattery implements TrcTaskMgr.Task
      *
      * @param enabled specifies true to enable the task, false to disable.
      */
-    public void setEnabled(boolean enabled)
+    public void setTaskEnabled(boolean enabled)
     {
-        final String funcName = "setEnabled";
+        final String funcName = "setTaskEnabled";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC, "enabled=%s", Boolean.toString(enabled));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "enabled=%b", enabled);
         }
 
         if (enabled)
@@ -131,13 +145,20 @@ public abstract class TrcRobotBattery implements TrcTaskMgr.Task
                 }
             }
 
-            TrcTaskMgr.getInstance().registerTask(moduleName, this, TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            totalEnergy = 0.0;
+            lastTimestamp = TrcUtil.getCurrentTime();
+            preContinuousTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
         }
         else
         {
-            TrcTaskMgr.getInstance().unregisterTask(this, TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            preContinuousTaskObj.unregisterTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
         }
-    }   //setEnabled
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+    }   //setTaskEnabled
 
     /**
      * This method returns the lowest voltage it has ever seen during the monitoring session.
@@ -235,50 +256,41 @@ public abstract class TrcRobotBattery implements TrcTaskMgr.Task
         return highestPower;
     }   //getHighestPower
 
+    /**
+     * This method returns the total energy consumed since the task was enabled.
+     *
+     * @return total energy consumed in WH (Watt-Hour).
+     */
+    public double getTotalEnergy()
+    {
+        return totalEnergy;
+    }   //getTotalEnergy
+
     //
     // Implements TrcTaskMgr.Task
     //
-
-    @Override
-    public void startTask(TrcRobot.RunMode runMode)
-    {
-    }   //startTask
-
-    @Override
-    public void stopTask(TrcRobot.RunMode runMode)
-    {
-    }   //stopTask
-
-    @Override
-    public void prePeriodicTask(TrcRobot.RunMode runMode)
-    {
-    }   //prePeriodicTask
-
-    @Override
-    public void postPeriodicTask(TrcRobot.RunMode runMode)
-    {
-    }   //postPeriodicTask
 
     /**
      * This method is called periodically to monitor the battery voltage and to keep track of the lowest voltage it
      * has ever seen.
      *
+     * @param taskType specifies the type of task being run.
      * @param runMode specifies the competition mode that is running.
      */
-    @Override
-    public void preContinuousTask(TrcRobot.RunMode runMode)
+    public void preContinuousTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
         final String funcName = "preContinuousTask";
+        double currTime = TrcUtil.getCurrentTime();
+        double voltage = 0.0, current = 0.0, power = 0.0;
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "runMode=%s", runMode.toString());
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "taskType=%s,runMode=%s", taskType, runMode);
         }
 
         if (voltageSupported)
         {
-            double voltage = getVoltage();
+            voltage = getVoltage();
             if (voltage < lowestVoltage)
             {
                 lowestVoltage = voltage;
@@ -291,7 +303,7 @@ public abstract class TrcRobotBattery implements TrcTaskMgr.Task
 
         if (currentSupported)
         {
-            double current = getCurrent();
+            current = getCurrent();
             if (current < lowestCurrent)
             {
                 lowestCurrent = current;
@@ -304,7 +316,7 @@ public abstract class TrcRobotBattery implements TrcTaskMgr.Task
 
         if (powerSupported)
         {
-            double power = getPower();
+            power = getPower();
             if (power < lowestPower)
             {
                 lowestPower = power;
@@ -313,12 +325,19 @@ public abstract class TrcRobotBattery implements TrcTaskMgr.Task
             {
                 highestPower = power;
             }
+            totalEnergy += power*(currTime - lastTimestamp)/3600.0;
+        }
+        else if (voltageSupported && currentSupported)
+        {
+            totalEnergy += voltage*current*(currTime - lastTimestamp)/3600.0;
+        }
+
+        lastTimestamp = currTime;
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
         }
     }   //preContinuousTask
-
-    @Override
-    public void postContinuousTask(TrcRobot.RunMode runMode)
-    {
-    }   //postContinuousTask
 
 }   //class TrcRobotBattery

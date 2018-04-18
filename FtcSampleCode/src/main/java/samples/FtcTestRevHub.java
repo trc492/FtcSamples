@@ -34,6 +34,7 @@ import ftclib.FtcDigitalInput;
 import ftclib.FtcDistanceSensor;
 import ftclib.FtcOpMode;
 import hallib.HalDashboard;
+import trclib.TrcRobot;
 
 @TeleOp(name="Test: REV Expansion Hub", group="3543TestSamples")
 //@Disabled
@@ -68,14 +69,14 @@ public class FtcTestRevHub extends FtcOpMode
     //
 
     @Override
-    public void startMode()
+    public void startMode(TrcRobot.RunMode prevMode)
     {
         dashboard.clearDisplay();
         imu.gyro.setEnabled(true);
     }   //startMode
 
     @Override
-    public void stopMode()
+    public void stopMode(TrcRobot.RunMode nextMode)
     {
         imu.gyro.setEnabled(false);
     }   //stopMode

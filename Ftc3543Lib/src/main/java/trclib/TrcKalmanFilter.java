@@ -27,13 +27,6 @@ package trclib;
  */
 public class TrcKalmanFilter extends TrcFilter
 {
-    private static final String moduleName = "TrcKalmanFilter";
-    private static final boolean debugEnabled = false;
-    private static final boolean tracingEnabled = false;
-    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
-    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
-    private TrcDbgTrace dbgTrace = null;
-
     private static double DEF_KQ = 0.022;
     private static double DEF_KR = 0.617;
 
@@ -54,11 +47,6 @@ public class TrcKalmanFilter extends TrcFilter
     public TrcKalmanFilter(final String instanceName, double kQ, double kR)
     {
         super(instanceName);
-
-        if (debugEnabled)
-        {
-            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
-        }
 
         this.instanceName = instanceName;
         this.kQ = kQ;

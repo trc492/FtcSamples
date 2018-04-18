@@ -31,6 +31,7 @@ import com.qualcomm.robotcore.hardware.NormalizedRGBA;
 
 import ftclib.FtcOpMode;
 import hallib.HalDashboard;
+import trclib.TrcRobot;
 
 @TeleOp(name="Test: REV Color Sensor", group="3543TestSamples")
 //@Disabled
@@ -58,15 +59,10 @@ public class FtcTestRevColorSensor extends FtcOpMode
     //
 
     @Override
-    public void startMode()
+    public void startMode(TrcRobot.RunMode prevMode)
     {
         dashboard.clearDisplay();
     }   //startMode
-
-    @Override
-    public void stopMode()
-    {
-    }   //stopMode
 
     @Override
     public void runPeriodic(double elapsedTime)

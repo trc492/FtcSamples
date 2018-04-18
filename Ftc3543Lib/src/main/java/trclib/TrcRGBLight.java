@@ -30,14 +30,15 @@ import trclib.TrcTaskMgr.TaskType;
  * implement the abstract methods required by this class. The abstract methods allow this class to control each light
  * channel ON and OFF.
  */
-public abstract class TrcRGBLight implements TrcTaskMgr.Task
+public abstract class TrcRGBLight
 {
-    private static final String moduleName = "TrcRGBLight";
-    private static final boolean debugEnabled = false;
-    private static final boolean tracingEnabled = false;
-    private static TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
-    private static TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
-    private TrcDbgTrace dbgTrace = null;
+    protected static final String moduleName = "TrcRGBLight";
+    protected static final boolean debugEnabled = false;
+    protected static final boolean tracingEnabled = false;
+    protected static final boolean useGlobalTracer = false;
+    protected static TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    protected static TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
+    protected TrcDbgTrace dbgTrace = null;
 
     /**
      * This method returns the state of the RED light.
@@ -155,9 +156,10 @@ public abstract class TrcRGBLight implements TrcTaskMgr.Task
     }   //enum State
 
     private final String instanceName;
-    private TrcStateMachine<State> sm;
-    private TrcTimer timer;
-    private TrcEvent timerEvent;
+    private final TrcTaskMgr.TaskObject postContinuousTaskObj;
+    private final TrcStateMachine<State> sm;
+    private final TrcTimer timer;
+    private final TrcEvent timerEvent;
 
     private RGBColor color = RGBColor.RGB_BLACK;
     private double onPeriod = 0.0;
@@ -169,14 +171,18 @@ public abstract class TrcRGBLight implements TrcTaskMgr.Task
      *
      * @param instanceName specifies the instance name.
      */
-    public TrcRGBLight(String instanceName)
+    public TrcRGBLight(final String instanceName)
     {
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
+            dbgTrace = useGlobalTracer?
+                TrcDbgTrace.getGlobalTracer():
+                new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         this.instanceName = instanceName;
+        postContinuousTaskObj = TrcTaskMgr.getInstance().createTask(
+            instanceName + ".postContinuous", this::postContinuousTask);
         sm = new TrcStateMachine<>(moduleName);
         timer = new TrcTimer(moduleName);
         timerEvent = new TrcEvent(moduleName + ".timer");
@@ -203,17 +209,21 @@ public abstract class TrcRGBLight implements TrcTaskMgr.Task
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC, "enabled=%s", Boolean.toString(enabled));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC, "enabled=%b", enabled);
         }
 
         if (enabled)
         {
-            TrcTaskMgr.getInstance().registerTask(moduleName, this, TaskType.POSTCONTINUOUS_TASK);
+            postContinuousTaskObj.registerTask(TaskType.POSTCONTINUOUS_TASK);
         }
         else
         {
-            TrcTaskMgr.getInstance().unregisterTask(this, TaskType.POSTCONTINUOUS_TASK);
+            postContinuousTaskObj.unregisterTask(TaskType.POSTCONTINUOUS_TASK);
+        }
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC);
         }
     }   //setTaskEnabled
 
@@ -365,45 +375,38 @@ public abstract class TrcRGBLight implements TrcTaskMgr.Task
     // Implements TrcTaskMgr.Task
     //
 
-    @Override
-    public void startTask(TrcRobot.RunMode runMode)
+    /**
+     * This method is called when the competition mode is about to end.
+     *
+     * @param taskType specifies the type of task being run.
+     * @param runMode specifies the competition mode that is running. (e.g. Autonomous, TeleOp, Test).
+     */
+    public void stopTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
-    }   //startTask
+        final String funcName = "stopTask";
 
-    @Override
-    public void stopTask(TrcRobot.RunMode runMode)
-    {
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "taskType=%s,runMode=%s", taskType, runMode);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
+        }
+
         setColor(RGBColor.RGB_BLACK);
     }   //stopTask
-
-    @Override
-    public void prePeriodicTask(TrcRobot.RunMode runMode)
-    {
-    }   //prePeriodicTask
-
-    @Override
-    public void postPeriodicTask(TrcRobot.RunMode runMode)
-    {
-    }   //postPeriodicTask
-
-    @Override
-    public void preContinuousTask(TrcRobot.RunMode runMode)
-    {
-    }   //preContinuousTask
 
     /**
      * This method is called periodically to execute the RGB light operation.
      *
+     * @param taskType specifies the type of task being run.
      * @param runMode specifies the competition mode that is running. (e.g. Autonomous, TeleOp, Test).
      */
-    @Override
-    public void postContinuousTask(TrcRobot.RunMode runMode)
+    public void postContinuousTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
         final String funcName = "postContinuousTask";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "mode=%s", runMode.toString());
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "taskType=%s,runMode=%s", taskType, runMode);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
         }
 

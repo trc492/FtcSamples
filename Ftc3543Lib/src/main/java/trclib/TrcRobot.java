@@ -69,14 +69,18 @@ public class TrcRobot
          * button on the Driver Station phone is pressed. Typically, you put code that will prepare the robot for
          * start of competition here such as resetting the encoders/sensors and enabling some sensors to start
          * sampling.
+         *
+         * @param prevMode specifies the previous RunMode it is coming from.
          */
-        void startMode();
+        void startMode(RunMode prevMode);
 
         /**
          * This method is called when competition mode is about to end. Typically, you put code that will do clean
          * up here such as disabling the sampling of some sensors.
+         *
+         * @param nextMode specifies the next RunMode it is going into.
          */
-        void stopMode();
+        void stopMode(RunMode nextMode);
 
         /**
          * This method is called periodically about 50 times a second. Typically, you put code that doesn't require

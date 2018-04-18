@@ -35,6 +35,7 @@ import FtcSampleCode.R;
 import ftclib.FtcMRI2cRangeSensor;
 import ftclib.FtcOpMode;
 import hallib.HalDashboard;
+import trclib.TrcRobot;
 import trclib.TrcSensor;
 
 @TeleOp(name="Test: MR Range Sensor", group="3543TestSamples")
@@ -66,7 +67,7 @@ public class FtcTestMRRangeSensor extends FtcOpMode
     //
 
     @Override
-    public void startMode()
+    public void startMode(TrcRobot.RunMode prevMode)
     {
         dashboard.clearDisplay();
     }   //startMode

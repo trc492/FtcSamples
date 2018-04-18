@@ -13,6 +13,7 @@ import ftclib.FtcDcMotor;
 import ftclib.FtcMRGyro;
 import ftclib.FtcOpMode;
 import trclib.TrcGyro;
+import trclib.TrcRobot;
 
 @TeleOp(name="Test: Sensor Sample Time", group="3543TestSamples")
 @Disabled
@@ -93,7 +94,7 @@ public class FtcTestSensorSampleTime extends FtcOpMode
     }   //initRobot
 
     @Override
-    public void startMode()
+    public void startMode(TrcRobot.RunMode prevMode)
     {
         switch (sensorType)
         {
@@ -110,7 +111,7 @@ public class FtcTestSensorSampleTime extends FtcOpMode
     }   //startMode
 
     @Override
-    public void stopMode()
+    public void stopMode(TrcRobot.RunMode nextMode)
     {
         lfWheel.setPower(0.0);
         lrWheel.setPower(0.0);

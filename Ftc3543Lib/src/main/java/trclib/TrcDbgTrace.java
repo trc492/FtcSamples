@@ -25,9 +25,6 @@ package trclib;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
 
 import hallib.HalDbgLog;
 
@@ -97,8 +94,9 @@ public class TrcDbgTrace
     private boolean traceEnabled;
     private TraceLevel traceLevel;
     private MsgLevel msgLevel;
-    private double nextTraceTime;
+    private String traceLogName = null;
     private PrintStream traceLog = null;
+    private boolean traceLogEnabled = false;
 
     /**
      * Constructor: Create an instance of the object.
@@ -112,7 +110,6 @@ public class TrcDbgTrace
     {
         this.instanceName = instanceName;
         setDbgTraceConfig(traceEnabled, traceLevel, msgLevel);
-        this.nextTraceTime = TrcUtil.getCurrentTime();
     }   //TrcDbgTrace
 
     /**
@@ -151,7 +148,7 @@ public class TrcDbgTrace
     /**
      * This method opens a log file for writing all the trace messages to it.
      *
-     * @param traceLogName specifies the trace log file name.
+     * @param traceLogName specifies the full trace log file path name.
      * @return true if log file is successfully opened, false if it failed.
      */
     public boolean openTraceLog(final String traceLogName)
@@ -160,46 +157,116 @@ public class TrcDbgTrace
 
         try
         {
+            this.traceLogName = traceLogName;
             traceLog = new PrintStream(new File(traceLogName));
         }
         catch (FileNotFoundException e)
         {
+            this.traceLogName = null;
             traceLog = null;
             success = false;
         }
+        traceLogEnabled = false;
 
         return success;
     }   //openTraceLog
 
     /**
      * This method opens a log file for writing all the trace messages to it. The log file is written to the specified
-     * folder. The file name will be formed by concatenating the specified file prefix and a date-time stamp.
+     * folder. The file name will be formed by concatenating the date-time stamp with the specified file name.
      *
      * @param folderPath specifies the folder path.
-     * @param filePrefix specifies the file name prefix.
+     * @param fileName specifies the file name, null if none provided.
      * @return true if log file is successfully opened, false if it failed.
      */
-    public boolean openTraceLog(final String folderPath, final String filePrefix)
+    public boolean openTraceLog(final String folderPath, final String fileName)
     {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd@HH-mm-ss", Locale.US);
-        String logFilePath = folderPath + "/" + filePrefix + "_" + dateFormat.format(new Date()) + ".log";
+        //
+        // Create the folder if it doesn't exist.
+        //
         File folder = new File(folderPath);
         folder.mkdir();
+        //
+        // Create full log file path.
+        //
+        String logFileName = folderPath + File.separator + TrcUtil.getTimestamp();
 
-        return openTraceLog(logFilePath);
+        if (fileName != null)
+        {
+            logFileName += "!" + fileName;
+        }
+        logFileName += ".log";
+
+        return openTraceLog(logFileName);
     }   //openTraceLog
+
+    /**
+     * This method closes the trace log file. If newName is not null, the log will be renamed to the new name.
+     *
+     * @param newName specifies the new log file name, null if none given.
+     */
+    public void closeTraceLog(String newName)
+    {
+        final String funcName = "closeTraceLog";
+
+        if (traceLog != null)
+        {
+            if (newName != null)
+            {
+                try
+                {
+                    String path = traceLogName.substring(0, traceLogName.lastIndexOf(File.separatorChar) + 1);
+                    String newFile = path + TrcUtil.getTimestamp() + "!" + newName + ".log";
+                    traceLogEnabled = true;
+                    globalTracer.traceInfo(funcName, "Rename: %s -> %s", traceLogName, newFile);
+                    traceLog.close();
+                    File file = new File(traceLogName);
+                    file.renameTo(new File(newFile));
+                }
+                catch(Exception e)
+                {
+                    // We failed to rename the file, close the log anyway.
+                    traceLog.close();
+                }
+            }
+            else
+            {
+                traceLog.close();
+            }
+
+            traceLog = null;
+            traceLogName = null;
+            traceLogEnabled = false;
+        }
+    }   //closeTraceLog
 
     /**
      * This method closes the trace log file.
      */
     public void closeTraceLog()
     {
-        if (traceLog != null)
-        {
-            traceLog.close();
-            traceLog = null;
-        }
+        closeTraceLog(null);
     }   //closeTraceLog
+
+    /**
+     * This method returns the trace log file name if one is active.
+     *
+     * @return trace log file name if one is active, null if none.
+     */
+    public String getTraceLogName()
+    {
+        return traceLogName;
+    }   //getTraceLogName
+
+    /**
+     * This method enables/disables the trace log.
+     *
+     * @param enabled specifies true to enable trace log, false otherwise.
+     */
+    public void setTraceLogEnabled(boolean enabled)
+    {
+        traceLogEnabled = enabled;
+    }   //setTraceLogEnabled
 
     /**
      * This method sets the trace level, message level of the debug tracer. It can also enables/disables function
@@ -284,7 +351,7 @@ public class TrcDbgTrace
      */
     public void traceFatal(final String funcName, final String format, Object... args)
     {
-        traceMsg(funcName, MsgLevel.FATAL, 0.0, format, args);
+        traceMsg(funcName, MsgLevel.FATAL, format, args);
     }   //traceFatal
 
     /**
@@ -296,7 +363,7 @@ public class TrcDbgTrace
      */
     public void traceErr(final String funcName, final String format, Object... args)
     {
-        traceMsg(funcName, MsgLevel.ERR, 0.0, format, args);
+        traceMsg(funcName, MsgLevel.ERR, format, args);
     }   //traceErr
 
     /**
@@ -308,7 +375,7 @@ public class TrcDbgTrace
      */
     public void traceWarn(final String funcName, final String format, Object... args)
     {
-        traceMsg(funcName, MsgLevel.WARN, 0.0, format, args);
+        traceMsg(funcName, MsgLevel.WARN, format, args);
     }   //traceWarn
 
     /**
@@ -320,7 +387,7 @@ public class TrcDbgTrace
      */
     public void traceInfo(final String funcName, final String format, Object... args)
     {
-        traceMsg(funcName, MsgLevel.INFO, 0.0, format, args);
+        traceMsg(funcName, MsgLevel.INFO, format, args);
     }   //traceInfo
 
     /**
@@ -332,21 +399,25 @@ public class TrcDbgTrace
      */
     public void traceVerbose(final String funcName, final String format, Object... args)
     {
-        traceMsg(funcName, MsgLevel.VERBOSE, 0.0, format, args);
+        traceMsg(funcName, MsgLevel.VERBOSE, format, args);
     }   //traceVerbose
 
     /**
-     * This method is called to print a message only if the given time interval has been passed since the last
+     * This method is called to print a message only if the given interval timer has expired since the last
      * periodic message. This is useful to print out periodic status without overwhelming the debug console.
      *
      * @param funcName specifies the calling method name.
+     * @param timer specifies the interval timer.
      * @param format specifies the format string of the message.
      * @param args specifies the message arguments.
      */
-    public void tracePeriodic(final String funcName, double traceInterval, final String format, Object... args)
+    public void traceInfoAtInterval(final String funcName, TrcIntervalTimer timer, final String format, Object... args)
     {
-        traceMsg(funcName, MsgLevel.INFO, traceInterval, format, args);
-    }   //tracePeriodic
+        if (timer.hasExpired())
+        {
+            traceMsg(funcName, MsgLevel.INFO, format, args);
+        }
+    }   //traceInfoAtInterval
 
     /**
      * This method prints a debug message to the debug console.
@@ -364,26 +435,19 @@ public class TrcDbgTrace
      *
      * @param funcName specifies the calling method name.
      * @param level specifies the message level.
-     * @param traceInterval specifies the tracing interval. If not periodic, this must be set to zero.
      * @param format specifies the format string of the message.
      * @param args specifies the message arguments.
      */
-    private void traceMsg(
-            final String funcName, MsgLevel level, double traceInterval, final String format, Object... args)
+    private void traceMsg(final String funcName, MsgLevel level, final String format, Object... args)
     {
         if (level.getValue() <= msgLevel.getValue())
         {
-            double currTime = TrcUtil.getCurrentTime();
-            if (currTime >= nextTraceTime)
+            String msg = msgPrefix(funcName, level) + String.format(format, args);
+            HalDbgLog.msg(level, msg + "\n");
+            if (traceLogEnabled)
             {
-                nextTraceTime = currTime + traceInterval;
-                String msg = msgPrefix(funcName, level) + String.format(format, args);
-                HalDbgLog.msg(level, msg + "\n");
-                if (traceLog != null)
-                {
-                    traceLog.print(msg + "\r\n");
-                    traceLog.flush();
-                }
+                traceLog.print(msg + "\r\n");
+                traceLog.flush();
             }
         }
     }   //traceMsg

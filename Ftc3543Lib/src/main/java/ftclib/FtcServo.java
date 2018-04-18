@@ -38,7 +38,7 @@ import trclib.TrcTimer;
  * This class implements a platform dependent servo extending TrcServo. It provides implementation of the abstract
  * methods in TrcServo.
  */
-public class FtcServo extends TrcServo implements TrcTaskMgr.Task
+public class FtcServo extends TrcServo
 {
     private static final String moduleName = "FtcServo";
     private static final boolean debugEnabled = false;
@@ -62,6 +62,7 @@ public class FtcServo extends TrcServo implements TrcTaskMgr.Task
     private TrcTimer timer;
     private TrcEvent event;
     private TrcStateMachine sm;
+    private TrcTaskMgr.TaskObject postContinuousTaskObj;
     private double servoPos = 0.0;
     private double servoOnTime = 0.0;
     private double prevLogicalPos = 0.0;
@@ -88,6 +89,8 @@ public class FtcServo extends TrcServo implements TrcTaskMgr.Task
         timer = new TrcTimer(instanceName);
         event = new TrcEvent(instanceName);
         sm = new TrcStateMachine(instanceName);
+        postContinuousTaskObj = TrcTaskMgr.getInstance().createTask(
+                moduleName + ".postContinuous", this::postContinuousTask);
     }   //FtcServo
 
     /**
@@ -148,11 +151,11 @@ public class FtcServo extends TrcServo implements TrcTaskMgr.Task
     {
         if (enabled)
         {
-            TrcTaskMgr.getInstance().registerTask(instanceName, this, TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
+            postContinuousTaskObj.registerTask(TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
         }
         else
         {
-            TrcTaskMgr.getInstance().unregisterTask(this, TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
+            postContinuousTaskObj.unregisterTask(TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
         }
     }   //setTaskEnabled
 
@@ -295,39 +298,14 @@ public class FtcServo extends TrcServo implements TrcTaskMgr.Task
     // Implements TrcTaskMgr.Task
     //
 
-    @Override
-    public void startTask(TrcRobot.RunMode runMode)
-    {
-    }   //startTask
-
-    @Override
-    public void stopTask(TrcRobot.RunMode runMode)
-    {
-    }   //stopTask
-
-    @Override
-    public void prePeriodicTask(TrcRobot.RunMode runMode)
-    {
-    }   //prePeriodicTask
-
-    @Override
-    public void postPeriodicTask(TrcRobot.RunMode runMode)
-    {
-    }   //postPeriodicTask
-
-    @Override
-    public void preContinuousTask(TrcRobot.RunMode runMode)
-    {
-    }   //preContinuousTask
-
     /**
      * This method is called periodically to run a state machine that will enable the servo controller, set the servo
      * position, wait for the specified hold time, and finally disable the servo controller.
      *
+     * @param taskType specifies the type of task being run.
      * @param runMode specifies the competition mode that is running.
      */
-    @Override
-    public void postContinuousTask(TrcRobot.RunMode runMode)
+    public void postContinuousTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
         if (sm.isReady())
         {

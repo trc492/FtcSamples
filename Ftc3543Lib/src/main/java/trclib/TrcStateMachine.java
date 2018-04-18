@@ -36,6 +36,7 @@ public class TrcStateMachine<T>
     private static final String moduleName = "TrcStateMachine";
     private static final boolean debugEnabled = false;
     private static final boolean tracingEnabled = false;
+    private static final boolean useGlobalTracer = false;
     private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
     private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
@@ -86,7 +87,9 @@ public class TrcStateMachine<T>
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "state=%s", state.toString());
+            dbgTrace = useGlobalTracer?
+                TrcDbgTrace.getGlobalTracer():
+                new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         eventList.clear();
@@ -148,6 +151,35 @@ public class TrcStateMachine<T>
 
         return currState;
     }   //getState
+
+    /**
+     * This method checks whether the state machine is ready. If so, it returns the current state. If the state
+     * machine is not ready, it returns null.
+     *
+     * @return current state of the state machine, null if state machine is not ready.
+     */
+    public T checkReadyAndGetState()
+    {
+        final String funcName = "checkReadyAndGetState";
+        T state = null;
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+
+        if (isReady())
+        {
+            state = getState();
+        }
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", state == null? "NotReady": state);
+        }
+
+        return state;
+    }   //checkReadyGetState
 
     /**
      * This method sets the current state of the state machine.
@@ -253,7 +285,6 @@ public class TrcStateMachine<T>
             //
             if (ready)
             {
-                clearAllEvents();
                 eventList.clear();
                 currState = nextState;
             }
@@ -344,6 +375,7 @@ public class TrcStateMachine<T>
         }
         this.waitForAllEvents = waitForAllEvents;
         ready = false;
+        clearAllEvents();
 
         if (debugEnabled)
         {

@@ -22,12 +22,18 @@
 
 package trclib;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+
 /**
  * This class contains platform independent utility methods. All methods in this class are static. It is not
  * necessary to instantiate this class to call its methods.
  */
 public class TrcUtil
 {
+    public static final double INCHES_PER_CM = 0.393701;
+
     /**
      * This method returns the current time in seconds with nano-second precision.
      *
@@ -57,6 +63,27 @@ public class TrcUtil
     {
         return System.nanoTime();
     }   //getCurrentTimeNanos
+
+    /**
+     * This method returns the current time stamp with the specified format.
+     *
+     * @return current time stamp string with the specified format.
+     */
+    public static String getTimestamp(String format)
+    {
+        SimpleDateFormat dateFormat = new SimpleDateFormat(format, Locale.US);
+        return dateFormat.format(new Date());
+    }   //getTimestamp
+
+    /**
+     * This method returns the current time stamp with the default format.
+     *
+     * @return current time stamp string with the default format.
+     */
+    public static String getTimestamp()
+    {
+        return getTimestamp("yyyyMMdd@HHmmss");
+    }   //getTimestamp
 
     /**
      * This method puts the current thread to sleep for the given time in msec. It handles InterruptException where

@@ -27,11 +27,12 @@ package trclib;
  * consist of 2 to 6 motors. It supports tank drive, arcade drive and mecanum drive with motor stalled detection and
  * inverted drive mode. It also supports gyro assisted drive to keep robot driving straight.
  */
-public class TrcDriveBase implements TrcTaskMgr.Task
+public class TrcDriveBase
 {
     private static final String moduleName = "TrcDriveBase";
     private static final boolean debugEnabled = false;
     private static final boolean tracingEnabled = false;
+    private static final boolean useGlobalTracer = false;
     private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
     private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
@@ -53,6 +54,25 @@ public class TrcDriveBase implements TrcTaskMgr.Task
         }
     }   //enum MotorType
 
+    /**
+     * This interface is provided by the caller to translate the motor power to actual motor power according to
+     * the motor curve. This is useful to linearize the motor performance. This is very useful for many reasons.
+     * It could allow the drive base to drive straight by translating wheel power to actual torque. It could also
+     * allow us to implement our own ramp rate to limit acceleration and deceleration.
+     */
+    public interface MotorPowerMapper
+    {
+        /**
+         * This method is called to translate the desired motor power to the actual motor power taking into
+         * consideration of the motor torque curve with the current motor speed.
+         *
+         * @param power specifies the desired motor power.
+         * @param speed specifies the current motor speed in the unit of encoder counts per second.
+         * @return resulting motor power.
+         */
+        double translateMotorPower(double power, double speed);
+    }   //interface MotorPowerMapper
+
     private static double DEF_SENSITIVITY = 0.5;
     private static double DEF_MAX_OUTPUT = 1.0;
 
@@ -63,10 +83,11 @@ public class TrcDriveBase implements TrcTaskMgr.Task
     private TrcMotorController rightMidMotor;
     private TrcMotorController rightRearMotor;
     private TrcGyro gyro;
+    private MotorPowerMapper motorPowerMapper = null;
     private int numMotors = 0;
     private double sensitivity = DEF_SENSITIVITY;
     private double maxOutput = DEF_MAX_OUTPUT;
-    private double gyroRateScale = 0.0;
+    private double gyroMaxRotationRate = 0.0;
     private double gyroAssistKp = 1.0;
     private boolean gyroAssistEnabled = false;
 
@@ -102,13 +123,16 @@ public class TrcDriveBase implements TrcTaskMgr.Task
      * @param gyro specifies the gyro. If none, it can be set to null.
      */
     private void commonInit(
-        TrcMotorController leftFrontMotor, TrcMotorController leftMidMotor, TrcMotorController leftRearMotor,
-        TrcMotorController rightFrontMotor, TrcMotorController rightMidMotor, TrcMotorController rightRearMotor,
-        TrcGyro gyro)
+        final TrcMotorController leftFrontMotor, final TrcMotorController leftMidMotor,
+        final TrcMotorController leftRearMotor, final TrcMotorController rightFrontMotor,
+        final TrcMotorController rightMidMotor, final TrcMotorController rightRearMotor,
+        final TrcGyro gyro)
     {
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(moduleName, tracingEnabled, traceLevel, msgLevel);
+            dbgTrace = useGlobalTracer?
+                TrcDbgTrace.getGlobalTracer():
+                new TrcDbgTrace(moduleName, tracingEnabled, traceLevel, msgLevel);
         }
 
         this.leftFrontMotor = leftFrontMotor;
@@ -125,15 +149,18 @@ public class TrcDriveBase implements TrcTaskMgr.Task
         if (rightRearMotor != null) numMotors++;
         this.gyro = gyro;
 
+        TrcTaskMgr taskMgr = TrcTaskMgr.getInstance();
+        TrcTaskMgr.TaskObject stopTaskObj = taskMgr.createTask(moduleName + ".stop", this::stopTask);
+        TrcTaskMgr.TaskObject preContinuousTaskObj = taskMgr.createTask(
+            moduleName + ".preContinuous", this::preContinuousTask);
+        stopTaskObj.registerTask(TrcTaskMgr.TaskType.STOP_TASK);
+        preContinuousTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+
         xScale = 1.0;
         yScale = 1.0;
         rotScale = 1.0;
         resetPosition(true);
         resetStallTimer();
-
-        TrcTaskMgr taskMgr = TrcTaskMgr.getInstance();
-        taskMgr.registerTask(moduleName, this, TrcTaskMgr.TaskType.STOP_TASK);
-        taskMgr.registerTask(moduleName, this, TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
     }   //commonInit
 
     /**
@@ -148,9 +175,10 @@ public class TrcDriveBase implements TrcTaskMgr.Task
      * @param gyro specifies the gyro. If none, it can be set to null.
      */
     public TrcDriveBase(
-        TrcMotorController leftFrontMotor, TrcMotorController leftMidMotor, TrcMotorController leftRearMotor,
-        TrcMotorController rightFrontMotor, TrcMotorController rightMidMotor, TrcMotorController rightRearMotor,
-        TrcGyro gyro)
+        final TrcMotorController leftFrontMotor, final TrcMotorController leftMidMotor,
+        final TrcMotorController leftRearMotor, final TrcMotorController rightFrontMotor,
+        final TrcMotorController rightMidMotor, final TrcMotorController rightRearMotor,
+        final TrcGyro gyro)
     {
         if (leftFrontMotor == null || leftMidMotor == null || leftRearMotor == null ||
             rightFrontMotor == null || rightMidMotor == null || rightRearMotor == null)
@@ -171,8 +199,9 @@ public class TrcDriveBase implements TrcTaskMgr.Task
      * @param rightRearMotor specifies the right rear motor of the drive base.
      */
     public TrcDriveBase(
-        TrcMotorController leftFrontMotor, TrcMotorController leftMidMotor, TrcMotorController leftRearMotor,
-        TrcMotorController rightFrontMotor, TrcMotorController rightMidMotor, TrcMotorController rightRearMotor)
+        final TrcMotorController leftFrontMotor, final TrcMotorController leftMidMotor,
+        final TrcMotorController leftRearMotor, final TrcMotorController rightFrontMotor,
+        final TrcMotorController rightMidMotor, final TrcMotorController rightRearMotor)
     {
         this(leftFrontMotor, leftMidMotor, leftRearMotor, rightFrontMotor, rightMidMotor, rightRearMotor, null);
     }   //TrcDriveBase
@@ -186,9 +215,10 @@ public class TrcDriveBase implements TrcTaskMgr.Task
      * @param rightRearMotor specifies the right rear motor of the drive base.
      * @param gyro specifies the gyro. If none, it can be set to null.
      */
-    public TrcDriveBase(TrcMotorController leftFrontMotor, TrcMotorController leftRearMotor,
-                        TrcMotorController rightFrontMotor, TrcMotorController rightRearMotor,
-                        TrcGyro gyro)
+    public TrcDriveBase(
+        final TrcMotorController leftFrontMotor, final TrcMotorController leftRearMotor,
+        final TrcMotorController rightFrontMotor, final TrcMotorController rightRearMotor,
+        final TrcGyro gyro)
     {
         if (leftFrontMotor == null || leftRearMotor == null || rightFrontMotor == null || rightRearMotor == null)
         {
@@ -205,8 +235,9 @@ public class TrcDriveBase implements TrcTaskMgr.Task
      * @param rightFrontMotor specifies the right front motor of the drive base.
      * @param rightRearMotor specifies the right rear motor of the drive base.
      */
-    public TrcDriveBase(TrcMotorController leftFrontMotor, TrcMotorController leftRearMotor,
-                        TrcMotorController rightFrontMotor, TrcMotorController rightRearMotor)
+    public TrcDriveBase(
+        final TrcMotorController leftFrontMotor, final TrcMotorController leftRearMotor,
+        final TrcMotorController rightFrontMotor, final TrcMotorController rightRearMotor)
     {
         this(leftFrontMotor, leftRearMotor, rightFrontMotor, rightRearMotor, null);
     }   //TrcDriveBase
@@ -218,7 +249,7 @@ public class TrcDriveBase implements TrcTaskMgr.Task
      * @param rightMotor specifies the right rear motor of the drive base.
      * @param gyro specifies the gyro. If none, it can be set to null.
      */
-    public TrcDriveBase(TrcMotorController leftMotor, TrcMotorController rightMotor, TrcGyro gyro)
+    public TrcDriveBase(final TrcMotorController leftMotor, final TrcMotorController rightMotor, final TrcGyro gyro)
     {
         if (leftMotor == null || rightMotor == null)
         {
@@ -233,10 +264,20 @@ public class TrcDriveBase implements TrcTaskMgr.Task
      * @param leftMotor specifies the left rear motor of the drive base.
      * @param rightMotor specifies the right rear motor of the drive base.
      */
-    public TrcDriveBase(TrcMotorController leftMotor, TrcMotorController rightMotor)
+    public TrcDriveBase(final TrcMotorController leftMotor, final TrcMotorController rightMotor)
     {
         this(leftMotor, rightMotor, null);
     }   //TrcDriveBase
+
+    /**
+     * This method sets a motor power mapper. If null, it unsets the previously set mapper.
+     *
+     * @param motorPowerMapper specifies the motor power mapper. If null, clears the mapper.
+     */
+    public void setMotorPowerMapper(MotorPowerMapper motorPowerMapper)
+    {
+        this.motorPowerMapper = motorPowerMapper;
+    }   //setMotorPowerMapper
 
     /**
      * This method sets the sensitivity for the drive() method.
@@ -277,21 +318,22 @@ public class TrcDriveBase implements TrcTaskMgr.Task
     /**
      * This method enables gyro assist drive.
      *
-     * @param gyroRateScale specifies the gyro rotation rate scaling factor.
+     * @param gyroMaxRotationRate specifies the maximum rotation rate of the robot base reported by the gyro.
      * @param gyroAssistKp specifies the gyro assist proportional constant.
      */
-    public void enableGyroAssist(double gyroRateScale, double gyroAssistKp)
+    public void enableGyroAssist(double gyroMaxRotationRate, double gyroAssistKp)
     {
         final String funcName = "enableGyroAssist";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "gyroRateScale=%f,gyroAssistKp=%f",
-                                gyroRateScale, gyroAssistKp);
+            dbgTrace.traceEnter(
+                funcName, TrcDbgTrace.TraceLevel.API, "gyroMaxRate=%f,gyroAssistKp=%f",
+                gyroMaxRotationRate, gyroAssistKp);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        this.gyroRateScale = gyroRateScale;
+        this.gyroMaxRotationRate = gyroMaxRotationRate;
         this.gyroAssistKp = gyroAssistKp;
         this.gyroAssistEnabled = true;
     }   //enableGyroAssist
@@ -309,7 +351,7 @@ public class TrcDriveBase implements TrcTaskMgr.Task
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        this.gyroRateScale = 0.0;
+        this.gyroMaxRotationRate = 0.0;
         this.gyroAssistKp = 1.0;
         this.gyroAssistEnabled = false;
     }   //disableGyroAssist
@@ -859,7 +901,7 @@ public class TrcDriveBase implements TrcTaskMgr.Task
         {
             double diffPower = (leftPower - rightPower)/2.0;
             double assistPower =
-                    TrcUtil.clipRange(gyroAssistKp*(diffPower - gyroRateScale*gyro.getZRotationRate().value));
+                TrcUtil.clipRange(gyroAssistKp*(diffPower - gyro.getZRotationRate().value/gyroMaxRotationRate));
             leftPower += assistPower;
             rightPower -= assistPower;
             double maxMag = Math.max(Math.abs(leftPower), Math.abs(rightPower));
@@ -873,12 +915,67 @@ public class TrcDriveBase implements TrcTaskMgr.Task
         leftPower = TrcUtil.clipRange(leftPower, -maxOutput, maxOutput);
         rightPower = TrcUtil.clipRange(rightPower, -maxOutput, maxOutput);
 
-        if (leftFrontMotor != null) leftFrontMotor.setPower(leftPower);
-        if (rightFrontMotor != null) rightFrontMotor.setPower(rightPower);
-        if (leftRearMotor != null) leftRearMotor.setPower(leftPower);
-        if (rightRearMotor != null) rightRearMotor.setPower(rightPower);
-        if (leftMidMotor != null) leftMidMotor.setPower(leftPower);
-        if (rightMidMotor != null) rightMidMotor.setPower(rightPower);
+        double wheelPower;
+
+        if (leftFrontMotor != null)
+        {
+            wheelPower = leftPower;
+            if (motorPowerMapper != null)
+            {
+                wheelPower = motorPowerMapper.translateMotorPower(wheelPower, leftFrontMotor.getSpeed());
+            }
+            leftFrontMotor.setPower(wheelPower);
+        }
+
+        if (rightFrontMotor != null)
+        {
+            wheelPower = rightPower;
+            if (motorPowerMapper != null)
+            {
+                wheelPower = motorPowerMapper.translateMotorPower(wheelPower, rightFrontMotor.getSpeed());
+            }
+            rightFrontMotor.setPower(wheelPower);
+        }
+
+        if (leftRearMotor != null)
+        {
+            wheelPower = leftPower;
+            if (motorPowerMapper != null)
+            {
+                wheelPower = motorPowerMapper.translateMotorPower(wheelPower, leftRearMotor.getSpeed());
+            }
+            leftRearMotor.setPower(wheelPower);
+        }
+
+        if (rightRearMotor != null)
+        {
+            wheelPower = rightPower;
+            if (motorPowerMapper != null)
+            {
+                wheelPower = motorPowerMapper.translateMotorPower(wheelPower, rightRearMotor.getSpeed());
+            }
+            rightRearMotor.setPower(wheelPower);
+        }
+
+        if (leftMidMotor != null)
+        {
+            wheelPower = leftPower;
+            if (motorPowerMapper != null)
+            {
+                wheelPower = motorPowerMapper.translateMotorPower(wheelPower, leftMidMotor.getSpeed());
+            }
+            leftMidMotor.setPower(wheelPower);
+        }
+
+        if (rightMidMotor != null)
+        {
+            wheelPower = rightPower;
+            if (motorPowerMapper != null)
+            {
+                wheelPower = motorPowerMapper.translateMotorPower(wheelPower, rightMidMotor.getSpeed());
+            }
+            rightMidMotor.setPower(wheelPower);
+        }
 
         if (debugEnabled)
         {
@@ -989,31 +1086,70 @@ public class TrcDriveBase implements TrcTaskMgr.Task
 
         double cosA = Math.cos(Math.toRadians(gyroAngle));
         double sinA = Math.sin(Math.toRadians(gyroAngle));
-        x = x*cosA - y*sinA;
-        y = x*sinA + y*cosA;
+        double x1 = x*cosA - y*sinA;
+        double y1 = x*sinA + y*cosA;
 
         if (gyroAssistEnabled)
         {
-            rotation += TrcUtil.clipRange(gyroAssistKp*(rotation - gyroRateScale*gyro.getZRotationRate().value));
+            double zRotationRate = gyro.getZRotationRate().value;
+            double normalizedRotationRate = zRotationRate/gyroMaxRotationRate;
+            double error = rotation - normalizedRotationRate;
+            rotation += TrcUtil.clipRange(gyroAssistKp*error);
+            if(debugEnabled)
+            {
+                dbgTrace.traceInfo("mecanumDrive_Cartesian", 
+                    "Gyro assist: rotationTarget=%.3f normalizedRotationRate=%.3f", rotation, normalizedRotationRate);
+            }
         }
 
-        double wheelSpeeds[] = new double[4];
-        wheelSpeeds[MotorType.LEFT_FRONT.value] = x + y + rotation;
-        wheelSpeeds[MotorType.RIGHT_FRONT.value] = -x + y - rotation;
-        wheelSpeeds[MotorType.LEFT_REAR.value] = -x + y + rotation;
-        wheelSpeeds[MotorType.RIGHT_REAR.value] = x + y - rotation;
-        normalize(wheelSpeeds);
+        double wheelPowers[] = new double[4];
+        wheelPowers[MotorType.LEFT_FRONT.value] = x1 + y1 + rotation;
+        wheelPowers[MotorType.RIGHT_FRONT.value] = -x1 + y1 - rotation;
+        wheelPowers[MotorType.LEFT_REAR.value] = -x1 + y1 + rotation;
+        wheelPowers[MotorType.RIGHT_REAR.value] = x1 + y1 - rotation;
+        normalize(wheelPowers);
 
-        for (int i = 0; i < wheelSpeeds.length; i++)
+        double wheelPower;
+
+        if (leftFrontMotor != null)
         {
-            wheelSpeeds[i] = TrcUtil.clipRange(wheelSpeeds[i], -maxOutput, maxOutput);
+            wheelPower = wheelPowers[MotorType.LEFT_FRONT.value];
+            if (motorPowerMapper != null)
+            {
+                wheelPower = motorPowerMapper.translateMotorPower(wheelPower, leftFrontMotor.getSpeed());
+            }
+            leftFrontMotor.setPower(wheelPower);
         }
 
+        if (rightFrontMotor != null)
+        {
+            wheelPower = wheelPowers[MotorType.RIGHT_FRONT.value];
+            if (motorPowerMapper != null)
+            {
+                wheelPower = motorPowerMapper.translateMotorPower(wheelPower, rightFrontMotor.getSpeed());
+            }
+            rightFrontMotor.setPower(wheelPower);
+        }
 
-        if (leftFrontMotor != null) leftFrontMotor.setPower(wheelSpeeds[MotorType.LEFT_FRONT.value]);
-        if (rightFrontMotor != null) rightFrontMotor.setPower(wheelSpeeds[MotorType.RIGHT_FRONT.value]);
-        if (leftRearMotor != null) leftRearMotor.setPower(wheelSpeeds[MotorType.LEFT_REAR.value]);
-        if (rightRearMotor != null) rightRearMotor.setPower(wheelSpeeds[MotorType.RIGHT_REAR.value]);
+        if (leftRearMotor != null)
+        {
+            wheelPower = wheelPowers[MotorType.LEFT_REAR.value];
+            if (motorPowerMapper != null)
+            {
+                wheelPower = motorPowerMapper.translateMotorPower(wheelPower, leftRearMotor.getSpeed());
+            }
+            leftRearMotor.setPower(wheelPower);
+        }
+
+        if (rightRearMotor != null)
+        {
+            wheelPower = wheelPowers[MotorType.RIGHT_REAR.value];
+            if (motorPowerMapper != null)
+            {
+                wheelPower = motorPowerMapper.translateMotorPower(wheelPower, rightRearMotor.getSpeed());
+            }
+            rightRearMotor.setPower(wheelPower);
+        }
 
         if (debugEnabled)
         {
@@ -1086,25 +1222,57 @@ public class TrcDriveBase implements TrcTaskMgr.Task
 
         if (gyroAssistEnabled)
         {
-            rotation += TrcUtil.clipRange(gyroAssistKp*(rotation - gyroRateScale*gyro.getZRotationRate().value));
+            rotation += TrcUtil.clipRange(gyroAssistKp*(rotation - gyro.getZRotationRate().value/gyroMaxRotationRate));
         }
 
-        double wheelSpeeds[] = new double[4];
-        wheelSpeeds[MotorType.LEFT_FRONT.value] = (sinD*magnitude + rotation);
-        wheelSpeeds[MotorType.RIGHT_FRONT.value] = (cosD*magnitude - rotation);
-        wheelSpeeds[MotorType.LEFT_REAR.value] = (cosD*magnitude + rotation);
-        wheelSpeeds[MotorType.RIGHT_REAR.value] = (sinD*magnitude - rotation);
-        normalize(wheelSpeeds);
+        double wheelPowers[] = new double[4];
+        wheelPowers[MotorType.LEFT_FRONT.value] = (sinD*magnitude + rotation);
+        wheelPowers[MotorType.RIGHT_FRONT.value] = (cosD*magnitude - rotation);
+        wheelPowers[MotorType.LEFT_REAR.value] = (cosD*magnitude + rotation);
+        wheelPowers[MotorType.RIGHT_REAR.value] = (sinD*magnitude - rotation);
+        normalize(wheelPowers);
 
-        for (int i = 0; i < wheelSpeeds.length; i++)
+        double wheelPower;
+
+        if (leftFrontMotor != null)
         {
-            wheelSpeeds[i] = TrcUtil.clipRange(wheelSpeeds[i], -maxOutput, maxOutput);
+            wheelPower = wheelPowers[MotorType.LEFT_FRONT.value];
+            if (motorPowerMapper != null)
+            {
+                wheelPower = motorPowerMapper.translateMotorPower(wheelPower, leftFrontMotor.getSpeed());
+            }
+            leftFrontMotor.setPower(wheelPower);
         }
 
-        if (leftFrontMotor != null) leftFrontMotor.setPower(wheelSpeeds[MotorType.LEFT_FRONT.value]);
-        if (rightFrontMotor != null) rightFrontMotor.setPower(wheelSpeeds[MotorType.RIGHT_FRONT.value]);
-        if (leftRearMotor != null) leftRearMotor.setPower(wheelSpeeds[MotorType.LEFT_REAR.value]);
-        if (rightRearMotor != null) rightRearMotor.setPower(wheelSpeeds[MotorType.RIGHT_REAR.value]);
+        if (rightFrontMotor != null)
+        {
+            wheelPower = wheelPowers[MotorType.RIGHT_FRONT.value];
+            if (motorPowerMapper != null)
+            {
+                wheelPower = motorPowerMapper.translateMotorPower(wheelPower, rightFrontMotor.getSpeed());
+            }
+            rightFrontMotor.setPower(wheelPower);
+        }
+
+        if (leftRearMotor != null)
+        {
+            wheelPower = wheelPowers[MotorType.LEFT_REAR.value];
+            if (motorPowerMapper != null)
+            {
+                wheelPower = motorPowerMapper.translateMotorPower(wheelPower, leftRearMotor.getSpeed());
+            }
+            leftRearMotor.setPower(wheelPower);
+        }
+
+        if (rightRearMotor != null)
+        {
+            wheelPower = wheelPowers[MotorType.RIGHT_REAR.value];
+            if (motorPowerMapper != null)
+            {
+                wheelPower = motorPowerMapper.translateMotorPower(wheelPower, rightRearMotor.getSpeed());
+            }
+            rightRearMotor.setPower(wheelPower);
+        }
 
         if (debugEnabled)
         {
@@ -1128,14 +1296,14 @@ public class TrcDriveBase implements TrcTaskMgr.Task
     /**
      * This method normalizes the power to the four wheels for mecanum drive.
      *
-     * @param wheelSpeeds specifies the wheel speed of all four wheels.
+     * @param wheelPowers specifies the wheel power of all four wheels.
      */
-    private void normalize(double[] wheelSpeeds)
+    private void normalize(double[] wheelPowers)
     {
-        double maxMagnitude = Math.abs(wheelSpeeds[0]);
-        for (int i = 1; i < wheelSpeeds.length; i++)
+        double maxMagnitude = Math.abs(wheelPowers[0]);
+        for (int i = 1; i < wheelPowers.length; i++)
         {
-            double magnitude = Math.abs(wheelSpeeds[i]);
+            double magnitude = Math.abs(wheelPowers[i]);
             if (magnitude > maxMagnitude)
             {
                 maxMagnitude = magnitude;
@@ -1144,9 +1312,9 @@ public class TrcDriveBase implements TrcTaskMgr.Task
 
         if (maxMagnitude > 1.0)
         {
-            for (int i = 0; i < wheelSpeeds.length; i++)
+            for (int i = 0; i < wheelPowers.length; i++)
             {
-                wheelSpeeds[i] /= maxMagnitude;
+                wheelPowers[i] /= maxMagnitude;
             }
         }
     }   //normalize
@@ -1155,24 +1323,19 @@ public class TrcDriveBase implements TrcTaskMgr.Task
     // Implements TrcTaskMgr.Task
     //
 
-    @Override
-    public void startTask(TrcRobot.RunMode runMode)
-    {
-    }   //startTask
-
     /**
      * This method is called when the competition mode is about to end.
      *
+     * @param taskType specifies the type of task being run.
      * @param runMode specifies the competition mode that is about to end (e.g. Autonomous, TeleOp, Test).
      */
-    @Override
-    public void stopTask(TrcRobot.RunMode runMode)
+    public void stopTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
         final String funcName = "stopTask";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "mode=%s", runMode.toString());
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "taskType=%s,runMode=%s", taskType, runMode);
         }
 
         if (runMode != TrcRobot.RunMode.DISABLED_MODE)
@@ -1186,29 +1349,19 @@ public class TrcDriveBase implements TrcTaskMgr.Task
         }
     }   //stopTask
 
-    @Override
-    public void prePeriodicTask(TrcRobot.RunMode runMode)
-    {
-    }   //prePeriodicTask
-
-    @Override
-    public void postPeriodicTask(TrcRobot.RunMode runMode)
-    {
-    }   //postPeriodicTask
-
     /**
      * This method is called periodically to monitor the encoders and gyro to update the odometry data.
      *
+     * @param taskType specifies the type of task being run.
      * @param runMode specifies the competition mode that is running. (e.g. Autonomous, TeleOp, Test).
      */
-    @Override
-    public void preContinuousTask(TrcRobot.RunMode runMode)
+    public void preContinuousTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
         final String funcName = "preContinuousTask";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "mode=%s", runMode.toString());
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "taskType=%s,runMode=%s", taskType, runMode);
         }
 
         //
@@ -1349,10 +1502,5 @@ public class TrcDriveBase implements TrcTaskMgr.Task
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
         }
     }   //preContinuousTask
-
-    @Override
-    public void postContinuousTask(TrcRobot.RunMode runMode)
-    {
-    }   //postContinuousTask
 
 }   //class TrcDriveBase

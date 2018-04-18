@@ -38,23 +38,25 @@ import java.util.Arrays;
  * boundary, it will keep track of the number of crossovers and will adjust the value so it doesn't wrap in effect
  * converting cardinal heading back to cartesian heading.
  */
-public class TrcCardinalConverter<D> implements TrcTaskMgr.Task
+public class TrcCardinalConverter<D>
 {
     private static final String moduleName = "TrcCardinalConverter";
     private static final boolean debugEnabled = false;
     private static final boolean tracingEnabled = false;
+    private static final boolean useGlobalTracer = false;
     private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
     private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
 
     private final String instanceName;
-    private TrcSensor<D> sensor;
-    private D dataType;
-    private int numAxes;
-    private double[] cardinalRangeLows;
-    private double[] cardinalRangeHighs;
-    private TrcSensor.SensorData<Double>[] prevData;
-    private int[] numCrossovers;
+    private final TrcSensor<D> sensor;
+    private final D dataType;
+    private final int numAxes;
+    private final TrcTaskMgr.TaskObject preContinuousTaskObj;
+    private final double[] cardinalRangeLows;
+    private final double[] cardinalRangeHighs;
+    private final TrcSensor.SensorData<Double>[] prevData;
+    private final int[] numCrossovers;
     private boolean enabled = false;
 
     /**
@@ -64,11 +66,14 @@ public class TrcCardinalConverter<D> implements TrcTaskMgr.Task
      * @param sensor specifies the sensor object that needs data unwrapping.
      * @param dataType specifies the data type to be unwrapped.
      */
-    public TrcCardinalConverter(final String instanceName, TrcSensor<D> sensor, D dataType)
+    @SuppressWarnings("unchecked")
+    public TrcCardinalConverter(final String instanceName, final TrcSensor<D> sensor, final D dataType)
     {
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
+            dbgTrace = useGlobalTracer?
+                TrcDbgTrace.getGlobalTracer():
+                new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         if (sensor == null)
@@ -80,6 +85,8 @@ public class TrcCardinalConverter<D> implements TrcTaskMgr.Task
         this.sensor = sensor;
         this.dataType = dataType;
         numAxes = sensor.getNumAxes();
+        preContinuousTaskObj = TrcTaskMgr.getInstance().createTask(
+            instanceName + ".preContinuous", this::preContinuousTask);
 
         cardinalRangeLows = new double[numAxes];
         cardinalRangeHighs = new double[numAxes];
@@ -129,28 +136,32 @@ public class TrcCardinalConverter<D> implements TrcTaskMgr.Task
      *
      * @param enabled specifies true for enabling the converter, disabling it otherwise.
      */
-    public void setEnabled(boolean enabled)
+    public void setTaskEnabled(boolean enabled)
     {
-        final String funcName = "setEnabled";
+        final String funcName = "setTaskEnabled";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "enabled=%s", Boolean.toString(enabled));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "enabled=%b", enabled);
         }
 
         if (!this.enabled && enabled)
         {
             reset();
-            TrcTaskMgr.getInstance().registerTask(instanceName, this, TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            preContinuousTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
         }
         else if (this.enabled && !enabled)
         {
             reset();
-            TrcTaskMgr.getInstance().unregisterTask(this, TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            preContinuousTaskObj.unregisterTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
         }
         this.enabled = enabled;
-    }   //setEnabled
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+    }   //setTaskEnabled
 
     /**
      * This method resets the indexed converter.
@@ -248,69 +259,47 @@ public class TrcCardinalConverter<D> implements TrcTaskMgr.Task
     // Implements TrcTaskMgr.Task
     //
 
-    @Override
-    public void startTask(TrcRobot.RunMode runMode)
-    {
-    }   //startTask
-
-    @Override
-    public void stopTask(TrcRobot.RunMode runMode)
-    {
-    }   //stopTask
-
-    @Override
-    public void prePeriodicTask(TrcRobot.RunMode runMode)
-    {
-    }   //prePeriodicTask
-
-    @Override
-    public void postPeriodicTask(TrcRobot.RunMode runMode)
-    {
-    }   //postPeriodicTask
-
     /**
      * This method is called periodically to check for range crossovers.
      *
+     * @param taskType specifies the type of task being run.
      * @param runMode specifies the competition mode that is running.
      */
-    @Override
-    public void preContinuousTask(TrcRobot.RunMode runMode)
+    public void preContinuousTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
         final String funcName = "preContinuousTask";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "mode=%s", runMode.toString());
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "taskType=%s,runMode=%s", taskType, runMode);
         }
 
         for (int i = 0; i < numAxes; i++)
         {
             TrcSensor.SensorData<Double> data = sensor.getProcessedData(i, dataType);
 
-            if (Math.abs(data.value - prevData[i].value) > (cardinalRangeHighs[i] - cardinalRangeLows[i])/2.0)
+            if (data != null)
             {
-                if (data.value > prevData[i].value)
+                if (Math.abs(data.value - prevData[i].value) > (cardinalRangeHighs[i] - cardinalRangeLows[i])/2.0)
                 {
-                    numCrossovers[i]--;
+                    if (data.value > prevData[i].value)
+                    {
+                        numCrossovers[i]--;
+                    }
+                    else
+                    {
+                        numCrossovers[i]++;
+                    }
                 }
-                else
-                {
-                    numCrossovers[i]++;
-                }
+                prevData[i] = data;
             }
-            prevData[i] = data;
         }
 
         if (debugEnabled)
         {
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK,
-                               "! (numCrossovers=%s)", Arrays.toString(numCrossovers));
+                "! (numCrossovers=%s)", Arrays.toString(numCrossovers));
         }
     }   //preContinuousTask
-
-    @Override
-    public void postContinuousTask(TrcRobot.RunMode runMode)
-    {
-    }   //postContinuousTask
 
 }   //class TrcCardinalConverter

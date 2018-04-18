@@ -28,11 +28,12 @@ package trclib;
  * supports both regular chain config and loop chain config.
  * https://www.maxbotix.com/documents/LV-MaxSonar-EZ_Datasheet.pdf
  */
-public class TrcMaxbotixSonarArray implements TrcTaskMgr.Task
+public class TrcMaxbotixSonarArray
 {
     private static final String moduleName = "TrcMaxbotixSonarArray";
     private static final boolean debugEnabled = false;
     private static final boolean tracingEnabled = false;
+    private static final boolean useGlobalTracer = false;
     private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
     private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
@@ -48,13 +49,15 @@ public class TrcMaxbotixSonarArray implements TrcTaskMgr.Task
     }   //State
 
     private final String instanceName;
-    private TrcAnalogInput[] sensors;
-    private TrcDigitalOutput rx;
-    private boolean loopConfig;
-    private TrcStateMachine<State> sm;
-    private TrcTimer timer;
-    private TrcEvent event;
+    private final TrcAnalogInput[] sensors;
+    private final TrcDigitalOutput rx;
+    private final boolean loopConfig;
+    private final TrcTaskMgr.TaskObject preContinuousTaskObj;
+    private final TrcStateMachine<State> sm;
+    private final TrcTimer timer;
+    private final TrcEvent event;
     private boolean autoRepeat = false;
+    private boolean rangingStarted = false;
 
     /**
      * Constructor: Creates an instance of the object.
@@ -65,18 +68,22 @@ public class TrcMaxbotixSonarArray implements TrcTaskMgr.Task
      * @param loopConfig specifies true if the sensor array is wired in loop configuration, false otherwise.
      */
     public TrcMaxbotixSonarArray(
-            final String instanceName, TrcAnalogInput[] sensors, TrcDigitalOutput rx, boolean loopConfig)
+        final String instanceName, final TrcAnalogInput[] sensors, final TrcDigitalOutput rx,
+        final boolean loopConfig)
     {
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(
-                    moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
+            dbgTrace = useGlobalTracer?
+                TrcDbgTrace.getGlobalTracer():
+                new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         this.instanceName = instanceName;
         this.sensors = sensors;
         this.rx = rx;
         this.loopConfig = loopConfig;
+        preContinuousTaskObj = TrcTaskMgr.getInstance().createTask(
+            instanceName + ".preContinuous", this::preContinuousTask);
         sm = new TrcStateMachine<>(instanceName);
         timer = new TrcTimer(instanceName);
         event = new TrcEvent(instanceName);
@@ -89,9 +96,21 @@ public class TrcMaxbotixSonarArray implements TrcTaskMgr.Task
      * @param sensors specifies an array of Maxbotix ultrasonic sensors.
      * @param rx specifies the digital output channel the RX pin is connected to.
      */
-    public TrcMaxbotixSonarArray(final String instanceName, TrcAnalogInput[] sensors, TrcDigitalOutput rx)
+    public TrcMaxbotixSonarArray(final String instanceName, final TrcAnalogInput[] sensors, final TrcDigitalOutput rx)
     {
         this(instanceName, sensors, rx, false);
+    }   //TrcMaxbotixSonarArray
+
+    /**
+     * Constructor: Creates an instance of the object.
+     *
+     * @param instanceName specifies the instance name.
+     * @param sensor specifies a single Maxbotix ultrasonic sensor.
+     * @param rx specifies the digital output channel the RX pin is connected to.
+     */
+    public TrcMaxbotixSonarArray(final String instanceName, final TrcAnalogInput sensor, final TrcDigitalOutput rx)
+    {
+        this(instanceName, new TrcAnalogInput[] {sensor}, rx, false);
     }   //TrcMaxbotixSonarArray
 
     /**
@@ -103,6 +122,24 @@ public class TrcMaxbotixSonarArray implements TrcTaskMgr.Task
     {
         return instanceName;
     }   //toString
+
+    /**
+     * This method checks if the sonar array is ranging.
+     *
+     * @return true if the sonar array is ranging, false otherwise.
+     */
+    public boolean isRanging()
+    {
+        final String funcName = "isRanging";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%b", rangingStarted);
+        }
+
+        return rangingStarted;
+    }   //isRanging
 
     /**
      * This method is called to start the ranging cycle.
@@ -124,7 +161,8 @@ public class TrcMaxbotixSonarArray implements TrcTaskMgr.Task
         {
             this.autoRepeat = autoRepeat;
         }
-        setEnabled(true);
+        setTaskEnabled(true);
+        rangingStarted = true;
 
         if (debugEnabled)
         {
@@ -155,10 +193,17 @@ public class TrcMaxbotixSonarArray implements TrcTaskMgr.Task
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        if (!loopConfig && autoRepeat)
+        //
+        // In loop config mode, ranging will never stop once started.
+        //
+        if (!loopConfig)
         {
-            autoRepeat = false;
-            setEnabled(false);
+            if (autoRepeat)
+            {
+                autoRepeat = false;
+                setTaskEnabled(false);
+            }
+            rangingStarted = false;
         }
     }   //stopRanging
 
@@ -178,70 +223,49 @@ public class TrcMaxbotixSonarArray implements TrcTaskMgr.Task
      *
      * @param enabled specifies true to start the task, false otherwise.
      */
-    private void setEnabled(boolean enabled)
+    private void setTaskEnabled(boolean enabled)
     {
-        final String funcName = "setEnabled";
+        final String funcName = "setTaskEnabled";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC, "enabled=%s", Boolean.toString(enabled));
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC, "enabled=%b", enabled);
         }
 
-        TrcTaskMgr taskMgr = TrcTaskMgr.getInstance();
         if (enabled)
         {
-            taskMgr.registerTask(instanceName, this, TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            preContinuousTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
             sm.start(State.PULL_RX_HIGH);
         }
         else
         {
             sm.stop();
-            taskMgr.unregisterTask(this, TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            preContinuousTaskObj.unregisterTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
         }
 
         if (debugEnabled)
         {
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC);
         }
-    }   //setEnabled
+    }   //setTaskEnabled
 
     //
     // Implements TrcTaskMgr.Task interface.
     //
 
-    @Override
-    public void startTask(TrcRobot.RunMode runMode)
-    {
-    }   //startTask
-
-    @Override
-    public void stopTask(TrcRobot.RunMode runMode)
-    {
-    }   //stopTask
-
-    @Override
-    public void prePeriodicTask(TrcRobot.RunMode runMode)
-    {
-    }   //prePeriodicTask
-
-    @Override
-    public void postPeriodicTask(TrcRobot.RunMode runMode)
-    {
-    }   //postPeriodicTask
-
     /**
      * This method is called periodically to run the state machine that generates teh RX pulse.
      *
+     * @param taskType specifies the type of task being run.
      * @param runMode specifies the competition mode that is running. (e.g. Autonomous, TeleOp, Test).
      */
-    @Override
-    public void preContinuousTask(TrcRobot.RunMode runMode)
+    public void preContinuousTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
         final String funcName = "preContinuousTask";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "runMode=%s", runMode);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "taskType=%s,runMode=%s", taskType, runMode);
         }
 
         if (sm.isReady())
@@ -271,7 +295,7 @@ public class TrcMaxbotixSonarArray implements TrcTaskMgr.Task
                     break;
 
                 case DONE:
-                    setEnabled(false);
+                    setTaskEnabled(false);
                     break;
             }
         }
@@ -281,10 +305,5 @@ public class TrcMaxbotixSonarArray implements TrcTaskMgr.Task
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
         }
     }   //preContinuousTask
-
-    @Override
-    public void postContinuousTask(TrcRobot.RunMode runMode)
-    {
-    }   //postContinuousTask
 
 }   //class TrcMaxbotixSonarArray

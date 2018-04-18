@@ -31,16 +31,19 @@ package trclib;
  * If the motor controller hardware support these features, the platform dependent class should override these methods
  * to provide the support in hardware.
  */
-public abstract class TrcMotor implements TrcMotorController, TrcTaskMgr.Task, TrcDigitalTrigger.TriggerHandler
+public abstract class TrcMotor implements TrcMotorController
 {
-    private static final String moduleName = "TrcMotor";
-    private static final boolean debugEnabled = false;
-    private static final boolean tracingEnabled = false;
-    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
-    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
-    private TrcDbgTrace dbgTrace = null;
+    protected static final String moduleName = "TrcMotor";
+    protected static final boolean debugEnabled = false;
+    protected static final boolean tracingEnabled = false;
+    protected static final boolean useGlobalTracer = false;
+    protected static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    protected static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
+    protected TrcDbgTrace dbgTrace = null;
 
     private final String instanceName;
+    private final TrcTaskMgr.TaskObject stopTaskObj;
+    private final TrcTaskMgr.TaskObject preContinuousTaskObj;
     private TrcDigitalTrigger digitalTrigger = null;
     private boolean speedTaskEnabled = false;
     private double speed = 0.0;
@@ -54,13 +57,17 @@ public abstract class TrcMotor implements TrcMotorController, TrcTaskMgr.Task, T
      */
     public TrcMotor(final String instanceName)
     {
-        this.instanceName = instanceName;
-
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(
-                    moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
+            dbgTrace = useGlobalTracer?
+                TrcDbgTrace.getGlobalTracer():
+                new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
+
+        this.instanceName = instanceName;
+        TrcTaskMgr taskMgr = TrcTaskMgr.getInstance();
+        stopTaskObj = taskMgr.createTask(instanceName + ".stop", this::stopTask);
+        preContinuousTaskObj = taskMgr.createTask(instanceName + ".preContinuousTask", this::preContinuousTask);
     }   //TrcMotor
 
     /**
@@ -89,8 +96,8 @@ public abstract class TrcMotor implements TrcMotorController, TrcTaskMgr.Task, T
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        digitalTrigger = new TrcDigitalTrigger(instanceName, digitalInput, this);
-        digitalTrigger.setEnabled(true);
+        digitalTrigger = new TrcDigitalTrigger(instanceName, digitalInput, this::triggerEvent);
+        digitalTrigger.setTaskEnabled(true);
     }   //resetPositionOnDigitalInput
 
     /**
@@ -110,18 +117,17 @@ public abstract class TrcMotor implements TrcMotorController, TrcTaskMgr.Task, T
         }
 
         speedTaskEnabled = enabled;
-        TrcTaskMgr taskMgr = TrcTaskMgr.getInstance();
         if (enabled)
         {
             prevTime = TrcUtil.getCurrentTime();
             prevPos = getPosition();
-            taskMgr.registerTask(instanceName, this, TrcTaskMgr.TaskType.STOP_TASK);
-            taskMgr.registerTask(instanceName, this, TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            stopTaskObj.registerTask(TrcTaskMgr.TaskType.STOP_TASK);
+            preContinuousTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
         }
         else
         {
-            taskMgr.unregisterTask(this, TrcTaskMgr.TaskType.STOP_TASK);
-            taskMgr.unregisterTask(this, TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            stopTaskObj.unregisterTask(TrcTaskMgr.TaskType.STOP_TASK);
+            preContinuousTaskObj.unregisterTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
         }
 
         if (debugEnabled)
@@ -166,19 +172,19 @@ public abstract class TrcMotor implements TrcMotorController, TrcTaskMgr.Task, T
     // Implements TrcTaskMgr.Task
     //
 
-    @Override
-    public void startTask(TrcRobot.RunMode runMode)
-    {
-    }   //startTask
-
-    @Override
-    public void stopTask(TrcRobot.RunMode runMode)
+    /**
+     * This method is called when the competition mode is about to end to stop the task.
+     *
+     * @param taskType specifies the type of task being run.
+     * @param runMode specifies the competition mode that is running.
+     */
+    public void stopTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
         final String funcName = "stopTask";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "mode=%s", runMode.toString());
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "taskType=%s,runMode=%s", taskType, runMode);
         }
 
         setSpeedTaskEnabled(false);
@@ -189,29 +195,19 @@ public abstract class TrcMotor implements TrcMotorController, TrcTaskMgr.Task, T
         }
     }   //stopTask
 
-    @Override
-    public void prePeriodicTask(TrcRobot.RunMode runMode)
-    {
-    }   //prePeriodicTask
-
-    @Override
-    public void postPeriodicTask(TrcRobot.RunMode runMode)
-    {
-    }   //postPeriodicTask
-
     /**
      * This task is run periodically to calculate he speed of the motor.
      *
+     * @param taskType specifies the type of task being run.
      * @param runMode specifies the competition mode that is running.
      */
-    @Override
-    public void preContinuousTask(TrcRobot.RunMode runMode)
+    public void preContinuousTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
         final String funcName = "preContinuousTask";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "mode=%s", runMode.toString());
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "taskType=%s,runMode=%s", taskType, runMode);
         }
 
         double currTime = TrcUtil.getCurrentTime();
@@ -226,11 +222,6 @@ public abstract class TrcMotor implements TrcMotorController, TrcTaskMgr.Task, T
         }
     }   //preContinuousTask
 
-    @Override
-    public void postContinuousTask(TrcRobot.RunMode runMode)
-    {
-    }   //postContinuousTask
-
     //
     // Implements TrcDigitalTrigger.TriggerHandler.
     //
@@ -238,17 +229,15 @@ public abstract class TrcMotor implements TrcMotorController, TrcTaskMgr.Task, T
     /**
      * This method is called when the digital input device has changed state.
      *
-     * @param digitalTrigger specifies this DigitalTrigger instance as the source of the event.
      * @param active specifies true if the digital device state is active, false otherwise.
      */
-    @Override
-    public void triggerEvent(TrcDigitalTrigger digitalTrigger, boolean active)
+    public void triggerEvent(boolean active)
     {
         final String funcName = "triggerEvent";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.CALLBK,
                     "trigger=%s,active=%s", digitalTrigger, Boolean.toString(active));
         }
 
@@ -256,7 +245,7 @@ public abstract class TrcMotor implements TrcMotorController, TrcTaskMgr.Task, T
 
         if (debugEnabled)
         {
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.CALLBK);
         }
     }   //triggerEvent
 

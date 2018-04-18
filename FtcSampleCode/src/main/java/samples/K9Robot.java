@@ -44,7 +44,7 @@ import trclib.TrcPidController;
 import trclib.TrcPidDrive;
 import trclib.TrcRobot;
 
-public class K9Robot implements TrcPidController.PidInput, TrcAnalogTrigger.TriggerHandler
+public class K9Robot
 {
     //
     // PID drive constants.
@@ -195,11 +195,11 @@ public class K9Robot implements TrcPidController.PidInput, TrcAnalogTrigger.Trig
         drivePidCtrl = new TrcPidController(
                 "drivePid",
                 new TrcPidController.PidCoefficients(DRIVE_KP, DRIVE_KI, DRIVE_KD),
-                DRIVE_TOLERANCE, this);
+                DRIVE_TOLERANCE, driveBase::getYPosition);
         turnPidCtrl = new TrcPidController(
                 "turnPid",
                 new TrcPidController.PidCoefficients(TURN_KP, TURN_KI, TURN_KD),
-                TURN_TOLERANCE, this);
+                TURN_TOLERANCE, driveBase::getHeading);
         pidDrive = new TrcPidDrive("pidDrive", driveBase, null, drivePidCtrl, turnPidCtrl);
         //
         // PID line follow using color sensor.
@@ -207,39 +207,85 @@ public class K9Robot implements TrcPidController.PidInput, TrcAnalogTrigger.Trig
         colorPidCtrl = new TrcPidController(
                 "lightPid",
                 new TrcPidController.PidCoefficients(COLOR_KP, COLOR_KI, COLOR_KD),
-                COLOR_TOLERANCE, this);
+                COLOR_TOLERANCE,
+                () ->
+                {
+                    double input = colorSensor.sensor.alpha();
+                    //
+                    // Give it a deadband to minimize fish tailing.
+                    //
+                    if (Math.abs(input - COLOR_LINE_EDGE_LEVEL) < COLOR_LINE_EDGE_DEADBAND)
+                    {
+                        input = COLOR_LINE_EDGE_LEVEL;
+                    }
+                    return input;
+                });
         colorPidCtrl.setAbsoluteSetPoint(true);
         pidLineFollow = new TrcPidDrive(
                 "lineFollow", driveBase, null, drivePidCtrl, colorPidCtrl);
         colorTrigger = new TrcAnalogTrigger<>(
                 "colorTrigger", colorSensor, 0, FtcMRColorSensor.DataType.WHITE,
-                new double[]{COLOR_BLACK, COLOR_WHITE}, this);
+                new double[]{COLOR_BLACK, COLOR_WHITE}, this::triggerEvent);
         //
         // PID line follow using Optical Distance sensor.
         //
         lightPidCtrl = new TrcPidController(
                 "lightPid",
                 new TrcPidController.PidCoefficients(LIGHT_KP, LIGHT_KI, LIGHT_KD),
-                LIGHT_TOLERANCE, this);
+                LIGHT_TOLERANCE, lightSensor.sensor::getRawLightDetected);
         lightPidCtrl.setAbsoluteSetPoint(true);
         lineFollowDrive = new TrcPidDrive(
                 "lineFollow", driveBase, null, drivePidCtrl, lightPidCtrl);
 
         lightTrigger = new TrcAnalogTrigger<>(
                 "lightTrigger", lightSensor, 0, FtcOpticalDistanceSensor.DataType.RAW_LIGHT_DETECTED,
-                new double[]{LIGHT_DARK_LEVEL, LIGHT_WHITE_LEVEL}, this);
+                new double[]{LIGHT_DARK_LEVEL, LIGHT_WHITE_LEVEL}, this::triggerEvent);
         //
         // PID IR seeking.
         //
         irDrivePidCtrl = new TrcPidController(
                 "irDrivePid",
                 new TrcPidController.PidCoefficients(IRDRIVE_KP, IRDRIVE_KI, IRDRIVE_KD),
-                IRDRIVE_TOLERANCE, this);
+                IRDRIVE_TOLERANCE,
+                () ->
+                {
+                    double input;
+                    //
+                    // Get the IR strength.
+                    //
+                    if (irSeeker.signalDetected())
+                    {
+                        input = irSeeker.getStrength();
+                        prevIrStrength = input;
+                    }
+                    else
+                    {
+                        input = prevIrStrength;
+                    }
+                    return input;
+                });
         irDrivePidCtrl.setAbsoluteSetPoint(true);
         irTurnPidCtrl = new TrcPidController(
                 "irTurnPid",
                 new TrcPidController.PidCoefficients(IRTURN_KP, IRTURN_KI, IRTURN_KD),
-                IRTURN_TOLERANCE, this);
+                IRTURN_TOLERANCE,
+                () ->
+                {
+                    double input;
+                    //
+                    // Get the IR direction.
+                    //
+                    if (irSeeker.signalDetected())
+                    {
+                        input = irSeeker.getAngle();
+                        prevIrAngle = input;
+                    }
+                    else
+                    {
+                        input = prevIrAngle;
+                    }
+                    return input;
+                });
         irDrivePidCtrl.setAbsoluteSetPoint(true);
         pidSeekIr = new TrcPidDrive(
                 "seekIr", driveBase, null, irDrivePidCtrl, irTurnPidCtrl);
@@ -273,102 +319,18 @@ public class K9Robot implements TrcPidController.PidInput, TrcAnalogTrigger.Trig
         colorSensor.sensor.enableLed(false);
     }   //stopMode
 
-    //
-    // Implements TrcPidController.PidInput
-    //
-
-    @Override
-    public double getInput(TrcPidController pidCtrl)
+    /**
+     * This method is called when a threshold has been crossed.
+     *
+     * @param currZone specifies the zone it is going into.
+     * @param prevZone specifies the zone it is coming out of.
+     * @param zoneValue specifies the actual sensor value.
+     */
+    public void triggerEvent(int currZone, int prevZone, double zoneValue)
     {
-        double input = 0.0;
-
-        if (pidCtrl == drivePidCtrl)
+        if (pidDrive.isActive() && currZone > 0)
         {
-            input = driveBase.getYPosition();
-        }
-        else if (pidCtrl == turnPidCtrl)
-        {
-            input = driveBase.getHeading();
-        }
-        else if (pidCtrl == colorPidCtrl)
-        {
-            input = colorSensor.sensor.alpha();
-            //
-            // Give it a deadband to minimize fish tailing.
-            //
-            if (Math.abs(input - COLOR_LINE_EDGE_LEVEL) < COLOR_LINE_EDGE_DEADBAND)
-            {
-                input = COLOR_LINE_EDGE_LEVEL;
-            }
-        }
-        else if (pidCtrl == lightPidCtrl)
-        {
-            //
-            // Get the light sensor reading.
-            //
-            input = lightSensor.sensor.getRawLightDetected();
-        }
-        else if (pidCtrl == irDrivePidCtrl)
-        {
-            //
-            // Get the IR strength.
-            //
-            if (irSeeker.signalDetected())
-            {
-                input = irSeeker.getStrength();
-                prevIrStrength = input;
-            }
-            else
-            {
-                input = prevIrStrength;
-            }
-        }
-        else if (pidCtrl == irTurnPidCtrl)
-        {
-            //
-            // Get the IR direction.
-            //
-            if (irSeeker.signalDetected())
-            {
-                input = irSeeker.getAngle();
-                prevIrAngle = input;
-            }
-            else
-            {
-                input = prevIrAngle;
-            }
-        }
-
-        return input;
-    }   //getInput
-
-    //
-    // Implements TrcAnalogTrigger.TriggerHandler
-    //
-
-    @Override
-    public void triggerEvent(
-            TrcAnalogTrigger analogTrigger, int zoneIndex, double zoneValue)
-    {
-        if (analogTrigger == colorTrigger && pidDrive.isActive())
-        {
-            //
-            // Line is detected, interrupt PID drive.
-            //
-            if (zoneIndex > 0)
-            {
-                pidDrive.cancel();
-            }
-        }
-        else if (analogTrigger == lightTrigger && pidDrive.isActive())
-        {
-            //
-            // Line is detected, interrupt PID drive.
-            //
-            if (zoneIndex > 0)
-            {
-                pidDrive.cancel();
-            }
+            pidDrive.cancel();
         }
     }   //triggerEvent
 

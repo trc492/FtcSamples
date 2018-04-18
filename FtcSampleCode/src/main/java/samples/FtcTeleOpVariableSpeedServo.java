@@ -30,6 +30,7 @@ import ftclib.FtcOpMode;
 import ftclib.FtcServo;
 import hallib.HalDashboard;
 import trclib.TrcEnhancedServo;
+import trclib.TrcRobot;
 
 @TeleOp(name="TeleOp: Variable Speed Servo", group="3543TeleOpSamples")
 @Disabled
@@ -78,7 +79,7 @@ public class FtcTeleOpVariableSpeedServo extends FtcOpMode
     //
 
     @Override
-    public void startMode()
+    public void startMode(TrcRobot.RunMode prevMode)
     {
         dashboard.clearDisplay();
     }   //startMode

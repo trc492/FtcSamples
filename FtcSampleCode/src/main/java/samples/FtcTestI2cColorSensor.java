@@ -34,6 +34,7 @@ import FtcSampleCode.R;
 import ftclib.FtcMRI2cColorSensor;
 import ftclib.FtcOpMode;
 import hallib.HalDashboard;
+import trclib.TrcRobot;
 import trclib.TrcSensor;
 
 @TeleOp(name="Test: I2C Color Sensor", group="3543TestSamples")
@@ -69,7 +70,7 @@ public class FtcTestI2cColorSensor extends FtcOpMode
     //
 
     @Override
-    public void startMode()
+    public void startMode(TrcRobot.RunMode prevMode)
     {
         dashboard.clearDisplay();
     }   //startMode

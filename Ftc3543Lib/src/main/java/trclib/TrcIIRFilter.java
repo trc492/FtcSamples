@@ -27,13 +27,6 @@ package trclib;
  */
 public class TrcIIRFilter extends TrcFilter
 {
-    private static final String moduleName = "TrcIIRFilter";
-    private static final boolean debugEnabled = false;
-    private static final boolean tracingEnabled = false;
-    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
-    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
-    private TrcDbgTrace dbgTrace = null;
-
     private static final double DEF_WEIGHT = 0.9;
 
     private final String instanceName;
@@ -49,11 +42,6 @@ public class TrcIIRFilter extends TrcFilter
     public TrcIIRFilter(final String instanceName, double weight)
     {
         super(instanceName);
-
-        if (debugEnabled)
-        {
-            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
-        }
 
         if (weight < 0.0 || weight > 1.0)
         {

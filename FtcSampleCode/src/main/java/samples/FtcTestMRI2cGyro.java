@@ -33,6 +33,7 @@ import FtcSampleCode.R;
 import ftclib.FtcMRI2cGyro;
 import ftclib.FtcOpMode;
 import hallib.HalDashboard;
+import trclib.TrcRobot;
 import trclib.TrcSensor;
 
 @TeleOp(name="Test: Modern Robotics I2C Gyro", group="3543TestSamples")
@@ -63,7 +64,7 @@ public class FtcTestMRI2cGyro extends FtcOpMode
     //
 
     @Override
-    public void startMode()
+    public void startMode(TrcRobot.RunMode prevMode)
     {
         dashboard.clearDisplay();
     }   //startMode

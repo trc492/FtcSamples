@@ -34,9 +34,12 @@ public class TrcTaskMgr
     private static final String moduleName = "TrcTaskMgr";
     private static final boolean debugEnabled = false;
     private static final boolean tracingEnabled = false;
+    private static final boolean useGlobalTracer = false;
     private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
     private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
+
+    private static final long taskNanoTimeThreshold = 10000000; // 10 msec
 
     /**
      * These are the task type TrcTaskMgr supports:
@@ -46,34 +49,41 @@ public class TrcTaskMgr
         /**
          * START_TASK is called one time before a competition mode is about to start.
          */
-        START_TASK,
+        START_TASK(0),
 
         /**
          * STOP_TASK is called one time before a competition mode is about to end.
          */
-        STOP_TASK,
+        STOP_TASK(1),
 
         /**
          * PREPERIODIC_TASK is called periodically at a rate about 50Hz before runPeriodic().
          */
-        PREPERIODIC_TASK,
+        PREPERIODIC_TASK(2),
 
         /**
          * POSTPERIODIC_TASK is called periodically at a rate about 50Hz after runPeriodic().
          */
-        POSTPERIODIC_TASK,
+        POSTPERIODIC_TASK(3),
 
         /**
          * PRECONTINUOUS_TASK is called periodically at a rate as fast as the scheduler is able to loop and is run
          * before runContinuous() typically 10 msec interval.
          */
-        PRECONTINUOUS_TASK,
+        PRECONTINUOUS_TASK(4),
 
         /**
          * POSTCONTINUOUS_TASK is called periodically at a rate as fast as the schedule is able to loop and is run
          * after runContinuous() typically 10 msec interval.
          */
-        POSTCONTINUOUS_TASK
+        POSTCONTINUOUS_TASK(5);
+
+        public int value;
+
+        private TaskType(int value)
+        {
+            this.value = value;
+        }   //TaskType
 
     }   //enum TaskType
 
@@ -83,58 +93,44 @@ public class TrcTaskMgr
     public interface Task
     {
         /**
-         * This method contains code that will initialize the task before a competition mode is about to start.
-         * Typically, if the task is a robot subsystem, you may put last minute mode specific initialization code
-         * here. Most of the time, you don't put any code here because all initialization is done in initRobot().
-         * But sometimes, you may want to delay a certain initialization until right before competition starts.
-         * For example, you may want to reset the gyro heading right before competition starts to prevent drifting.
+         * This method is called at the appropriate time this task is registered for.
          *
-         * @param runMode specifies the competition mode that is about to start (e.g. Autonomous, TeleOp, Test).
-         */
-        void startTask(TrcRobot.RunMode runMode);
-
-        /**
-         * This method contains code that will clean up the task before a competition mode is about to end. Typically,
-         * if the task is a robot subsystem, you may put code to stop the robot here. Most of the time, you don't put
-         * any code here because the system will cut power to all the motors after a competition mode has ended.
+         * StartTask:
+         *  This contains code that will initialize the task before a competition mode is about to start.
+         *  Typically, if the task is a robot subsystem, you may put last minute mode specific initialization code
+         *  here. Most of the time, you don't need to register StartTask because all initialization is done in
+         *  initRobot(). But sometimes, you may want to delay a certain initialization until right before competition
+         *  starts. For example, you may want to reset the gyro heading right before competition starts to prevent
+         *  drifting.
          *
+         * StopTask:
+         *  This contains code that will clean up the task before a competition mode is about to end. Typically,
+         *  if the task is a robot subsystem, you may put code to stop the robot here. Most of the time, you don't
+         *  need to register StopTask because the system will cut power to all the motors after a competition mode
+         *  has ended.
+         *
+         * PrePeriodicTask:
+         *  This contains code that will run before runPeriodic() is called. Typically, you will put code that deals
+         *  with any input or sensor readings here so that the code in runPeriodic() will be able to make use of the
+         *  input/sensor readings produced by the code here.
+         *
+         * PostPeriodicTask:
+         *  This contains code that will run after runPeriodic() is called. Typically, you will put code that deals
+         *  with actions such as programming the motors here.
+         *
+         * PreContinuousTask:
+         *  This contains code that will run before runContinuous() is called. Typically, you will put code that deals
+         *  with any input or sensor readings that requires more frequent processing here such as integrating the gyro
+         *  rotation rate to heading.
+         *
+         * PostContinuousTask:
+         *  This contains code that will run after runContinuous() is called. Typically, you will put code that deals
+         *  with actions that requires more frequent processing.
+         *
+         * @param taskType specifies the type of task being run. This may be useful for handling multiple task types.
          * @param runMode specifies the competition mode that is about to end (e.g. Autonomous, TeleOp, Test).
          */
-        void stopTask(TrcRobot.RunMode runMode);
-
-        /**
-         * This method contains code that will run before runPeriodic() is called. Typically, you will put code that
-         * deals with any input or sensor readings here so that the code in runPeriodic() will be able to make use of
-         * the input/sensor readings produced by the code here.
-         *
-         * @param runMode specifies the competition mode that is running. (e.g. Autonomous, TeleOp, Test).
-         */
-        void prePeriodicTask(TrcRobot.RunMode runMode);
-
-        /**
-         * This method contains code that will run after runPeriodic() is called. Typically, you will put code that
-         * deals with actions such as programming the motors here.
-         *
-         * @param runMode specifies the competition mode that is running. (e.g. Autonomous, TeleOp, Test).
-         */
-        void postPeriodicTask(TrcRobot.RunMode runMode);
-
-        /**
-         * This method contains code that will run before runContinuous() is called. Typically, you will put code that
-         * deals with any input or sensor readings that requires more frequent processing here such as integrating the
-         * gyro rotation rate to heading.
-         *
-         * @param runMode specifies the competition mode that is running. (e.g. Autonomous, TeleOp, Test).
-         */
-        void preContinuousTask(TrcRobot.RunMode runMode);
-
-        /**
-         * This method contains code that will run after runContinuous() is called. Typically, you will put code that
-         * deals with actions that requires more frequent processing.
-         *
-         * @param runMode specifies the competition mode that is running. (e.g. Autonomous, TeleOp, Test).
-         */
-        void postContinuousTask(TrcRobot.RunMode runMode);
+        void runTask(TaskType taskType, TrcRobot.RunMode runMode);
 
     }   //interface Task
 
@@ -143,41 +139,42 @@ public class TrcTaskMgr
      * multi-tasking task. The created task objects will be entered into an array list of task objects to be
      * scheduled by the scheduler.
      */
-    private static class TaskObject
+    public static class TaskObject
     {
         private HashSet<TaskType> taskTypes;
         private final String taskName;
         private Task task;
-        private long prePeriodicTaskTotalNanoTime;
-        private int prePeriodicTaskTimeSlotCount;
-        private long postPeriodicTaskTotalNanoTime;
-        private int postPeriodicTaskTimeSlotCount;
-        private long preContinuousTaskTotalNanoTime;
-        private int preContinuousTaskTimeSlotCount;
-        private long postContinuousTaskTotalNanoTime;
-        private int postContinuousTaskTimeSlotCount;
+        private long[] taskTotalNanoTimes = new long[TaskType.values().length];
+        private int[] taskTimeSlotCounts = new int[TaskType.values().length];
 
         /**
-         * Constructor: Creates an instgance of the task object with the given name
+         * Constructor: Creates an instance of the task object with the given name
          * and the given task type.
          *
          * @param taskName specifies the instance name of the task.
          * @param task specifies the object that implements the TrcTaskMgr.Task interface.
          */
-        public TaskObject(final String taskName, Task task)
+        private TaskObject(final String taskName, Task task)
         {
             taskTypes = new HashSet<>();
             this.taskName = taskName;
             this.task = task;
-            prePeriodicTaskTotalNanoTime = 0;
-            prePeriodicTaskTimeSlotCount = 0;
-            postPeriodicTaskTotalNanoTime = 0;
-            postPeriodicTaskTimeSlotCount = 0;
-            preContinuousTaskTotalNanoTime = 0;
-            preContinuousTaskTimeSlotCount = 0;
-            postContinuousTaskTotalNanoTime = 0;
-            postContinuousTaskTimeSlotCount = 0;
+            for (int i = 0; i < TaskType.values().length; i++)
+            {
+                taskTotalNanoTimes[i] = 0;
+                taskTimeSlotCounts[i] = 0;
+            }
         }   //TaskObject
+
+        /**
+         * This method returns the instance name of the task.
+         *
+         * @return instance name of the class.
+         */
+        public String toString()
+        {
+            return taskName;
+        }   //toString
 
         /**
          * This method adds the given task type to the task object.
@@ -185,10 +182,17 @@ public class TrcTaskMgr
          * @param type specifies the task type.
          * @return true if successful, false if the task with that task type is already registered in the task list.
          */
-        public boolean addTaskType(TaskType type)
+        public boolean registerTask(TaskType type)
         {
-            return taskTypes.add(type);
-        }   //addTaskType
+            boolean added = false;
+
+            if (!taskTypes.contains(type))
+            {
+                added = taskTypes.add(type);
+            }
+
+            return added;
+        }   //registerTask
 
         /**
          * This method removes the given task type from the task object.
@@ -196,10 +200,10 @@ public class TrcTaskMgr
          * @param type specifies the task type.
          * @return true if successful, false if the task with that type is not found the task list.
          */
-        public boolean removeTaskType(TaskType type)
+        public boolean unregisterTask(TaskType type)
         {
             return taskTypes.remove(type);
-        }   //removeTaskType
+        }   //unregisterTask
 
         /**
          * This method checks if the given task is associated with this task object.
@@ -207,9 +211,9 @@ public class TrcTaskMgr
          * @param task specifies the task to be checked against.
          * @return true if it is the same task, false otherwise.
          */
-        public boolean isSame(Task task)
+        public boolean isSame(TaskObject taskObj)
         {
-            return task == this.task;
+            return taskObj == this;
         }   //isSame
 
         /**
@@ -234,16 +238,6 @@ public class TrcTaskMgr
         }   //hasNoType
 
         /**
-         * This method returns the instance name of the task.
-         *
-         * @return instance name of the class.
-         */
-        public String toString()
-        {
-            return taskName;
-        }   //toString
-
-        /**
          * This method returns the class object that was associated with this task object.
          *
          * @return class object associated with the task.
@@ -266,7 +260,9 @@ public class TrcTaskMgr
     {
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(moduleName, tracingEnabled, traceLevel, msgLevel);
+            dbgTrace = useGlobalTracer?
+                TrcDbgTrace.getGlobalTracer():
+                new TrcDbgTrace(moduleName, tracingEnabled, traceLevel, msgLevel);
         }
 
         instance = this;
@@ -282,74 +278,31 @@ public class TrcTaskMgr
         return instance;
     }   //getInstance
 
-    /**
-     * This method registers a class object as a cooperative multi-tasking task with the given task type.
-     *
-     * @param taskName specifies the instance name of the task.
-     * @param task specifies the class object associated with the task.
-     * @param type specifies the task type.
-     */
-    public void registerTask(final String taskName, Task task, TaskType type)
+    public TaskObject createTask(final String taskName, Task task)
     {
-        final String funcName = "registerTask";
+        final String funcName = "createTask";
+        TaskObject taskObj = null;
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "task=%s,type=%s", taskName, type.toString());
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "taskName=%s", taskName);
         }
 
-        //
-        // Check if the task object already exist. If not, create a new task object and add it to the task object list.
-        //
-        TaskObject taskObj = findTask(task);
-        if (taskObj == null)
+        taskObj = new TaskObject(taskName, task);
+        taskList.add(taskObj);
+
+        if (debugEnabled)
         {
-            taskObj = new TaskObject(taskName, task);
-            taskList.add(taskObj);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", taskObj);
         }
 
-        //
-        // Register the task type with the task object.
-        //
-        taskObj.addTaskType(type);
-    }   //registerTask
+        return taskObj;
+    }   //createTask
 
-    /**
-     * This method unregisters a task type from a task object associated with the given task class.
-     *
-     * @param task specifies the class objhect associated with the task.
-     * @param type specifies the task type.
-     */
-    public void unregisterTask(Task task, TaskType type)
+    public boolean removeTask(TaskObject taskObj)
     {
-        final String funcName = "unregisterTask";
-        TaskObject taskObj = findTask(task);
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
-                                "task=%s,type=%s", taskObj != null ? taskObj.toString() : "unknown", type.toString());
-        }
-
-        //
-        // If we found the task object associated with the given task, unregister the task type from it and if the
-        // task object has no more task type, remove it from the task list.
-        //
-        if (taskObj != null)
-        {
-            taskObj.removeTaskType(type);
-            if (taskObj.hasNoType())
-            {
-                taskList.remove(taskObj);
-            }
-        }
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
-        }
-    }   //unregisterTask
+        return taskList.remove(taskObj);
+    }   //removeTask
 
     /**
      * This method enumerates the task list and calls all the tasks that matches the given task type.
@@ -360,15 +313,15 @@ public class TrcTaskMgr
     public void executeTaskType(TaskType type, TrcRobot.RunMode mode)
     {
         final String funcName = "executeTaskType";
-        long startNanoTime;
 
         for (int i = 0; i < taskList.size(); i++)
-//        for (TaskObject taskObj: taskList)
         {
             TaskObject taskObj = taskList.get(i);
             if (taskObj.hasType(type))
             {
                 Task task = taskObj.getTask();
+                long startNanoTime = TrcUtil.getCurrentTimeNanos();
+
                 switch (type)
                 {
                     case START_TASK:
@@ -376,7 +329,7 @@ public class TrcTaskMgr
                         {
                             dbgTrace.traceInfo(funcName, "Executing StartTask %s", taskObj.toString());
                         }
-                        task.startTask(mode);
+                        task.runTask(TaskType.START_TASK, mode);
                         break;
 
                     case STOP_TASK:
@@ -384,7 +337,7 @@ public class TrcTaskMgr
                         {
                             dbgTrace.traceInfo(funcName, "Executing StopTask %s", taskObj.toString());
                         }
-                        task.stopTask(mode);
+                        task.runTask(TaskType.STOP_TASK, mode);
                         break;
 
                     case PREPERIODIC_TASK:
@@ -392,10 +345,7 @@ public class TrcTaskMgr
                         {
                             dbgTrace.traceInfo(funcName, "Executing PrePeriodicTask %s", taskObj.toString());
                         }
-                        startNanoTime = TrcUtil.getCurrentTimeNanos();
-                        task.prePeriodicTask(mode);
-                        taskObj.prePeriodicTaskTotalNanoTime += TrcUtil.getCurrentTimeNanos() - startNanoTime;
-                        taskObj.prePeriodicTaskTimeSlotCount++;
+                        task.runTask(TaskType.PREPERIODIC_TASK, mode);
                         break;
 
                     case POSTPERIODIC_TASK:
@@ -403,10 +353,7 @@ public class TrcTaskMgr
                         {
                             dbgTrace.traceInfo(funcName, "Executing PostPeriodicTask %s", taskObj.toString());
                         }
-                        startNanoTime = TrcUtil.getCurrentTimeNanos();
-                        task.postPeriodicTask(mode);
-                        taskObj.postPeriodicTaskTotalNanoTime += TrcUtil.getCurrentTimeNanos() - startNanoTime;
-                        taskObj.postPeriodicTaskTimeSlotCount++;
+                        task.runTask(TaskType.POSTPERIODIC_TASK, mode);
                         break;
 
                     case PRECONTINUOUS_TASK:
@@ -414,10 +361,7 @@ public class TrcTaskMgr
                         {
                             dbgTrace.traceInfo(funcName, "Executing PreContinuousTask %s", taskObj.toString());
                         }
-                        startNanoTime = TrcUtil.getCurrentTimeNanos();
-                        task.preContinuousTask(mode);
-                        taskObj.preContinuousTaskTotalNanoTime += TrcUtil.getCurrentTimeNanos() - startNanoTime;
-                        taskObj.preContinuousTaskTimeSlotCount++;
+                        task.runTask(TaskType.PRECONTINUOUS_TASK, mode);
                         break;
 
                     case POSTCONTINUOUS_TASK:
@@ -425,11 +369,21 @@ public class TrcTaskMgr
                         {
                             dbgTrace.traceInfo(funcName, "Executing PostContinuousTask %s", taskObj.toString());
                         }
-                        startNanoTime = TrcUtil.getCurrentTimeNanos();
-                        task.postContinuousTask(mode);
-                        taskObj.postContinuousTaskTotalNanoTime += TrcUtil.getCurrentTimeNanos() - startNanoTime;
-                        taskObj.postContinuousTaskTimeSlotCount++;
+                        task.runTask(TaskType.POSTCONTINUOUS_TASK, mode);
                         break;
+                }
+
+                long elapsedTime = TrcUtil.getCurrentTimeNanos() - startNanoTime;
+                taskObj.taskTotalNanoTimes[type.value] += elapsedTime;
+                taskObj.taskTimeSlotCounts[type.value]++;
+
+                if (debugEnabled)
+                {
+                    if (elapsedTime > taskNanoTimeThreshold)
+                    {
+                        dbgTrace.traceWarn(funcName, "%s.%s takes too long (%.3f)",
+                            taskObj.taskName, type, elapsedTime/1000000000.0);
+                    }
                 }
             }
         }
@@ -448,30 +402,15 @@ public class TrcTaskMgr
                     "TaskPerformance",
                     "%16s: PrePeriodic=%.6f, PostPeriodic=%.6f, PreContinuous=%.6f, PostContinous=%.6f",
                     taskObj.taskName,
-                    (double)taskObj.prePeriodicTaskTotalNanoTime/taskObj.prePeriodicTaskTimeSlotCount/1000000000,
-                    (double)taskObj.postPeriodicTaskTotalNanoTime/taskObj.postPeriodicTaskTimeSlotCount/1000000000,
-                    (double)taskObj.preContinuousTaskTotalNanoTime/taskObj.preContinuousTaskTimeSlotCount/1000000000,
-                    (double)taskObj.postContinuousTaskTotalNanoTime/taskObj.postContinuousTaskTimeSlotCount/1000000000);
+                    (double)taskObj.taskTotalNanoTimes[TaskType.PREPERIODIC_TASK.value]/
+                            taskObj.taskTimeSlotCounts[TaskType.PREPERIODIC_TASK.value]/1000000000,
+                    (double)taskObj.taskTotalNanoTimes[TaskType.POSTPERIODIC_TASK.value]/
+                            taskObj.taskTimeSlotCounts[TaskType.POSTPERIODIC_TASK.value]/1000000000,
+                    (double)taskObj.taskTotalNanoTimes[TaskType.PRECONTINUOUS_TASK.value]/
+                            taskObj.taskTimeSlotCounts[TaskType.PRECONTINUOUS_TASK.value]/1000000000,
+                    (double)taskObj.taskTotalNanoTimes[TaskType.POSTCONTINUOUS_TASK.value]/
+                            taskObj.taskTimeSlotCounts[TaskType.POSTCONTINUOUS_TASK.value]/1000000000);
         }
     }   //printTaskPerformanceMetrics
-
-    /**
-     * This method finds the given task in the task list and return it.
-     *
-     * @param task specifies the task to look for.
-     * @return true if found, false otherwise.
-     */
-    private TaskObject findTask(Task task)
-    {
-        for (int i = 0; i < taskList.size(); i++)
-        {
-            TaskObject taskObj = taskList.get(i);
-            if (taskObj.isSame(task))
-            {
-                return taskObj;
-            }
-        }
-        return null;
-    }   //findTask
 
 }   //class TaskMgr

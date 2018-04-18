@@ -41,6 +41,7 @@ import FtcSampleCode.R;
 import ftclib.FtcOpMode;
 import ftclib.FtcVuforia;
 import hallib.HalDashboard;
+import trclib.TrcRobot;
 
 @TeleOp(name="Test: Vuforia Targets Tracking", group="3543TestSamples")
 @Disabled
@@ -144,14 +145,14 @@ public class FtcTestVuforia extends FtcOpMode
     //
 
     @Override
-    public void startMode()
+    public void startMode(TrcRobot.RunMode prevMode)
     {
         dashboard.clearDisplay();
         vuforia.setTrackingEnabled(true);
     }   //startMode
 
     @Override
-    public void stopMode()
+    public void stopMode(TrcRobot.RunMode nextMode)
     {
         vuforia.setTrackingEnabled(false);
         if (textToSpeech != null)

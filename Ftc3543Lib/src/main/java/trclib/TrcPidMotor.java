@@ -28,14 +28,18 @@ package trclib;
  * a lower limit switch or even an upper limit switch. In addition, it has stall protection support which will detect
  * motor stall condition and will cut power to the motor preventing it from burning out.
  */
-public class TrcPidMotor implements TrcTaskMgr.Task
+public class TrcPidMotor
 {
-    private static final String moduleName = "TrcPidMotor";
-    private static final boolean debugEnabled = false;
-    private static final boolean tracingEnabled = false;
-    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
-    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
-    private TrcDbgTrace dbgTrace = null;
+    protected static final String moduleName = "TrcPidMotor";
+    protected static final boolean debugEnabled = false;
+    protected static final boolean tracingEnabled = false;
+    protected static final boolean useGlobalTracer = false;
+    protected static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    protected static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
+    protected TrcDbgTrace dbgTrace = null;
+    private TrcDbgTrace msgTracer = null;
+    private TrcRobotBattery battery = null;
+    private boolean tracePidInfo = false;
 
     /**
      * Some actuators are non-linear. The load may vary depending on the position. For example, raising an arm
@@ -66,11 +70,12 @@ public class TrcPidMotor implements TrcTaskMgr.Task
     private static final double DEF_BEEP_DURATION = 0.2;            //in seconds
 
     private final String instanceName;
-    private TrcMotor motor1;
-    private TrcMotor motor2;
-    private TrcPidController pidCtrl;
-    private PowerCompensation powerCompensation = null;
-
+    private final TrcMotor motor1;
+    private final TrcMotor motor2;
+    private final TrcPidController pidCtrl;
+    private final PowerCompensation powerCompensation;
+    private final TrcTaskMgr.TaskObject stopTaskObj;
+    private final TrcTaskMgr.TaskObject postContinuousTaskObj;
     private boolean active = false;
     private double syncGain = 0.0;
     private double positionScale = 1.0;
@@ -112,12 +117,14 @@ public class TrcPidMotor implements TrcTaskMgr.Task
      *                          provided.
      */
     public TrcPidMotor(
-            final String instanceName, TrcMotor motor1, TrcMotor motor2, double syncGain, TrcPidController pidCtrl,
-            PowerCompensation powerCompensation)
+        final String instanceName, final TrcMotor motor1, final TrcMotor motor2,
+        final double syncGain, final TrcPidController pidCtrl, final PowerCompensation powerCompensation)
     {
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
+            dbgTrace = useGlobalTracer?
+                TrcDbgTrace.getGlobalTracer():
+                new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         if (motor1 == null && motor2 == null)
@@ -136,6 +143,9 @@ public class TrcPidMotor implements TrcTaskMgr.Task
         this.syncGain = syncGain;
         this.pidCtrl = pidCtrl;
         this.powerCompensation = powerCompensation;
+        TrcTaskMgr taskMgr = TrcTaskMgr.getInstance();
+        stopTaskObj = taskMgr.createTask(instanceName + ".stop", this::stopTask);
+        postContinuousTaskObj = taskMgr.createTask(instanceName + ".postContinuous", this::postContinuousTask);
     }   //TrcPidMotor
 
     /**
@@ -149,8 +159,8 @@ public class TrcPidMotor implements TrcTaskMgr.Task
      *                          provided.
      */
     public TrcPidMotor(
-            final String instanceName, TrcMotor motor1, TrcMotor motor2, TrcPidController pidCtrl,
-            PowerCompensation powerCompensation)
+        final String instanceName, final TrcMotor motor1, final TrcMotor motor2, final TrcPidController pidCtrl,
+        final PowerCompensation powerCompensation)
     {
         this(instanceName, motor1, motor2, 0.0, pidCtrl, powerCompensation);
     }   //TrcPidMotor
@@ -165,7 +175,8 @@ public class TrcPidMotor implements TrcTaskMgr.Task
      *                          provided.
      */
     public TrcPidMotor(
-            final String instanceName, TrcMotor motor, TrcPidController pidCtrl, PowerCompensation powerCompensation)
+        final String instanceName, final TrcMotor motor, final TrcPidController pidCtrl,
+        final PowerCompensation powerCompensation)
     {
         this(instanceName, motor, null, 0.0, pidCtrl, powerCompensation);
     }   //TrcPidMotor
@@ -180,7 +191,8 @@ public class TrcPidMotor implements TrcTaskMgr.Task
      * @param pidCtrl specifies the PID controller object.
      */
     public TrcPidMotor(
-            final String instanceName, TrcMotor motor1, TrcMotor motor2, double syncGain, TrcPidController pidCtrl)
+        final String instanceName, final TrcMotor motor1, final TrcMotor motor2,
+        final double syncGain, final TrcPidController pidCtrl)
     {
         this(instanceName, motor1, motor2, syncGain, pidCtrl, null);
     }   //TrcPidMotor
@@ -193,7 +205,8 @@ public class TrcPidMotor implements TrcTaskMgr.Task
      * @param motor2 specifies motor2 object. If there is only one motor, this can be set to null.
      * @param pidCtrl specifies the PID controller object.
      */
-    public TrcPidMotor(final String instanceName, TrcMotor motor1, TrcMotor motor2, TrcPidController pidCtrl)
+    public TrcPidMotor(final String instanceName, final TrcMotor motor1, final TrcMotor motor2,
+        final TrcPidController pidCtrl)
     {
         this(instanceName, motor1, motor2, 0.0, pidCtrl, null);
     }   //TrcPidMotor
@@ -205,7 +218,7 @@ public class TrcPidMotor implements TrcTaskMgr.Task
      * @param motor specifies motor object.
      * @param pidCtrl specifies the PID controller object.
      */
-    public TrcPidMotor(final String instanceName, TrcMotor motor, TrcPidController pidCtrl)
+    public TrcPidMotor(final String instanceName, final TrcMotor motor, final TrcPidController pidCtrl)
     {
         this(instanceName, motor, null, 0.0, pidCtrl, null);
     }   //TrcPidMotor
@@ -219,6 +232,41 @@ public class TrcPidMotor implements TrcTaskMgr.Task
     {
         return instanceName;
     }   //toString
+
+    /**
+     * This method sets the message tracer for logging trace messages.
+     *
+     * @param tracer specifies the tracer for logging messages.
+     * @param tracePidInfo specifies true to enable tracing of PID info, false otherwise.
+     * @param battery specifies the battery object to get battery info for the message.
+     */
+    public void setMsgTracer(TrcDbgTrace tracer, boolean tracePidInfo, TrcRobotBattery battery)
+    {
+        this.msgTracer = tracer;
+        this.tracePidInfo = tracePidInfo;
+        this.battery = battery;
+    }   //setMsgTracer
+
+    /**
+     * This method sets the message tracer for logging trace messages.
+     *
+     * @param tracer specifies the tracer for logging messages.
+     * @param tracePidInfo specifies true to enable tracing of PID info, false otherwise.
+     */
+    public void setMsgTracer(TrcDbgTrace tracer, boolean tracePidInfo)
+    {
+        setMsgTracer(tracer, tracePidInfo, null);
+    }   //setMsgTracer
+
+    /**
+     * This method sets the message tracer for logging trace messages.
+     *
+     * @param tracer specifies the tracer for logging messages.
+     */
+    public void setMsgTracer(TrcDbgTrace tracer)
+    {
+        setMsgTracer(tracer, false, null);
+    }   //setMsgTracer
 
     /**
      * This method returns the state of the PID motor.
@@ -318,8 +366,8 @@ public class TrcPidMotor implements TrcTaskMgr.Task
             pos += motor2.getPosition();
             n++;
         }
-        pos += positionOffset;
         pos *= positionScale/n;
+        pos += positionOffset;
 
         if (debugEnabled)
         {
@@ -576,6 +624,11 @@ public class TrcPidMotor implements TrcTaskMgr.Task
                         if (beepDevice != null)
                         {
                             beepDevice.playTone(beepHighFrequency, beepDuration);
+                        }
+
+                        if (msgTracer != null)
+                        {
+                            msgTracer.traceInfo(funcName, "%s: stalled", instanceName);
                         }
                     }
                 }
@@ -849,19 +902,18 @@ public class TrcPidMotor implements TrcTaskMgr.Task
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC, "enabled=%s", Boolean.toString(enabled));
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC, "enabled=%b", enabled);
         }
 
-        TrcTaskMgr taskMgr = TrcTaskMgr.getInstance();
         if (enabled)
         {
-            taskMgr.registerTask(instanceName, this, TrcTaskMgr.TaskType.STOP_TASK);
-            taskMgr.registerTask(instanceName, this, TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
+            stopTaskObj.registerTask(TrcTaskMgr.TaskType.STOP_TASK);
+            postContinuousTaskObj.registerTask(TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
         }
         else
         {
-            taskMgr.unregisterTask(this, TrcTaskMgr.TaskType.STOP_TASK);
-            taskMgr.unregisterTask(this, TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
+            stopTaskObj.unregisterTask(TrcTaskMgr.TaskType.STOP_TASK);
+            postContinuousTaskObj.unregisterTask(TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
         }
         this.active = enabled;
 
@@ -875,24 +927,19 @@ public class TrcPidMotor implements TrcTaskMgr.Task
     // Implements TrcTaskMgr.Task
     //
 
-    @Override
-    public void startTask(TrcRobot.RunMode runMode)
-    {
-    }   //startTask
-
     /**
      * This method is called when the competition mode is about to end. It stops the PID motor operation if any.
      *
+     * @param taskType specifies the type of task being run.
      * @param runMode specifies the competition mode that is about to
      */
-    @Override
-    public void stopTask(TrcRobot.RunMode runMode)
+    public void stopTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
         final String funcName = "stopTask";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "mode=%s", runMode.toString());
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "taskType=%s,runMode=%s", taskType, runMode);
         }
 
         stop(true);
@@ -903,21 +950,6 @@ public class TrcPidMotor implements TrcTaskMgr.Task
         }
     }   //stopTask
 
-    @Override
-    public void prePeriodicTask(TrcRobot.RunMode runMode)
-    {
-    }   //prePeriodicTask
-
-    @Override
-    public void postPeriodicTask(TrcRobot.RunMode runMode)
-    {
-    }   //postPeriodicTask
-
-    @Override
-    public void preContinuousTask(TrcRobot.RunMode runMode)
-    {
-    }   //preContinuousTask
-
     /**
      * This method is called periodically to perform the PID motor task. The PID motor task can be in one of two
      * mode: zero calibration mode and normal mode. In zero calibration mode, it will drive the motor with the
@@ -925,16 +957,16 @@ public class TrcPidMotor implements TrcTaskMgr.Task
      * the motor position sensor. In normal mode, it calls the PID control to calculate and set the motor power.
      * It also checks if the motor has reached the set target and disables the task.
      *
+     * @param taskType specifies the type of task being run.
      * @param runMode specifies the competition mode that is running.
      */
-    @Override
-    public void postContinuousTask(TrcRobot.RunMode runMode)
+    public void postContinuousTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
         final String funcName = "postContinuous";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "mode=%s", runMode.toString());
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "taskType=%s,runMode=%s", taskType, runMode);
         }
 
         if (calPower != 0.0)
@@ -985,6 +1017,11 @@ public class TrcPidMotor implements TrcTaskMgr.Task
                 //
                 motorPower = pidCtrl.getOutput();
                 setPower(motorPower, MIN_MOTOR_POWER, MAX_MOTOR_POWER, false);
+
+                if (msgTracer != null && tracePidInfo)
+                {
+                    pidCtrl.printPidInfo(msgTracer, TrcUtil.getCurrentTime(), battery);
+                }
             }
         }
 

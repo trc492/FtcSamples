@@ -29,6 +29,7 @@ import ftclib.FtcOpMode;
 import ftclib.FtcAndroidTone;
 import hallib.HalDashboard;
 import trclib.TrcEvent;
+import trclib.TrcRobot;
 import trclib.TrcSong;
 import trclib.TrcSongPlayer;
 import trclib.TrcStateMachine;
@@ -153,14 +154,14 @@ public class FtcTestSong extends FtcOpMode
     //
 
     @Override
-    public void startMode()
+    public void startMode(TrcRobot.RunMode prevMode)
     {
         dashboard.clearDisplay();
         sm.start(State.PLAY_STARWARS);
     }   //startMode
 
     @Override
-    public void stopMode()
+    public void stopMode(TrcRobot.RunMode nextMode)
     {
         sm.stop();
         songPlayer.stop();

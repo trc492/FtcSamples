@@ -328,7 +328,7 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
         {
             dbgTrace.traceInfo(funcName, "Running startMode ...");
         }
-        startMode();
+        startMode(null);
 
         long nextPeriodNanoTime = TrcUtil.getCurrentTimeNanos();
         long startNanoTime = TrcUtil.getCurrentTimeNanos();
@@ -397,7 +397,7 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
         {
             dbgTrace.traceInfo(funcName, "Running stopMode ...");
         }
-        stopMode();
+        stopMode(null);
 
         if (debugEnabled)
         {
@@ -443,20 +443,26 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
 
     /**
      * This method is called when the competition mode is about to start. In FTC, this is called when the "Play"
-     * button on the Driver Station phone is pressed. Typically, you put code that will prepare the robot for start
-     * of competition here such as resetting the encoders/sensors and enabling some sensors to start sampling.
+     * button on the Driver Station phone is pressed. Typically, you put code that will prepare the robot for
+     * start of competition here such as resetting the encoders/sensors and enabling some sensors to start
+     * sampling.
+     *
+     * @param prevMode specifies the previous RunMode it is coming from. This is not applicable for FTC and is set to
+     *                 null.
      */
     @Override
-    public void startMode()
+    public void startMode(TrcRobot.RunMode prevMode)
     {
     }   //startMode
 
     /**
-     * This method is called when competition mode is about to end. Typically, you put code that will do clean up
-     * here such as disabling the sampling of some sensors.
+     * This method is called when competition mode is about to end. Typically, you put code that will do clean
+     * up here such as disabling the sampling of some sensors.
+     *
+     * @param nextMode specifies the next RunMode it is going into. This is not applicable for FTC and is set to null.
      */
     @Override
-    public void stopMode()
+    public void stopMode(TrcRobot.RunMode nextMode)
     {
     }   //stopMode
 

@@ -32,6 +32,7 @@ public class TrcSensorCalibrator<D>
     private static final String moduleName = "TrcSensorCalibrator";
     private static final boolean debugEnabled = false;
     private static final boolean tracingEnabled = false;
+    private static final boolean useGlobalTracer = false;
     private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
     private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
@@ -55,7 +56,9 @@ public class TrcSensorCalibrator<D>
     {
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
+            dbgTrace = useGlobalTracer?
+                TrcDbgTrace.getGlobalTracer():
+                new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         this.instanceName = instanceName;
@@ -83,6 +86,7 @@ public class TrcSensorCalibrator<D>
      * @param numCalSamples specifies the number of calibration sample to take.
      * @param calInterval specifies the interval between each calibration sample in msec.
      */
+    @SuppressWarnings("unchecked")
     public void calibrate(int numCalSamples, long calInterval)
     {
         final String funcName = "calibrate";

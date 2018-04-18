@@ -53,6 +53,7 @@ import FtcSampleCode.R;
 import ftclib.FtcOpMode;
 import hallib.HalDashboard;
 import trclib.TrcDbgTrace;
+import trclib.TrcRobot;
 
 /**
  * This class implements an OpenCV view for Face Detection.
@@ -181,14 +182,14 @@ public class FtcTestOpenCv extends FtcOpMode implements CameraBridgeViewBase.CvC
     //
 
     @Override
-    public void startMode()
+    public void startMode(TrcRobot.RunMode prevMode)
     {
         dashboard.clearDisplay();
         startCamera();
     }   //startMode
 
     @Override
-    public void stopMode()
+    public void stopMode(TrcRobot.RunMode nextMode)
     {
         stopCamera();
     }   //stopMode

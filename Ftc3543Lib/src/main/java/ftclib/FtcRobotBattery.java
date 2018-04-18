@@ -42,7 +42,7 @@ public class FtcRobotBattery extends TrcRobotBattery
      */
     public FtcRobotBattery(HardwareMap hardwareMap)
     {
-        super();
+        super(true, false, false);
         sensor = hardwareMap.voltageSensor.iterator().next();
     }   //FtcRobotBattery
 

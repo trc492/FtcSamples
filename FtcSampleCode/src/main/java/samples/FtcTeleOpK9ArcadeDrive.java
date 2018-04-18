@@ -57,13 +57,13 @@ public class FtcTeleOpK9ArcadeDrive extends FtcOpMode implements TrcGameControll
     //
 
     @Override
-    public void startMode()
+    public void startMode(TrcRobot.RunMode prevMode)
     {
         robot.startMode(TrcRobot.RunMode.TELEOP_MODE);
     }   //startMode
 
     @Override
-    public void stopMode()
+    public void stopMode(TrcRobot.RunMode nextMode)
     {
         robot.stopMode(TrcRobot.RunMode.TELEOP_MODE);
     }   //stopMode

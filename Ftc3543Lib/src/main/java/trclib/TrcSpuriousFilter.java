@@ -28,13 +28,6 @@ package trclib;
  */
 public class TrcSpuriousFilter extends TrcFilter
 {
-    private static final String moduleName = "TrcSpuriousFilter";
-    private static final boolean debugEnabled = false;
-    private static final boolean tracingEnabled = false;
-    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
-    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
-    private TrcDbgTrace dbgTrace = null;
-
     private final String instanceName;
     private final double distanceThreshold;
     private TrcDbgTrace tracer;
@@ -51,11 +44,6 @@ public class TrcSpuriousFilter extends TrcFilter
     public TrcSpuriousFilter(final String instanceName, double distanceThreshold, TrcDbgTrace tracer)
     {
         super(instanceName);
-
-        if (debugEnabled)
-        {
-            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
-        }
 
         this.instanceName = instanceName;
         this.distanceThreshold = distanceThreshold;

@@ -126,7 +126,7 @@ public class FtcAutoK9 extends FtcOpMode implements FtcMenu.MenuButtons
     //
 
     @Override
-    public void startMode()
+    public void startMode(TrcRobot.RunMode prevMode)
     {
         robot.startMode(TrcRobot.RunMode.AUTO_MODE);
         //
@@ -153,7 +153,7 @@ public class FtcAutoK9 extends FtcOpMode implements FtcMenu.MenuButtons
     }   //startMode
 
     @Override
-    public void stopMode()
+    public void stopMode(TrcRobot.RunMode nextMode)
     {
         robot.startMode(TrcRobot.RunMode.AUTO_MODE);
     }   //stopMode
@@ -313,7 +313,7 @@ public class FtcAutoK9 extends FtcOpMode implements FtcMenu.MenuButtons
                     // Go forward slowly for 3 ft to find the line.
                     // If line is detected, PID drive will be interrupted.
                     //
-                    robot.colorTrigger.setEnabled(true);
+                    robot.colorTrigger.setTaskEnabled(true);
                     robot.drivePidCtrl.setOutputRange(-0.5, 0.5);
                     robot.pidDrive.setTarget(36.0, 0.0, false, event);
                     sm.addEvent(event);
@@ -339,7 +339,7 @@ public class FtcAutoK9 extends FtcOpMode implements FtcMenu.MenuButtons
                     //
                     // Follow the line for 5 ft.
                     //
-                    robot.colorTrigger.setEnabled(false);
+                    robot.colorTrigger.setTaskEnabled(false);
                     robot.drivePidCtrl.setOutputRange(-0.3, 0.3);
                     robot.colorPidCtrl.setOutputRange(-0.3, 0.3);
                     //

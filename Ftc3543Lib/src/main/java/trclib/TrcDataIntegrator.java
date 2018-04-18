@@ -28,23 +28,25 @@ package trclib;
  * distance from accelerometer acceleration data. This class uses a periodic task to do integration and optionally
  * double integration.
  */
-public class TrcDataIntegrator<D> implements TrcTaskMgr.Task
+public class TrcDataIntegrator<D>
 {
     private static final String moduleName = "TrcDataIntegrator";
     private static final boolean debugEnabled = false;
     private static final boolean tracingEnabled = false;
+    private static final boolean useGlobalTracer = false;
     private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
     private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
 
     private final String instanceName;
-    private TrcSensor<D> sensor;
-    private D dataType;
-    private int numAxes;
-    private TrcSensor.SensorData<Double>[] inputData;
-    private TrcSensor.SensorData<Double>[] integratedData;
-    private TrcSensor.SensorData<Double>[] doubleIntegratedData;
-    private double[] prevTimes;
+    private final TrcSensor<D> sensor;
+    private final D dataType;
+    private final int numAxes;
+    private final TrcTaskMgr.TaskObject preContinuousTaskObj;
+    private final TrcSensor.SensorData<Double>[] inputData;
+    private final TrcSensor.SensorData<Double>[] integratedData;
+    private final TrcSensor.SensorData<Double>[] doubleIntegratedData;
+    private final double[] prevTimes;
 
     /**
      * Constructor: Creates an instance of the object.
@@ -54,11 +56,15 @@ public class TrcDataIntegrator<D> implements TrcTaskMgr.Task
      * @param dataType specifies the data type to be integrated.
      * @param doubleIntegration specifies true to do double integration, false otherwise.
      */
-    public TrcDataIntegrator(final String instanceName, TrcSensor<D> sensor, D dataType, boolean doubleIntegration)
+    @SuppressWarnings("unchecked")
+    public TrcDataIntegrator(
+        final String instanceName, final TrcSensor<D> sensor, final D dataType, final boolean doubleIntegration)
     {
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
+            dbgTrace = useGlobalTracer?
+                TrcDbgTrace.getGlobalTracer():
+                new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         if (sensor == null)
@@ -70,6 +76,8 @@ public class TrcDataIntegrator<D> implements TrcTaskMgr.Task
         this.sensor = sensor;
         this.dataType = dataType;
         numAxes = sensor.getNumAxes();
+        preContinuousTaskObj = TrcTaskMgr.getInstance().createTask(
+            instanceName + ".preContinuous", this::preContinuousTask);
 
         inputData = new TrcSensor.SensorData[numAxes];
         integratedData = new TrcSensor.SensorData[numAxes];
@@ -115,26 +123,30 @@ public class TrcDataIntegrator<D> implements TrcTaskMgr.Task
      *
      * @param enabled specifies true for enabling the data processor, disabling it otherwise.
      */
-    public void setEnabled(boolean enabled)
+    public void setTaskEnabled(boolean enabled)
     {
-        final String funcName = "setEnabled";
+        final String funcName = "setTaskEnabled";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "enabled=%s", Boolean.toString(enabled));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "enabled=%b", enabled);
         }
 
         if (enabled)
         {
             reset();
-            TrcTaskMgr.getInstance().registerTask(instanceName, this, TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            preContinuousTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
         }
         else
         {
-            TrcTaskMgr.getInstance().unregisterTask(this, TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            preContinuousTaskObj.unregisterTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
         }
-    }   //setEnabled
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+    }   //setTaskEnabled
 
     /**
      * This method resets the indexed integratedData and doubleIntegratedData.
@@ -251,39 +263,19 @@ public class TrcDataIntegrator<D> implements TrcTaskMgr.Task
     // Implements TrcTaskMgr.Task
     //
 
-    @Override
-    public void startTask(TrcRobot.RunMode runMode)
-    {
-    }   //startTask
-
-    @Override
-    public void stopTask(TrcRobot.RunMode runMode)
-    {
-    }   //stopTask
-
-    @Override
-    public void prePeriodicTask(TrcRobot.RunMode runMode)
-    {
-    }   //prePeriodicTask
-
-    @Override
-    public void postPeriodicTask(TrcRobot.RunMode runMode)
-    {
-    }   //postPeriodicTask
-
     /**
      * This method is called periodically to do data integration.
      *
+     * @param taskType specifies the type of task being run.
      * @param runMode specifies the competition mode that is running.
      */
-    @Override
-    public void preContinuousTask(TrcRobot.RunMode runMode)
+    public void preContinuousTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
         final String funcName = "preContinuousTask";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "mode=%s", runMode.toString());
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "taskType=%s,runMode=%s", taskType, runMode);
         }
 
         boolean allZeroAxis = true;
@@ -332,10 +324,5 @@ public class TrcDataIntegrator<D> implements TrcTaskMgr.Task
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
         }
     }   //preContinuousTask
-
-    @Override
-    public void postContinuousTask(TrcRobot.RunMode runMode)
-    {
-    }   //postContinuousTask
 
 }   //class TrcDataIntegrator

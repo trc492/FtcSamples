@@ -32,6 +32,7 @@ import org.opencv.core.Rect;
 import ftclib.FtcOpMode;
 import ftclib.FtcVuforia;
 import hallib.HalDashboard;
+import trclib.TrcRobot;
 
 @TeleOp(name="Test: Grip Vision", group="3543TestSamples")
 //@Disabled
@@ -82,14 +83,14 @@ public class FtcTestGripVision extends FtcOpMode
     //
 
     @Override
-    public void startMode()
+    public void startMode(TrcRobot.RunMode prevMode)
     {
         dashboard.clearDisplay();
 //        gripVision.setEnabled(true);
     }   //startMode
 
     @Override
-    public void stopMode()
+    public void stopMode(TrcRobot.RunMode nextMode)
     {
 //        gripVision.setEnabled(false);
     }   //stopMode

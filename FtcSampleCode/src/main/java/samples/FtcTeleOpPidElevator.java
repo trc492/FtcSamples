@@ -29,6 +29,7 @@ import ftclib.FtcGamepad;
 import ftclib.FtcOpMode;
 import hallib.HalDashboard;
 import trclib.TrcGameController;
+import trclib.TrcRobot;
 
 @TeleOp(name="TeleOp: PID Elevator", group="3543TeleOpSamples")
 @Disabled
@@ -72,7 +73,7 @@ public class FtcTeleOpPidElevator extends FtcOpMode implements TrcGameController
     //
 
     @Override
-    public void startMode()
+    public void startMode(TrcRobot.RunMode prevMode)
     {
         dashboard.clearDisplay();
     }   //startMode

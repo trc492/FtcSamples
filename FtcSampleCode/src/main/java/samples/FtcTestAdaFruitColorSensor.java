@@ -33,6 +33,7 @@ import FtcSampleCode.R;
 import ftclib.FtcI2cAdaFruitColorSensor;
 import ftclib.FtcOpMode;
 import hallib.HalDashboard;
+import trclib.TrcRobot;
 import trclib.TrcSensor;
 
 @TeleOp(name="Test: AdaFruit Color Sensor", group="3543TestSamples")
@@ -61,7 +62,7 @@ public class FtcTestAdaFruitColorSensor extends FtcOpMode
     //
 
     @Override
-    public void startMode()
+    public void startMode(TrcRobot.RunMode prevMode)
     {
         dashboard.clearDisplay();
     }   //startMode

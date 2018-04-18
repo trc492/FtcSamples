@@ -38,6 +38,7 @@ import FtcSampleCode.R;
 import ftclib.FtcAndroidSensor;
 import ftclib.FtcOpMode;
 import hallib.HalDashboard;
+import trclib.TrcRobot;
 
 @TeleOp(name="Test: Android Sensors", group="3543TestSamples")
 @Disabled
@@ -102,7 +103,7 @@ public class FtcTestAndroidSensors extends FtcOpMode
     //
 
     @Override
-    public void startMode()
+    public void startMode(TrcRobot.RunMode prevMode)
     {
         dashboard.clearDisplay();
 
@@ -155,7 +156,7 @@ public class FtcTestAndroidSensors extends FtcOpMode
     }   //startMode
 
     @Override
-    public void stopMode()
+    public void stopMode(TrcRobot.RunMode nextMode)
     {
         if (accel != null)
         {

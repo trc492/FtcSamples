@@ -34,6 +34,7 @@ import ftclib.FtcAndroidGyro;
 import ftclib.FtcOpMode;
 import hallib.HalDashboard;
 import trclib.TrcGyro;
+import trclib.TrcRobot;
 
 @TeleOp(name="Test: Android Gyro", group="3543TestSamples")
 @Disabled
@@ -67,14 +68,14 @@ public class FtcTestAndroidGyro extends FtcOpMode
     //
 
     @Override
-    public void startMode()
+    public void startMode(TrcRobot.RunMode prevMode)
     {
         dashboard.clearDisplay();
         gyro.setEnabled(true);
     }   //startMode
 
     @Override
-    public void stopMode()
+    public void stopMode(TrcRobot.RunMode nextMode)
     {
         gyro.setEnabled(false);
     }   //stopMode

@@ -22,6 +22,8 @@
 
 package trclib;
 
+import java.util.function.Supplier;
+
 /**
  * This class implements a Cascade PID Controller. A Cascade PID controller consists of two PID controllers in cascade.
  * The output of the primary PID controller feeds into the input of the secondary PID controller. If the motor is not
@@ -31,42 +33,9 @@ package trclib;
  * level changes. The TrcCascadePidController class extends a regular PID control as its primary PID controller and
  * creates a second PID controller as its secondary controller.
  */
-public class TrcCascadePidController extends TrcPidController implements TrcPidController.PidInput
+public class TrcCascadePidController extends TrcPidController
 {
-    private static final String moduleName = "TrcCascadePidController";
-    private static final boolean debugEnabled = false;
-    private static final boolean tracingEnabled = false;
-    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
-    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
-    private TrcDbgTrace dbgTrace = null;
-
-    /**
-     * This interface provides methods allowing this class to get the input of either the primary or secondary
-     * PID controllers. For example, the primary PID controller input may be the distance traveled and the secondary
-     * PID controller input may be the velocity.
-     */
-    public interface CascadeInput
-    {
-        /**
-         * This method is called to get the primary PID controller input.
-         *
-         * @param cascadeCtrl specifies this cascade controller that needs the input.
-         * @return primary PID controller input value.
-         */
-        double getPrimaryInput(TrcCascadePidController cascadeCtrl);
-
-        /**
-         * This method is called to get the secondary PID controller input.
-         *
-         * @param cascadeCtrl specifies this cascade controller that needs the input.
-         * @return secondary PID controller input value.
-         */
-        double getSecondaryInput(TrcCascadePidController cascadeCtrl);
-
-    }   //interface CascadeInput
-
     public TrcPidController secondaryCtrl;
-    private CascadeInput cascadeInput;
 
     /**
      * Constructor: Create an instance of the object.
@@ -78,26 +47,20 @@ public class TrcCascadePidController extends TrcPidController implements TrcPidC
      * @param secondaryPidCoefficients specifies the PID coefficients of the secondary PID controller.
      * @param secondaryTolerance specifies the target tolerance of the secondary PID controller.
      * @param secondarySettlingTime specifies the target settling time of the secondary PID controller.
-     * @param cascadeInput specifies the object that will provide the Cascade control inputs.
+     * @param primaryInput specifies the supplier of the primary PID input.
+     * @param secondaryInput specifies the supplier of the secondary PID input.
      */
     public TrcCascadePidController(
             final String instanceName,
             PidCoefficients primaryPidCoefficients, double primaryTolerance, double primarySettlingTime,
             PidCoefficients secondaryPidCoefficients, double secondaryTolerance, double secondarySettlingTime,
-            CascadeInput cascadeInput)
+            Supplier<Double> primaryInput, Supplier<Double> secondaryInput)
     {
         super(instanceName + ".primary",
-              primaryPidCoefficients, primaryTolerance, primarySettlingTime);
-        super.setPidInput(this);
-
-        if (debugEnabled)
-        {
-            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
-        }
-
+              primaryPidCoefficients, primaryTolerance, primarySettlingTime, primaryInput);
         secondaryCtrl = new TrcPidController(
-                instanceName + ".secondary", secondaryPidCoefficients, secondaryTolerance, secondarySettlingTime, this);
-        this.cascadeInput = cascadeInput;
+                instanceName + ".secondary", secondaryPidCoefficients, secondaryTolerance, secondarySettlingTime,
+                secondaryInput);
     }   //TrcCascadePidController
 
     /**
@@ -108,18 +71,19 @@ public class TrcCascadePidController extends TrcPidController implements TrcPidC
      * @param primaryTolerance specifies the target tolerance of the primary PID controller.
      * @param secondaryPidCoefficients specifies the PID coefficients of the secondary PID controller.
      * @param secondaryTolerance specifies the target tolerance of the secondary PID controller.
-     * @param cascadeInput specifies the object that will provide the Cascade control inputs.
+     * @param primaryInput specifies the supplier of the primary PID input.
+     * @param secondaryInput specifies the supplier of the secondary PID input.
      */
     public TrcCascadePidController(
             final String instanceName,
             PidCoefficients primaryPidCoefficients, double primaryTolerance,
             PidCoefficients secondaryPidCoefficients, double secondaryTolerance,
-            CascadeInput cascadeInput)
+            Supplier<Double> primaryInput, Supplier<Double> secondaryInput)
     {
         this(instanceName,
              primaryPidCoefficients, primaryTolerance, DEF_SETTLING_TIME,
              secondaryPidCoefficients, secondaryTolerance, DEF_SETTLING_TIME,
-             cascadeInput);
+             primaryInput, secondaryInput);
     }   //TrcCascadePidController
 
     /**
@@ -168,32 +132,5 @@ public class TrcCascadePidController extends TrcPidController implements TrcPidC
 
         return secondaryOutput;
     }   //getOutput
-
-    //
-    // Implements TrcPidController.PidInput
-    //
-
-    /**
-     * This method is called to get the input of either the primary of the secondary controller.
-     *
-     * @param pidCtrl specifies whether the primary or the secondary PID controller that is answer for input.
-     * @return primary or secondary PID controller input.
-     */
-    @Override
-    public double getInput(TrcPidController pidCtrl)
-    {
-        double input = 0.0;
-
-        if (pidCtrl == this)
-        {
-            input = cascadeInput.getPrimaryInput(this);
-        }
-        else if (pidCtrl == secondaryCtrl)
-        {
-            input = cascadeInput.getSecondaryInput(this);
-        }
-
-        return input;
-    }   //getInput
 
 }   //class TrcCascadePidController

@@ -28,11 +28,12 @@ package trclib;
  * buttons. If the caller of this class provides a button notification handler, it will call it when there are
  * button events.
  */
-public abstract class TrcGameController implements TrcTaskMgr.Task
+public abstract class TrcGameController
 {
     protected static final String moduleName = "TrcGameController";
     protected static final boolean debugEnabled = false;
     protected static final boolean tracingEnabled = false;
+    protected static final boolean useGlobalTracer = false;
     protected static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
     protected static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     protected TrcDbgTrace dbgTrace = null;
@@ -63,9 +64,9 @@ public abstract class TrcGameController implements TrcTaskMgr.Task
 
     private static final double DEF_DEADBAND_THRESHOLD = 0.15;
 
-    private String instanceName;
-    private double deadbandThreshold = DEF_DEADBAND_THRESHOLD;
-    private ButtonHandler buttonHandler;
+    private final String instanceName;
+    private final double deadbandThreshold;
+    private final ButtonHandler buttonHandler;
     private int prevButtons;
     private int exponent = 2;
 
@@ -77,12 +78,14 @@ public abstract class TrcGameController implements TrcTaskMgr.Task
      * @param buttonHandler specifies the object that will handle the button events. If none provided, it is set to
      *                      null.
      */
-    public TrcGameController(final String instanceName, double deadbandThreshold, ButtonHandler buttonHandler)
+    public TrcGameController(
+        final String instanceName, final double deadbandThreshold, final ButtonHandler buttonHandler)
     {
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(
-                    moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
+            dbgTrace = useGlobalTracer?
+                TrcDbgTrace.getGlobalTracer():
+                new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         this.instanceName = instanceName;
@@ -91,8 +94,22 @@ public abstract class TrcGameController implements TrcTaskMgr.Task
 
         if (buttonHandler != null)
         {
-            TrcTaskMgr.getInstance().registerTask(instanceName, this, TrcTaskMgr.TaskType.PREPERIODIC_TASK);
+            TrcTaskMgr.TaskObject prePeriodicTaskObj = TrcTaskMgr.getInstance().createTask(
+                instanceName + ".prePeriodic", this::prePeriodicTask);
+            prePeriodicTaskObj.registerTask(TrcTaskMgr.TaskType.PREPERIODIC_TASK);
         }
+    }   //TrcGameController
+
+    /**
+     * Constructor: Create an instance of the object.
+     *
+     * @param instanceName specifies the instance name.
+     * @param buttonHandler specifies the object that will handle the button events. If none provided, it is set to
+     *                      null.
+     */
+    public TrcGameController(final String instanceName, final ButtonHandler buttonHandler)
+    {
+        this(instanceName, DEF_DEADBAND_THRESHOLD, buttonHandler);
     }   //TrcGameController
 
     /**
@@ -295,30 +312,20 @@ public abstract class TrcGameController implements TrcTaskMgr.Task
     // Implements TrcTaskMgr.Task
     //
 
-    @Override
-    public void startTask(TrcRobot.RunMode runMode)
-    {
-    }   //startTask
-
-    @Override
-    public void stopTask(TrcRobot.RunMode runMode)
-    {
-    }   //stopTask
-
     /**
      * This method runs periodically and checks for changes in the button states. If any button changed state,
      * the button handler is called if one exists.
      *
+     * @param taskType specifies the type of task being run.
      * @param runMode specifies the current robot run mode.
      */
-    @Override
-    public void prePeriodicTask(TrcRobot.RunMode runMode)
+    public void prePeriodicTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
         final String funcName = "prePeriodic";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "mode=%s", runMode.toString());
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "taskType=%s,runMode=%s", taskType, runMode);
         }
 
         int currButtons = getButtons();
@@ -365,20 +372,5 @@ public abstract class TrcGameController implements TrcTaskMgr.Task
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
         }
     }   //prePeriodicTask
-
-    @Override
-    public void postPeriodicTask(TrcRobot.RunMode runMode)
-    {
-    }   //postPeriodicTask
-
-    @Override
-    public void preContinuousTask(TrcRobot.RunMode runMode)
-    {
-    }   //preContinuousTask
-
-    @Override
-    public void postContinuousTask(TrcRobot.RunMode runMode)
-    {
-    }   //postContinuousTask
 
 }   //class TrcGameController

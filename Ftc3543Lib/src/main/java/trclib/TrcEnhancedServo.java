@@ -30,11 +30,12 @@ package trclib;
  * two servos to handle bigger load as a single servo, equivalent to connecting two servos with a Y splitter cable
  * except doing it with software instead.
  */
-public class TrcEnhancedServo implements TrcTaskMgr.Task
+public class TrcEnhancedServo
 {
     private static final String moduleName = "TrcEnhancedServo";
     private static final boolean debugEnabled = false;
     private static final boolean tracingEnabled = false;
+    private static final boolean useGlobalTracer = false;
     private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
     private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
@@ -46,6 +47,8 @@ public class TrcEnhancedServo implements TrcTaskMgr.Task
     private String instanceName;
     private TrcServo servo1 = null;
     private TrcServo servo2 = null;
+    private TrcTaskMgr.TaskObject stopTaskObj;
+    private TrcTaskMgr.TaskObject postContinuousTaskObj;
     private boolean continuousServo = false;
     private boolean servoStepping = false;
     private double targetPosition = 0.0;
@@ -72,13 +75,15 @@ public class TrcEnhancedServo implements TrcTaskMgr.Task
      * @param upperLimitSwitch specifies the high limit switch object.
      */
     private void commonInit(
-            String instanceName,
-            TrcServo servo1, TrcServo servo2,
-            TrcDigitalInput lowerLimitSwitch, TrcDigitalInput upperLimitSwitch)
+        final String instanceName,
+        final TrcServo servo1, final TrcServo servo2,
+        final TrcDigitalInput lowerLimitSwitch, final TrcDigitalInput upperLimitSwitch)
     {
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
+            dbgTrace = useGlobalTracer?
+                TrcDbgTrace.getGlobalTracer():
+                new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         this.instanceName = instanceName;
@@ -86,6 +91,9 @@ public class TrcEnhancedServo implements TrcTaskMgr.Task
         this.servo2 = servo2;
         this.lowerLimitSwitch = lowerLimitSwitch;
         this.upperLimitSwitch = upperLimitSwitch;
+        TrcTaskMgr taskMgr = TrcTaskMgr.getInstance();
+        stopTaskObj = taskMgr.createTask(instanceName + ".stop", this::stopTask);
+        postContinuousTaskObj = taskMgr.createTask(instanceName + ".postContinuous", this::postContinuousTask);
     }   //commonInit
 
     /**
@@ -94,7 +102,7 @@ public class TrcEnhancedServo implements TrcTaskMgr.Task
      * @param instanceName specifies the instance name.
      * @param servo specifies the physical servo object.
      */
-    public TrcEnhancedServo(String instanceName, TrcServo servo)
+    public TrcEnhancedServo(final String instanceName, final TrcServo servo)
     {
         if (servo == null)
         {
@@ -111,7 +119,7 @@ public class TrcEnhancedServo implements TrcTaskMgr.Task
      * @param servo1 specifies the first physical servo object.
      * @param servo2 specifies the second physical servo object.
      */
-    public TrcEnhancedServo(String instanceName, TrcServo servo1, TrcServo servo2)
+    public TrcEnhancedServo(final String instanceName, final TrcServo servo1, final TrcServo servo2)
     {
         if (servo1 == null || servo2 == null)
         {
@@ -130,7 +138,8 @@ public class TrcEnhancedServo implements TrcTaskMgr.Task
      * @param upperLimitSwitch specifies the high limit switch object.
      */
     public TrcEnhancedServo(
-            String instanceName, TrcServo servo, TrcDigitalInput lowerLimitSwitch, TrcDigitalInput upperLimitSwitch)
+        final String instanceName, final TrcServo servo,
+        final TrcDigitalInput lowerLimitSwitch, final TrcDigitalInput upperLimitSwitch)
     {
         if (servo == null)
         {
@@ -168,13 +177,13 @@ public class TrcEnhancedServo implements TrcTaskMgr.Task
 
         if (enabled && !servoStepping)
         {
-            TrcTaskMgr.getInstance().registerTask("ServoSteppingTask", this, TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
-            TrcTaskMgr.getInstance().registerTask("ServoSteppingTask", this, TrcTaskMgr.TaskType.STOP_TASK);
+            stopTaskObj.registerTask(TrcTaskMgr.TaskType.STOP_TASK);
+            postContinuousTaskObj.registerTask(TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
         }
         else if (!enabled && servoStepping)
         {
-            TrcTaskMgr.getInstance().unregisterTask(this, TrcTaskMgr.TaskType.STOP_TASK);
-            TrcTaskMgr.getInstance().unregisterTask(this, TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
+            stopTaskObj.unregisterTask(TrcTaskMgr.TaskType.STOP_TASK);
+            postContinuousTaskObj.unregisterTask(TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
         }
         servoStepping = enabled;
 
@@ -381,46 +390,43 @@ public class TrcEnhancedServo implements TrcTaskMgr.Task
     // Implements TrcTaskMgr.Task
     //
 
-    @Override
-    public void startTask(TrcRobot.RunMode runMode)
+    /**
+     * This method is called when the competition mode is about to end so it will stop the servo if necessary.
+     *
+     * @param taskType specifies the type of task being run.
+     * @param runMode specifies the competition mode that is running. (e.g. Autonomous, TeleOp, Test).
+     */
+    public void stopTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
-    }   //startTask
+        final String funcName = "stopTask";
 
-    @Override
-    public void stopTask(TrcRobot.RunMode runMode)
-    {
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "taskType=%s,runMode=%s", taskType, runMode);
+        }
+
         stop();
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
+        }
     }   //stopTask
-
-    @Override
-    public void prePeriodicTask(TrcRobot.RunMode runMode)
-    {
-    }   //prePeriodicTask
-
-    @Override
-    public void postPeriodicTask(TrcRobot.RunMode runMode)
-    {
-    }   //postPeriodicTask
-
-    @Override
-    public void preContinuousTask(TrcRobot.RunMode runMode)
-    {
-    }   //preContinuousTask
 
     /**
      * This method is called periodically to check whether the servo has reached target. If not, it will calculate
      * the next position to set the servo to according to its step rate.
      *
+     * @param taskType specifies the type of task being run.
      * @param runMode specifies the competition mode that is running. (e.g. Autonomous, TeleOp, Test).
      */
-    @Override
-    public void postContinuousTask(TrcRobot.RunMode runMode)
+    public void postContinuousTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
         final String funcName = "postContinuousTask";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "runMode=%s", runMode.toString());
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "taskType=%s,runMode=%s", taskType, runMode);
         }
 
         if (runMode != TrcRobot.RunMode.DISABLED_MODE)

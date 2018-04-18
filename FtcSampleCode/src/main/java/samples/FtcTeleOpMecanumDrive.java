@@ -37,6 +37,7 @@ import ftclib.FtcOpMode;
 import hallib.HalDashboard;
 import trclib.TrcDriveBase;
 import trclib.TrcGameController;
+import trclib.TrcRobot;
 
 @TeleOp(name="TeleOp: Mecanum Drive", group="3543TeleOpSamples")
 @Disabled
@@ -91,7 +92,7 @@ public class FtcTeleOpMecanumDrive extends FtcOpMode implements TrcGameControlle
     //
 
     @Override
-    public void startMode()
+    public void startMode(TrcRobot.RunMode prevMode)
     {
         dashboard.clearDisplay();
         gyro.setEnabled(true);
@@ -99,7 +100,7 @@ public class FtcTeleOpMecanumDrive extends FtcOpMode implements TrcGameControlle
     }   //startMode
 
     @Override
-    public void stopMode()
+    public void stopMode(TrcRobot.RunMode nextMode)
     {
         gyro.setEnabled(false);
     }   //stopMode

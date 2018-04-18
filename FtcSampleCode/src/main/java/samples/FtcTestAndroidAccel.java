@@ -36,6 +36,7 @@ import ftclib.FtcOpMode;
 import hallib.HalDashboard;
 import trclib.TrcAccelerometer;
 import trclib.TrcIIRFilter;
+import trclib.TrcRobot;
 
 @TeleOp(name="Test: Android Accelerometer", group="3543TestSamples")
 @Disabled
@@ -82,14 +83,14 @@ public class FtcTestAndroidAccel extends FtcOpMode
     //
 
     @Override
-    public void startMode()
+    public void startMode(TrcRobot.RunMode prevMode)
     {
         dashboard.clearDisplay();
         accel.setEnabled(true);
     }   //startMode
 
     @Override
-    public void stopMode()
+    public void stopMode(TrcRobot.RunMode nextMode)
     {
         accel.setEnabled(false);
     }   //stopMode

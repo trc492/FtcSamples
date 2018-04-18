@@ -53,13 +53,14 @@ import trclib.TrcEvent;
 import trclib.TrcGameController;
 import trclib.TrcPidController;
 import trclib.TrcPidDrive;
+import trclib.TrcRobot;
 import trclib.TrcSong;
 import trclib.TrcSongPlayer;
 
 @TeleOp(name="TeleOp: Wild Thumper", group="3543TeleOpSamples")
 @Disabled
 public class FtcTeleOpWildThumper extends FtcOpMode
-        implements TrcGameController.ButtonHandler, TrcPidController.PidInput
+        implements TrcGameController.ButtonHandler
 {
     private static final double ATTACK = 0.0;           // in seconds
     private static final double DECAY = 0.0;            // in seconds
@@ -300,11 +301,11 @@ public class FtcTeleOpWildThumper extends FtcOpMode
             visionDrivePidCtrl = new TrcPidController(
                     "visionDrivePidCtrl",
                     new TrcPidController.PidCoefficients(VISIONDRIVE_KP, VISIONDRIVE_KI, VISIONDRIVE_KD),
-                    VISIONDRIVE_TOLERANCE, this);
+                    VISIONDRIVE_TOLERANCE, () -> targetDistance);
             gyroTurnPidCtrl = new TrcPidController(
                     "gyroTurnPidCtrl",
                     new TrcPidController.PidCoefficients(GYROTURN_KP, GYROTURN_KI, GYROTURN_KD),
-                    GYROTURN_TOLERANCE, this);
+                    GYROTURN_TOLERANCE, driveBase::getHeading);
             visionPidDrive = new TrcPidDrive(
                     "visionPidDrive", driveBase, null, visionDrivePidCtrl, gyroTurnPidCtrl);
         }
@@ -365,14 +366,14 @@ public class FtcTeleOpWildThumper extends FtcOpMode
     //
 
     @Override
-    public void startMode()
+    public void startMode(TrcRobot.RunMode prevMode)
     {
         dashboard.clearDisplay();
         driveBase.resetPosition();
     }   //startMode
 
     @Override
-    public void stopMode()
+    public void stopMode(TrcRobot.RunMode nextMode)
     {
         setVisionEnabled(false);
         //
@@ -651,26 +652,5 @@ public class FtcTeleOpWildThumper extends FtcOpMode
             }
         }
     }   //buttonEvent
-
-    //
-    // Implements TrcPidController.PidInput
-    //
-
-    @Override
-    public double getInput(TrcPidController pidCtrl)
-    {
-        double input = 0.0;
-
-        if (pidCtrl == visionDrivePidCtrl)
-        {
-            input = targetDistance;
-        }
-        else if (pidCtrl == gyroTurnPidCtrl)
-        {
-            input = driveBase.getHeading();
-        }
-
-        return input;
-    }   //getInput
 
 }   //class FtcTeleOpWildThumper

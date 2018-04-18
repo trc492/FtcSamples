@@ -22,6 +22,10 @@
 
 package trclib;
 
+import java.util.EmptyStackException;
+import java.util.Stack;
+import java.util.function.Supplier;
+
 import hallib.HalDashboard;
 
 /**
@@ -30,12 +34,13 @@ import hallib.HalDashboard;
  */
 public class TrcPidController
 {
-    private static final String moduleName = "TrcPidController";
-    private static final boolean debugEnabled = false;
-    private static final boolean tracingEnabled = false;
-    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
-    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
-    private TrcDbgTrace dbgTrace = null;
+    protected static final String moduleName = "TrcPidController";
+    protected static final boolean debugEnabled = false;
+    protected static final boolean tracingEnabled = false;
+    protected static final boolean useGlobalTracer = false;
+    protected static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    protected static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
+    protected TrcDbgTrace dbgTrace = null;
 
     /**
      * This class encapsulates all the PID coefficients into a single object and makes it more efficient to pass them
@@ -98,24 +103,6 @@ public class TrcPidController
 
     }   //class PidCoefficients
 
-    /**
-     * PID controller needs input from a feedback device for calculating the output power. Whoever is providing this
-     * input must implement this interface.
-     */
-    public interface PidInput
-    {
-        /**
-         * This method is called by the PID controller to get input data from the feedback device. The feedback
-         * device can be motor encoders, gyro, ultrasonic sensor, light sensor etc.
-         *
-         * @param pidCtrl specifies this PID controller so the provider can identify what sensor to read if it is
-         *                a provider for multiple PID controllers.
-         * @return input value of the feedback device.
-         */
-        double getInput(TrcPidController pidCtrl);
-
-    }   //interface PidInput
-
     public static final double DEF_SETTLING_TIME = 0.2;
 
     private HalDashboard dashboard;
@@ -123,7 +110,7 @@ public class TrcPidController
     private PidCoefficients pidCoefficients;
     private double tolerance;
     private double settlingTime;
-    private PidInput pidInput;
+    private Supplier<Double> pidInput;
 
     private boolean inverted = false;
     private boolean absSetPoint = false;
@@ -132,6 +119,8 @@ public class TrcPidController
     private double maxTarget = 0.0;
     private double minOutput = -1.0;
     private double maxOutput = 1.0;
+    private double outputLimit = 1.0;
+    private Stack<Double> outputLimitStack = new Stack<>();
 
     private double prevTime = 0.0;
     private double currError = 0.0;
@@ -162,12 +151,13 @@ public class TrcPidController
             PidCoefficients pidCoefficients,
             double tolerance,
             double settlingTime,
-            PidInput pidInput)
+            Supplier<Double> pidInput)
     {
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(
-                    moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
+            dbgTrace = useGlobalTracer?
+                TrcDbgTrace.getGlobalTracer():
+                new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         dashboard = HalDashboard.getInstance();
@@ -193,47 +183,9 @@ public class TrcPidController
             final String instanceName,
             PidCoefficients pidCoefficients,
             double tolerance,
-            PidInput pidInput)
+            Supplier<Double> pidInput)
     {
         this(instanceName, pidCoefficients, tolerance, DEF_SETTLING_TIME, pidInput);
-    }   //TrcPidController
-
-    /**
-     * Constructor: Create an instance of the object. This constructor is not public. It is only for classes
-     * extending this class (e.g. Cascade PID Controller) that cannot make itself as an input provider in its
-     * constructor (Java won't allow it). Instead, we provide another protected method setPidInput so it can
-     * set the PidInput outside of the super() call.
-     *
-     * @param instanceName specifies the instance name.
-     * @param pidCoefficients specifies the PID constants.
-     * @param tolerance specifies the target tolerance.
-     * @param settlingTime specifies the minimum on target settling time.
-     */
-    protected TrcPidController(
-            final String instanceName,
-            PidCoefficients pidCoefficients,
-            double       tolerance,
-            double       settlingTime)
-    {
-        this(instanceName, pidCoefficients, tolerance, settlingTime, null);
-    }   //TrcPidController
-
-    /**
-     * Constructor: Create an instance of the object. This constructor is not public. It is only for classes
-     * extending this class (e.g. Cascade PID Controller) that cannot make itself as an input provider in its
-     * constructor (Java won't allow it). Instead, we provide another protected method setPidInput so it can
-     * set the PidInput outside of the super() call.
-     *
-     * @param instanceName specifies the instance name.
-     * @param pidCoefficients specifies the PID constants.
-     * @param tolerance specifies the target tolerance.
-     */
-    protected TrcPidController(
-            final String instanceName,
-            PidCoefficients pidCoefficients,
-            double tolerance)
-    {
-        this(instanceName, pidCoefficients, tolerance, DEF_SETTLING_TIME, null);
     }   //TrcPidController
 
     /**
@@ -245,16 +197,6 @@ public class TrcPidController
     {
         return instanceName;
     }   //toString
-
-    /**
-     * This method can only be called by classes extending this class to set the input provider.
-     *
-     * @param pidInput specifies the input provider.
-     */
-    protected void setPidInput(PidInput pidInput)
-    {
-        this.pidInput = pidInput;
-    }   //setPidInput
 
     /**
      * This method displays the PID information on the dashboard for debugging and tuning purpose. Note that the
@@ -289,25 +231,20 @@ public class TrcPidController
 
         if (tracer != null)
         {
+            String msg = timestamp != 0.0? String.format("[%.3f] ", timestamp): "";
+
+            msg += String.format(
+                "%s: Target=%6.1f, Input=%6.1f, Error=%6.1f, " +
+                "PIDTerms=%6.3f/%6.3f/%6.3f/%6.3f, Output=%6.3f(%6.3f/%5.3f)",
+                instanceName, setPoint, input, currError,
+                pTerm, iTerm, dTerm, fTerm, output, minOutput, maxOutput);
+
             if (battery != null)
             {
-                tracer.traceInfo(
-                        funcName,
-                        "[%.3f] %s: Target=%6.1f, Input=%6.1f, Error=%6.1f, " +
-                        "PIDTerms=%6.3f/%6.3f/%6.3f/%6.3f, Output=%6.3f(%6.3f/%5.3f), Volt=%.1f(%.1f)",
-                        timestamp, instanceName, setPoint, input, currError,
-                        pTerm, iTerm, dTerm, fTerm, output, minOutput, maxOutput,
-                        battery.getVoltage(), battery.getLowestVoltage());
+                msg += String.format(", Volt=%.1f(%.1f)", battery.getVoltage(), battery.getLowestVoltage());
             }
-            else
-            {
-                tracer.traceInfo(
-                    funcName,
-                    "[%.3f] %s: Target=%6.1f, Input=%6.1f, Error=%6.1f, " +
-                    "PIDTerms=%6.3f/%6.3f/%6.3f/%6.3f, Output=%6.3f(%6.3f/%5.3f)",
-                    timestamp, instanceName, setPoint, input, currError,
-                    pTerm, iTerm, dTerm, fTerm, output, minOutput, maxOutput);
-            }
+
+            tracer.traceInfo(funcName, msg);
         }
     }   //printPidInfo
 
@@ -331,22 +268,7 @@ public class TrcPidController
      */
     public void printPidInfo(TrcDbgTrace tracer)
     {
-        final String funcName = "printPidInfo";
-
-        if (tracer == null)
-        {
-            tracer = dbgTrace;
-        }
-
-        if (tracer != null)
-        {
-            tracer.traceInfo(
-                    funcName,
-                    "%s: Target=%6.1f, Input=%6.1f, Error=%6.1f, " +
-                    "PIDTerms=%6.3f/%6.3f/%6.3f/%6.3f, Output=%6.3f(%6.3f/%5.3f)",
-                    instanceName, setPoint, input, currError,
-                    pTerm, iTerm, dTerm, fTerm, output, minOutput, maxOutput);
-        }
+        printPidInfo(tracer, 0.0, null);
     }   //printPidInfo
 
     /**
@@ -354,7 +276,7 @@ public class TrcPidController
      */
     public void printPidInfo()
     {
-        printPidInfo(null);
+        printPidInfo(null, 0.0, null);
     }   //printPidInfo
 
     /**
@@ -411,6 +333,24 @@ public class TrcPidController
 
         this.absSetPoint = absolute;
     }   //setAbsoluteSetPoint
+
+    /**
+     * This method returns true if setpoints are absolute, false otherwise.
+     *
+     * @return true if setpoints are absolute, false otherwise.
+     */
+    public boolean hasAbsoluteSetPoint()
+    {
+        final String funcName = "hasAbsoluteSetPoint";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%b", absSetPoint);
+        }
+
+        return absSetPoint;
+    }   //hasAbsoluteSetPoint
 
     /**
      * This method enables/disables NoOscillation mode. In PID control, if the PID constants are not tuned quite
@@ -516,16 +456,125 @@ public class TrcPidController
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(
-                    funcName, TrcDbgTrace.TraceLevel.API,
-                    "min=%f,max=%f",
-                    minOutput, maxOutput);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "min=%f,max=%f", minOutput, maxOutput);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+
+        if (maxOutput <= minOutput)
+        {
+            throw new IllegalArgumentException("maxOutput must be greater than minOutput");
+        }
+
+        if (Math.abs(minOutput) == Math.abs(maxOutput))
+        {
+            outputLimit = maxOutput;
         }
 
         this.minOutput = minOutput;
         this.maxOutput = maxOutput;
     }   //setOutputRange
+
+    /**
+     * This method sets the output to the range -limit to +limit. It calls setOutputRange. If the caller wants
+     * to limit the output power symmetrically, this is the method to call, not setOutputRange.
+     *
+     * @param limit specifies the output limit as a positive number.
+     */
+    public void setOutputLimit(double limit)
+    {
+        limit = Math.abs(limit);
+        setOutputRange(-limit, limit);
+    }   //setOutputLimit
+
+    /**
+     * This method returns the last set output limit. It is sometimes useful to temporarily change the output
+     * range of the PID controller for an operation and restore it afterwards. This method allows the caller to
+     * save the last set output limit and restore it later on.
+     *
+     * @return last set output limit.
+     */
+    public double getOutputLimit()
+    {
+        final String funcName = "getOutputLimit";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", outputLimit);
+        }
+
+        return outputLimit;
+    }   //getOutputLimit
+
+    /**
+     * This method saves the current output limit of the PID controller and sets it to the given new limit.
+     * This is useful if the caller wants to temporarily set a limit for an operation and restore it afterwards.
+     * Note: this is implemented with a stack so it is assuming the saving and restoring calls are nested in
+     * nature. If this is called in a multi-threading environment where saving and restoring can be interleaved
+     * by different threads, unexpected result may happen. It is recommended to avoid this type of scenario if
+     * possible.
+     *
+     * @param limit specifies the new output limit.
+     * @return return the previous output limit.
+     */
+    public double saveAndSetOutputLimit(double limit)
+    {
+        final String funcName = "saveAndSetOutputLimit";
+        double prevLimit = outputLimit;
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "limit=%f", limit);
+        }
+
+        outputLimitStack.push(outputLimit);
+        setOutputLimit(limit);
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", prevLimit);
+        }
+
+        return prevLimit;
+    }   //saveAndSetOutputLimit
+
+    /**
+     * This method restores the last saved output limit and return its value. If there was no previous call to
+     * saveAndSetOutputLimit, the current output limit is returned and the limit is not changed.
+     *
+     * @return last saved output limit.
+     */
+    public double restoreOutputLimit()
+    {
+        final String funcName = "restoreOutputLimit";
+        double limit;
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+
+        try
+        {
+            limit = outputLimitStack.pop();
+            setOutputRange(-limit, limit);
+        }
+        catch (EmptyStackException e)
+        {
+            //
+            // There was no previous saveAndSetOutputLimit call, don't do anything and just return the current
+            // output limit.
+            //
+            limit = outputLimit;
+        }
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", limit);
+        }
+
+        return limit;
+    }   //restoreOutputLimit
 
     /**
      * This method returns the current set point value.
@@ -549,17 +598,18 @@ public class TrcPidController
      * This methods sets the target set point.
      *
      * @param target specifies the target set point.
+     * @param warpSpace specifies the warp space object if the target is in one, null if not.
      */
-    public void setTarget(double target)
+    public void setTarget(double target, TrcWarpSpace warpSpace)
     {
         final String funcName = "setTarget";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "target=%f", target);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "target=%f,warpSpace=%s", target, warpSpace);
         }
 
-        double input = pidInput.getInput(this);
+        double input = pidInput.get();
         if (!absSetPoint)
         {
             //
@@ -571,9 +621,13 @@ public class TrcPidController
         else
         {
             //
-            // Set point is absolute, use as is.
+            // Set point is absolute, use as is but optimize it if it is in warp space.
             //
             setPoint = target;
+            if (warpSpace != null)
+            {
+                setPoint = warpSpace.getOptimizedTarget(setPoint, input);
+            }
             currError = setPoint - input;
         }
 
@@ -606,6 +660,16 @@ public class TrcPidController
         {
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
+    }   //setTarget
+
+    /**
+     * This methods sets the target set point.
+     *
+     * @param target specifies the target set point.
+     */
+    public void setTarget(double target)
+    {
+        setTarget(target, null);
     }   //setTarget
 
     /**
@@ -711,7 +775,7 @@ public class TrcPidController
         double currTime = TrcUtil.getCurrentTime();
         double deltaTime = currTime - prevTime;
         prevTime = currTime;
-        input = pidInput.getInput(this);
+        input = pidInput.get();
         currError = setPoint - input;
         if (inverted)
         {

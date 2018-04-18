@@ -32,18 +32,12 @@ package trclib;
  */
 public abstract class TrcAnalogInput extends TrcSensor<TrcAnalogInput.DataType>
 {
-    private static final String moduleName = "TrcAnalogInput";
-    private static final boolean debugEnabled = false;
-    private static final boolean tracingEnabled = false;
-    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
-    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
-    private TrcDbgTrace dbgTrace = null;
-
     //
     // AnalogInput data type.
     //
     public enum DataType
     {
+        RAW_DATA,
         INPUT_DATA,
         NORMALIZED_DATA,
         INTEGRATED_DATA,
@@ -82,12 +76,6 @@ public abstract class TrcAnalogInput extends TrcSensor<TrcAnalogInput.DataType>
     public TrcAnalogInput(final String instanceName, int numAxes, int options, TrcFilter[] filters)
     {
         super(instanceName, numAxes, filters);
-
-        if (debugEnabled)
-        {
-            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
-        }
-
         this.instanceName = instanceName;
 
         //
@@ -159,7 +147,7 @@ public abstract class TrcAnalogInput extends TrcSensor<TrcAnalogInput.DataType>
         //
         if (dataIntegrator != null)
         {
-            dataIntegrator.setEnabled(enabled);
+            dataIntegrator.setTaskEnabled(enabled);
         }
     }   //setEnabled
 

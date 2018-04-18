@@ -27,7 +27,7 @@ import ftclib.FtcTouchSensor;
 import trclib.TrcPidActuator;
 import trclib.TrcPidController;
 
-public class Elevator implements TrcPidController.PidInput
+public class Elevator
 {
     //
     // Elevator constants.
@@ -60,34 +60,20 @@ public class Elevator implements TrcPidController.PidInput
         pidCtrl = new TrcPidController(
                 "elevatorPidCtrl",
                 new TrcPidController.PidCoefficients(ELEVATOR_KP, ELEVATOR_KI, ELEVATOR_KD),
-                ELEVATOR_TOLERANCE, this);
+                ELEVATOR_TOLERANCE, this::getPosition);
         actuator = new TrcPidActuator(
                 "elevator", motor, lowerLimitSwitch, pidCtrl, ELEVATOR_MIN_HEIGHT, ELEVATOR_MAX_HEIGHT);
         actuator.setPositionScale(ELEVATOR_INCHES_PER_COUNT);
     }   //Elevator
 
-    //
-    // Implements TrcPidController.PidInput.
-    //
-
     /**
      * This method is called by the PID controller to get the current height of the elevator.
      *
-     * @param pidCtrl specifies the PID controller who is inquiring.
-     *
      * @return current elevator height.
      */
-    @Override
-    public double getInput(TrcPidController pidCtrl)
+    public double getPosition()
     {
-        double value = 0.0;
-
-        if (pidCtrl == this.pidCtrl)
-        {
-            value = actuator.getPosition();
-        }
-
-        return value;
-    }   //getInput
+        return actuator.getPosition();
+    }   //getPosition
 
 }   //class Elevator

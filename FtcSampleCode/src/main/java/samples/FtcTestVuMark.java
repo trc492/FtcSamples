@@ -44,6 +44,7 @@ import FtcSampleCode.R;
 import ftclib.FtcOpMode;
 import ftclib.FtcVuforia;
 import hallib.HalDashboard;
+import trclib.TrcRobot;
 import trclib.TrcUtil;
 
 @TeleOp(name="Test: VuMark Tracking", group="3543TestSamples")
@@ -136,14 +137,14 @@ public class FtcTestVuMark extends FtcOpMode
     //
 
     @Override
-    public void startMode()
+    public void startMode(TrcRobot.RunMode prevMode)
     {
         dashboard.clearDisplay();
         vuforia.setTrackingEnabled(true);
     }   //startMode
 
     @Override
-    public void stopMode()
+    public void stopMode(TrcRobot.RunMode nextMode)
     {
         vuforia.setTrackingEnabled(false);
         if (textToSpeech != null)
