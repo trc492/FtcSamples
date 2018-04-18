@@ -79,7 +79,7 @@ public class FtcAnalogInput extends TrcAnalogInput
     public FtcAnalogInput(String instanceName, TrcFilter[] filters)
     {
         this(FtcOpMode.getInstance().hardwareMap, instanceName, filters);
-    }   //FtcUltrasonicSensor
+    }   //FtcAnalogInput
 
     /**
      * Constructor: Creates an instance of the object.
