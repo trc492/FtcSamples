@@ -32,7 +32,6 @@ import org.firstinspires.ftc.robotcontroller.internal.FtcRobotControllerActivity
 import FtcSampleCode.R;
 import ftclib.FtcDcMotor;
 import ftclib.FtcGamepad;
-import ftclib.FtcMRGyro;
 import ftclib.FtcOpMode;
 import hallib.HalDashboard;
 import trclib.TrcDriveBase;
@@ -44,14 +43,12 @@ import trclib.TrcRobot;
 public class FtcTeleOpMecanumDrive extends FtcOpMode implements TrcGameController.ButtonHandler
 {
     private HalDashboard dashboard;
-    private FtcMRGyro gyro;
     private FtcGamepad gamepad;
-    private FtcDcMotor motorLeftFront;
-    private FtcDcMotor motorRightFront;
-    private FtcDcMotor motorLeftRear;
-    private FtcDcMotor motorRightRear;
+    private FtcDcMotor lfWheel;
+    private FtcDcMotor rfWheel;
+    private FtcDcMotor lrWheel;
+    private FtcDcMotor rrWheel;
     private TrcDriveBase driveBase;
-    private boolean fixedOnTarget = false;
 
     //
     // Implements FtcOpMode abstract methods.
@@ -67,8 +64,7 @@ public class FtcTeleOpMecanumDrive extends FtcOpMode implements TrcGameControlle
         //
         // Initializing sensors.
         //
-        gyro = new FtcMRGyro("gyro_sensor");
-        gyro.calibrate();
+
         //
         // Initializing gamepads.
         //
@@ -77,14 +73,14 @@ public class FtcTeleOpMecanumDrive extends FtcOpMode implements TrcGameControlle
         //
         // DriveBase subsystem.
         //
-        motorLeftFront = new FtcDcMotor("motor_1");
-        motorRightFront = new FtcDcMotor("motor_2");
-        motorLeftRear = new FtcDcMotor("motor_3");
-        motorRightRear = new FtcDcMotor("motor_4");
-        motorLeftFront.setInverted(true);
-        motorLeftRear.setInverted(true);
+        lfWheel = new FtcDcMotor("lfWheel");
+        rfWheel = new FtcDcMotor("rfWheel");
+        lrWheel = new FtcDcMotor("lrWheel");
+        rrWheel = new FtcDcMotor("rrWheel");
+        rfWheel.setInverted(true);
+        rrWheel.setInverted(true);
         driveBase = new TrcDriveBase(
-                motorLeftFront, motorLeftRear, motorRightFront, motorRightRear, gyro);
+                lfWheel, lrWheel, rfWheel, rrWheel, null);
     }   //initRobot
 
     //
@@ -95,15 +91,8 @@ public class FtcTeleOpMecanumDrive extends FtcOpMode implements TrcGameControlle
     public void startMode(TrcRobot.RunMode prevMode)
     {
         dashboard.clearDisplay();
-        gyro.setEnabled(true);
         driveBase.resetPosition();
     }   //startMode
-
-    @Override
-    public void stopMode(TrcRobot.RunMode nextMode)
-    {
-        gyro.setEnabled(false);
-    }   //stopMode
 
     @Override
     public void runPeriodic(double elapsedTime)
@@ -114,13 +103,8 @@ public class FtcTeleOpMecanumDrive extends FtcOpMode implements TrcGameControlle
         //
         double x = gamepad.getLeftStickX(true);
         double y = gamepad.getRightStickY(true);
-        double rotation = gamepad.getRightTrigger(true);
-        if (rotation == 0.0)
-        {
-            rotation = -gamepad.getLeftTrigger(true);
-        }
-        driveBase.mecanumDrive_Cartesian(x, y, rotation, false,
-                                         fixedOnTarget? (Double)gyro.getZHeading().value: 0.0);
+        double rotation = gamepad.getRightTrigger(true) - gamepad.getLeftTrigger(true);
+        driveBase.mecanumDrive_Cartesian(x, y, rotation, false);
 
         dashboard.displayPrintf(1, LABEL_WIDTH, "Text: ", "*** Robot Data ***");
         dashboard.displayPrintf(2, LABEL_WIDTH, "x: ", "%.2f", x);
@@ -152,7 +136,6 @@ public class FtcTeleOpMecanumDrive extends FtcOpMode implements TrcGameControlle
                     break;
 
                 case FtcGamepad.GAMEPAD_RBUMPER:
-                    fixedOnTarget = pressed;
                     break;
             }
         }
