@@ -48,12 +48,12 @@ import ftclib.FtcSongXml;
 import ftclib.FtcVuforia;
 import hallib.HalDashboard;
 import trclib.TrcBooleanState;
-import trclib.TrcDriveBase;
 import trclib.TrcEvent;
 import trclib.TrcGameController;
 import trclib.TrcPidController;
 import trclib.TrcPidDrive;
 import trclib.TrcRobot;
+import trclib.TrcSimpleDriveBase;
 import trclib.TrcSong;
 import trclib.TrcSongPlayer;
 
@@ -165,7 +165,7 @@ public class FtcTeleOpWildThumper extends FtcOpMode
     private FtcDcMotor rmMotor;
     private FtcDcMotor lrMotor;
     private FtcDcMotor rrMotor;
-    private TrcDriveBase driveBase;
+    private TrcSimpleDriveBase driveBase;
     private TrcPidController visionDrivePidCtrl;
     private TrcPidController gyroTurnPidCtrl;
 //    private TrcPidController visionTurnPidCtrl;
@@ -286,11 +286,11 @@ public class FtcTeleOpWildThumper extends FtcOpMode
 
         if (SIX_WHEELS)
         {
-            driveBase = new TrcDriveBase(lfMotor, lmMotor, lrMotor, rfMotor, rmMotor, rrMotor);
+            driveBase = new TrcSimpleDriveBase(lfMotor, lmMotor, lrMotor, rfMotor, rmMotor, rrMotor);
         }
         else
         {
-            driveBase = new TrcDriveBase(lfMotor, lrMotor, rfMotor, rrMotor);
+            driveBase = new TrcSimpleDriveBase(lfMotor, lrMotor, rfMotor, rrMotor);
         }
 
         if (USE_VISION)
@@ -369,7 +369,7 @@ public class FtcTeleOpWildThumper extends FtcOpMode
     public void startMode(TrcRobot.RunMode prevMode)
     {
         dashboard.clearDisplay();
-        driveBase.resetPosition();
+        driveBase.resetOdometry();
     }   //startMode
 
     @Override

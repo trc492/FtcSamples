@@ -61,7 +61,7 @@ public class TrcAnalogTrigger<D>
     private final int index;
     private final D dataType;
     private final TriggerHandler triggerHandler;
-    private final TrcTaskMgr.TaskObject preContinuousTaskObj;
+    private final TrcTaskMgr.TaskObject triggerTaskObj;
     private double[] thresholds;
     private boolean enabled = false;
     private int zone = -1;
@@ -99,8 +99,7 @@ public class TrcAnalogTrigger<D>
         this.index = index;
         this.dataType = dataType;
         this.triggerHandler = triggerHandler;
-        preContinuousTaskObj = TrcTaskMgr.getInstance().createTask(
-            instanceName + ".preContinuous", this::preContinuousTask);
+        triggerTaskObj = TrcTaskMgr.getInstance().createTask(instanceName + ".triggerTask", this::triggerTask);
     }   //TrcAnalogTrigger
 
     /**
@@ -170,11 +169,11 @@ public class TrcAnalogTrigger<D>
         {
             zone = -1;
             value = 0.0;
-            preContinuousTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            triggerTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
         }
         else
         {
-            preContinuousTaskObj.unregisterTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            triggerTaskObj.unregisterTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
         }
 
         if (debugEnabled)
@@ -213,10 +212,6 @@ public class TrcAnalogTrigger<D>
         return value;
     }   //getValue
 
-    //
-    // Implements TrcTaskMgr.Task
-    //
-
     /**
      * This method is called periodically to check the current sensor value against the threshold array to see it
      * crosses a new threshold.
@@ -224,9 +219,9 @@ public class TrcAnalogTrigger<D>
      * @param taskType specifies the type of task being run.
      * @param runMode specifies the competition mode that is running. (e.g. Autonomous, TeleOp, Test).
      */
-    public void preContinuousTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
+    public void triggerTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
-        final String funcName = "preContinuousTask";
+        final String funcName = "triggerTask";
         TrcSensor.SensorData<Double> data = sensor.getProcessedData(index, dataType);
 
         if (debugEnabled)
@@ -285,6 +280,6 @@ public class TrcAnalogTrigger<D>
         {
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
         }
-    }   //preContinuousTask
+    }   //triggerTask
 
 }   //class TrcAnalogTrigger

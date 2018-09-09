@@ -52,7 +52,7 @@ public class TrcMaxbotixSonarArray
     private final TrcAnalogInput[] sensors;
     private final TrcDigitalOutput rx;
     private final boolean loopConfig;
-    private final TrcTaskMgr.TaskObject preContinuousTaskObj;
+    private final TrcTaskMgr.TaskObject sonarArrayTaskObj;
     private final TrcStateMachine<State> sm;
     private final TrcTimer timer;
     private final TrcEvent event;
@@ -82,8 +82,7 @@ public class TrcMaxbotixSonarArray
         this.sensors = sensors;
         this.rx = rx;
         this.loopConfig = loopConfig;
-        preContinuousTaskObj = TrcTaskMgr.getInstance().createTask(
-            instanceName + ".preContinuous", this::preContinuousTask);
+        sonarArrayTaskObj = TrcTaskMgr.getInstance().createTask(instanceName + ".sonarArrayTask", this::sonarArrayTask);
         sm = new TrcStateMachine<>(instanceName);
         timer = new TrcTimer(instanceName);
         event = new TrcEvent(instanceName);
@@ -234,13 +233,13 @@ public class TrcMaxbotixSonarArray
 
         if (enabled)
         {
-            preContinuousTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            sonarArrayTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
             sm.start(State.PULL_RX_HIGH);
         }
         else
         {
             sm.stop();
-            preContinuousTaskObj.unregisterTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            sonarArrayTaskObj.unregisterTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
         }
 
         if (debugEnabled)
@@ -249,19 +248,15 @@ public class TrcMaxbotixSonarArray
         }
     }   //setTaskEnabled
 
-    //
-    // Implements TrcTaskMgr.Task interface.
-    //
-
     /**
      * This method is called periodically to run the state machine that generates teh RX pulse.
      *
      * @param taskType specifies the type of task being run.
      * @param runMode specifies the competition mode that is running. (e.g. Autonomous, TeleOp, Test).
      */
-    public void preContinuousTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
+    public void sonarArrayTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
-        final String funcName = "preContinuousTask";
+        final String funcName = "sonarArrayTask";
 
         if (debugEnabled)
         {
@@ -304,6 +299,6 @@ public class TrcMaxbotixSonarArray
         {
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
         }
-    }   //preContinuousTask
+    }   //sonarArrayTask
 
 }   //class TrcMaxbotixSonarArray

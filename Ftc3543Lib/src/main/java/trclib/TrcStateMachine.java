@@ -415,6 +415,7 @@ public class TrcStateMachine<T>
      * next state. If timeout is non-zero, the state machine will be put back to ready mode after timeout has expired
      * even though the required event have not been signaled.
      *
+     * @param event specifies the event to wait for.
      * @param nextState specifies the next state when the state machine becomes ready.
      * @param timeout specifies a timeout value. A zero value means there is no timeout.
      */
@@ -445,6 +446,7 @@ public class TrcStateMachine<T>
      * next state. If timeout is non-zero, the state machine will be put back to ready mode after timeout has expired
      * even though the required event have not been signaled.
      *
+     * @param event specifies the event to wait for.
      * @param nextState specifies the next state when the state machine becomes ready.
      */
     public void waitForSingleEvent(TrcEvent event, T nextState)

@@ -22,6 +22,9 @@
 
 package trclib;
 
+import trclib.TrcRobot.RunMode;
+import trclib.TrcTaskMgr.TaskType;
+
 /**
  * This class implements a platform independent Enhanced servo. An enhanced servo is a servo with enhanced features.
  * The enhanced servo supports both normal servo as well as continuous servo. It supports limit switches for the
@@ -47,8 +50,7 @@ public class TrcEnhancedServo
     private String instanceName;
     private TrcServo servo1 = null;
     private TrcServo servo2 = null;
-    private TrcTaskMgr.TaskObject stopTaskObj;
-    private TrcTaskMgr.TaskObject postContinuousTaskObj;
+    private TrcTaskMgr.TaskObject enhancedServoTaskObj;
     private boolean continuousServo = false;
     private boolean servoStepping = false;
     private double targetPosition = 0.0;
@@ -92,8 +94,7 @@ public class TrcEnhancedServo
         this.lowerLimitSwitch = lowerLimitSwitch;
         this.upperLimitSwitch = upperLimitSwitch;
         TrcTaskMgr taskMgr = TrcTaskMgr.getInstance();
-        stopTaskObj = taskMgr.createTask(instanceName + ".stop", this::stopTask);
-        postContinuousTaskObj = taskMgr.createTask(instanceName + ".postContinuous", this::postContinuousTask);
+        enhancedServoTaskObj = taskMgr.createTask(instanceName + ".enhancedServoTask", this::enhancedServoTask);
     }   //commonInit
 
     /**
@@ -177,13 +178,13 @@ public class TrcEnhancedServo
 
         if (enabled && !servoStepping)
         {
-            stopTaskObj.registerTask(TrcTaskMgr.TaskType.STOP_TASK);
-            postContinuousTaskObj.registerTask(TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
+            enhancedServoTaskObj.registerTask(TrcTaskMgr.TaskType.STOP_TASK);
+            enhancedServoTaskObj.registerTask(TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
         }
         else if (!enabled && servoStepping)
         {
-            stopTaskObj.unregisterTask(TrcTaskMgr.TaskType.STOP_TASK);
-            postContinuousTaskObj.unregisterTask(TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
+            enhancedServoTaskObj.unregisterTask(TrcTaskMgr.TaskType.STOP_TASK);
+            enhancedServoTaskObj.unregisterTask(TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
         }
         servoStepping = enabled;
 
@@ -386,87 +387,68 @@ public class TrcEnhancedServo
         return currPower;
     }   //getPower
 
-    //
-    // Implements TrcTaskMgr.Task
-    //
-
-    /**
-     * This method is called when the competition mode is about to end so it will stop the servo if necessary.
-     *
-     * @param taskType specifies the type of task being run.
-     * @param runMode specifies the competition mode that is running. (e.g. Autonomous, TeleOp, Test).
-     */
-    public void stopTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
-    {
-        final String funcName = "stopTask";
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "taskType=%s,runMode=%s", taskType, runMode);
-        }
-
-        stop();
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
-        }
-    }   //stopTask
-
     /**
      * This method is called periodically to check whether the servo has reached target. If not, it will calculate
-     * the next position to set the servo to according to its step rate.
+     * the next position to set the servo to according to its step rate or when the competition mode is about to
+     * end so it will stop the servo if necessary.
      *
      * @param taskType specifies the type of task being run.
      * @param runMode specifies the competition mode that is running. (e.g. Autonomous, TeleOp, Test).
      */
-    public void postContinuousTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
+    public void enhancedServoTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
-        final String funcName = "postContinuousTask";
+        final String funcName = "enhancedServoTask";
 
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "taskType=%s,runMode=%s", taskType, runMode);
         }
 
-        if (runMode != TrcRobot.RunMode.DISABLED_MODE)
+        if (runMode != RunMode.DISABLED_MODE)
         {
-            double currTime = TrcUtil.getCurrentTime();
-            double deltaPos = currStepRate * (currTime - prevTime);
+            if (taskType == TaskType.POSTCONTINUOUS_TASK)
+            {
+                double currTime = TrcUtil.getCurrentTime();
+                double deltaPos = currStepRate * (currTime - prevTime);
 
-            if (currPosition < targetPosition)
-            {
-                currPosition += deltaPos;
-                if (currPosition > targetPosition)
-                {
-                    currPosition = targetPosition;
-                }
-            }
-            else if (currPosition > targetPosition)
-            {
-                currPosition -= deltaPos;
                 if (currPosition < targetPosition)
                 {
-                    currPosition = targetPosition;
+                    currPosition += deltaPos;
+                    if (currPosition > targetPosition)
+                    {
+                        currPosition = targetPosition;
+                    }
+                }
+                else if (currPosition > targetPosition)
+                {
+                    currPosition -= deltaPos;
+                    if (currPosition < targetPosition)
+                    {
+                        currPosition = targetPosition;
+                    }
+                }
+                else
+                {
+                    //
+                    // We have reached target.
+                    //
+                    stop();
+                }
+                prevTime = currTime;
+
+                if (servo1 != null)
+                {
+                    servo1.setPosition(currPosition);
+                }
+
+                if (servo2 != null)
+                {
+                    servo2.setPosition(currPosition);
                 }
             }
-            else
+            else if (taskType == TaskType.STOP_TASK)
             {
-                //
-                // We have reached target.
-                //
                 stop();
-            }
-            prevTime = currTime;
-
-            if (servo1 != null)
-            {
-                servo1.setPosition(currPosition);
-            }
-
-            if (servo2 != null)
-            {
-                servo2.setPosition(currPosition);
             }
         }
 
@@ -474,6 +456,6 @@ public class TrcEnhancedServo
         {
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
         }
-    }   //postContinuousTask
+    }   //enhancedServoTask
 
 }   //class TrcEnhancedServo

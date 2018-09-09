@@ -44,7 +44,6 @@ public abstract class TrcI2cLEDPanel
     /**
      * This method writes the data buffer to the device asynchronously.
      *
-     * @param requestTag specifies the tag to identify the request. Can be null if none was provided.
      * @param data specifies the data buffer.
      */
     public abstract void asyncWriteData(byte[] data);
@@ -89,7 +88,7 @@ public abstract class TrcI2cLEDPanel
      * @param x specifies the x coordinate of the upper left corner of the text rectangle.
      * @param y specifies the y coordinate of the upper left corner of the text rectangle.
      * @param fontColor specifies the font color for displaying the text.
-     * @param orientaton specifies the text orientation (0: normal horizontal, 1: clockwise vertical, 
+     * @param orientation specifies the text orientation (0: normal horizontal, 1: clockwise vertical, 
      *                   2: inverted horizontal, 3: anti-clockwise vertical).
      * @param fontSize specifies the size of the font (1: 6x8, 2: 12x16, 3: 18x24, 4: 24x32).
      * @param scrollInc specifies the scroll increment (0: no scroll, 1: scroll to the right, -1: scroll to the left).

@@ -22,6 +22,8 @@
 
 package trclib;
 
+import trclib.TrcTaskMgr.TaskType;
+
 /**
  * This class implements a platform independent motor controller. Typically, this class is extended by a platform
  * dependent motor controller class. Not all motor controllers are created equal. Some have more features than the
@@ -42,8 +44,7 @@ public abstract class TrcMotor implements TrcMotorController
     protected TrcDbgTrace dbgTrace = null;
 
     private final String instanceName;
-    private final TrcTaskMgr.TaskObject stopTaskObj;
-    private final TrcTaskMgr.TaskObject preContinuousTaskObj;
+    private final TrcTaskMgr.TaskObject motorTaskObj;
     private TrcDigitalTrigger digitalTrigger = null;
     private boolean speedTaskEnabled = false;
     private double speed = 0.0;
@@ -66,8 +67,7 @@ public abstract class TrcMotor implements TrcMotorController
 
         this.instanceName = instanceName;
         TrcTaskMgr taskMgr = TrcTaskMgr.getInstance();
-        stopTaskObj = taskMgr.createTask(instanceName + ".stop", this::stopTask);
-        preContinuousTaskObj = taskMgr.createTask(instanceName + ".preContinuousTask", this::preContinuousTask);
+        motorTaskObj = taskMgr.createTask(instanceName + ".motorTask", this::motorTask);
     }   //TrcMotor
 
     /**
@@ -121,13 +121,13 @@ public abstract class TrcMotor implements TrcMotorController
         {
             prevTime = TrcUtil.getCurrentTime();
             prevPos = getPosition();
-            stopTaskObj.registerTask(TrcTaskMgr.TaskType.STOP_TASK);
-            preContinuousTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            motorTaskObj.registerTask(TrcTaskMgr.TaskType.STOP_TASK);
+            motorTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
         }
         else
         {
-            stopTaskObj.unregisterTask(TrcTaskMgr.TaskType.STOP_TASK);
-            preContinuousTaskObj.unregisterTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            motorTaskObj.unregisterTask(TrcTaskMgr.TaskType.STOP_TASK);
+            motorTaskObj.unregisterTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
         }
 
         if (debugEnabled)
@@ -135,6 +135,41 @@ public abstract class TrcMotor implements TrcMotorController
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
     }   //setSpeedTaskEnabled
+
+    /**
+     * This method is called periodically to calculate he speed of the motor or when the competition mode is about
+     * to end to stop the task.
+     *
+     * @param taskType specifies the type of task being run.
+     * @param runMode specifies the competition mode that is running.
+     */
+    public void motorTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
+    {
+        final String funcName = "motorTask";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "taskType=%s,runMode=%s", taskType, runMode);
+        }
+
+        if (taskType == TaskType.PRECONTINUOUS_TASK)
+        {
+            double currTime = TrcUtil.getCurrentTime();
+            double currPos = getPosition();
+            speed = (currPos - prevPos)/(currTime - prevTime);
+            prevTime = currTime;
+            prevPos = currPos;
+        }
+        else if (taskType == TaskType.STOP_TASK)
+        {
+            setSpeedTaskEnabled(false);
+        }
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
+        }
+    }   //motorTask
 
     //
     // Implements the TrcMotorController interface.
@@ -144,8 +179,6 @@ public abstract class TrcMotor implements TrcMotorController
      * This method returns the speed of the motor rotation. It keeps track of the rotation speed by using a periodic
      * task to monitor the position sensor value. If the motor controller has hardware monitoring speed, it should
      * override this method and access the hardware instead.
-     *
-     * @throws UnsupportedOperationException.
      */
     @Override
     public double getSpeed()
@@ -164,63 +197,9 @@ public abstract class TrcMotor implements TrcMotorController
         }
         else
         {
-            throw new UnsupportedOperationException("SpeedTask is not enabled.");
+            throw new UnsupportedOperationException("MotorTask is not enabled.");
         }
     }   //getSpeed
-
-    //
-    // Implements TrcTaskMgr.Task
-    //
-
-    /**
-     * This method is called when the competition mode is about to end to stop the task.
-     *
-     * @param taskType specifies the type of task being run.
-     * @param runMode specifies the competition mode that is running.
-     */
-    public void stopTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
-    {
-        final String funcName = "stopTask";
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "taskType=%s,runMode=%s", taskType, runMode);
-        }
-
-        setSpeedTaskEnabled(false);
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
-        }
-    }   //stopTask
-
-    /**
-     * This task is run periodically to calculate he speed of the motor.
-     *
-     * @param taskType specifies the type of task being run.
-     * @param runMode specifies the competition mode that is running.
-     */
-    public void preContinuousTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
-    {
-        final String funcName = "preContinuousTask";
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "taskType=%s,runMode=%s", taskType, runMode);
-        }
-
-        double currTime = TrcUtil.getCurrentTime();
-        double currPos = getPosition();
-        speed = (currPos - prevPos)/(currTime - prevTime);
-        prevTime = currTime;
-        prevPos = currPos;
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
-        }
-    }   //preContinuousTask
 
     //
     // Implements TrcDigitalTrigger.TriggerHandler.

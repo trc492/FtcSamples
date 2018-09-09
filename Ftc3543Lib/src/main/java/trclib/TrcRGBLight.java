@@ -156,7 +156,7 @@ public abstract class TrcRGBLight
     }   //enum State
 
     private final String instanceName;
-    private final TrcTaskMgr.TaskObject postContinuousTaskObj;
+    private final TrcTaskMgr.TaskObject rgbLightTaskObj;
     private final TrcStateMachine<State> sm;
     private final TrcTimer timer;
     private final TrcEvent timerEvent;
@@ -181,8 +181,7 @@ public abstract class TrcRGBLight
         }
 
         this.instanceName = instanceName;
-        postContinuousTaskObj = TrcTaskMgr.getInstance().createTask(
-            instanceName + ".postContinuous", this::postContinuousTask);
+        rgbLightTaskObj = TrcTaskMgr.getInstance().createTask(instanceName + ".rgbLightTask", this::rgbLightTask);
         sm = new TrcStateMachine<>(moduleName);
         timer = new TrcTimer(moduleName);
         timerEvent = new TrcEvent(moduleName + ".timer");
@@ -214,11 +213,11 @@ public abstract class TrcRGBLight
 
         if (enabled)
         {
-            postContinuousTaskObj.registerTask(TaskType.POSTCONTINUOUS_TASK);
+            rgbLightTaskObj.registerTask(TaskType.POSTCONTINUOUS_TASK);
         }
         else
         {
-            postContinuousTaskObj.unregisterTask(TaskType.POSTCONTINUOUS_TASK);
+            rgbLightTaskObj.unregisterTask(TaskType.POSTCONTINUOUS_TASK);
         }
 
         if (debugEnabled)
@@ -275,7 +274,7 @@ public abstract class TrcRGBLight
      * This method sets the RGB light with the specified color value. If the specified color value is zero, the light
      * is turned OFF.
      *
-     * @param color specifies the color value.
+     * @param colorValue specifies the color value.
      */
     private void setColorValue(int colorValue)
     {
@@ -371,43 +370,19 @@ public abstract class TrcRGBLight
         setColor(color, onPeriod, 0.0);
     }   //setColor
 
-    //
-    // Implements TrcTaskMgr.Task
-    //
-
-    /**
-     * This method is called when the competition mode is about to end.
-     *
-     * @param taskType specifies the type of task being run.
-     * @param runMode specifies the competition mode that is running. (e.g. Autonomous, TeleOp, Test).
-     */
-    public void stopTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
-    {
-        final String funcName = "stopTask";
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "taskType=%s,runMode=%s", taskType, runMode);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
-        }
-
-        setColor(RGBColor.RGB_BLACK);
-    }   //stopTask
-
     /**
      * This method is called periodically to execute the RGB light operation.
      *
      * @param taskType specifies the type of task being run.
      * @param runMode specifies the competition mode that is running. (e.g. Autonomous, TeleOp, Test).
      */
-    public void postContinuousTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
+    public void rgbLightTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
-        final String funcName = "postContinuousTask";
+        final String funcName = "rgbLightTask";
 
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "taskType=%s,runMode=%s", taskType, runMode);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
         }
 
         if (sm.isReady())
@@ -452,6 +427,11 @@ public abstract class TrcRGBLight
                     break;
             }
         }
-    }   //postContinuousTask
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
+        }
+    }   //rgbLightTask
 
 }   //class TrcRGBLight

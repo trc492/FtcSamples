@@ -42,7 +42,7 @@ public class TrcDataIntegrator<D>
     private final TrcSensor<D> sensor;
     private final D dataType;
     private final int numAxes;
-    private final TrcTaskMgr.TaskObject preContinuousTaskObj;
+    private final TrcTaskMgr.TaskObject integratorTaskObj;
     private final TrcSensor.SensorData<Double>[] inputData;
     private final TrcSensor.SensorData<Double>[] integratedData;
     private final TrcSensor.SensorData<Double>[] doubleIntegratedData;
@@ -76,8 +76,7 @@ public class TrcDataIntegrator<D>
         this.sensor = sensor;
         this.dataType = dataType;
         numAxes = sensor.getNumAxes();
-        preContinuousTaskObj = TrcTaskMgr.getInstance().createTask(
-            instanceName + ".preContinuous", this::preContinuousTask);
+        integratorTaskObj = TrcTaskMgr.getInstance().createTask(instanceName + ".integratorTask", this::integratorTask);
 
         inputData = new TrcSensor.SensorData[numAxes];
         integratedData = new TrcSensor.SensorData[numAxes];
@@ -135,11 +134,11 @@ public class TrcDataIntegrator<D>
         if (enabled)
         {
             reset();
-            preContinuousTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            integratorTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
         }
         else
         {
-            preContinuousTaskObj.unregisterTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            integratorTaskObj.unregisterTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
         }
 
         if (debugEnabled)
@@ -259,19 +258,15 @@ public class TrcDataIntegrator<D>
         return data;
     }   //getDoubleIntegratedData
 
-    //
-    // Implements TrcTaskMgr.Task
-    //
-
     /**
      * This method is called periodically to do data integration.
      *
      * @param taskType specifies the type of task being run.
      * @param runMode specifies the competition mode that is running.
      */
-    public void preContinuousTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
+    public void integratorTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
-        final String funcName = "preContinuousTask";
+        final String funcName = "integratorTask";
 
         if (debugEnabled)
         {
@@ -323,6 +318,6 @@ public class TrcDataIntegrator<D>
         {
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
         }
-    }   //preContinuousTask
+    }   //integratorTask
 
 }   //class TrcDataIntegrator

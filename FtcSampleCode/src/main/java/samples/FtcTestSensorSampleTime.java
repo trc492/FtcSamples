@@ -113,10 +113,10 @@ public class FtcTestSensorSampleTime extends FtcOpMode
     @Override
     public void stopMode(TrcRobot.RunMode nextMode)
     {
-        lfWheel.setPower(0.0);
-        lrWheel.setPower(0.0);
-        rfWheel.setPower(0.0);
-        rrWheel.setPower(0.0);
+        lfWheel.set(0.0);
+        lrWheel.set(0.0);
+        rfWheel.set(0.0);
+        rrWheel.set(0.0);
 
         switch (sensorType)
         {
@@ -206,10 +206,10 @@ public class FtcTestSensorSampleTime extends FtcOpMode
                 //
                 // Driving forward and checking encoders.
                 //
-                lfWheel.setPower(DRIVE_POWER);
-                rfWheel.setPower(DRIVE_POWER);
-                lrWheel.setPower(DRIVE_POWER);
-                rrWheel.setPower(DRIVE_POWER);
+                lfWheel.set(DRIVE_POWER);
+                rfWheel.set(DRIVE_POWER);
+                lrWheel.set(DRIVE_POWER);
+                rrWheel.set(DRIVE_POWER);
                 Log.i(TAG, prefix + String.format("lf=%.0f, rf=%.0f, lr=%.0f, rr=%.0f",
                                                   lfWheel.getPosition(), rfWheel.getPosition(),
                                                   lrWheel.getPosition(), rrWheel.getPosition()));
@@ -221,10 +221,10 @@ public class FtcTestSensorSampleTime extends FtcOpMode
                 //
                 // Turning right and checking gyro.
                 //
-                lfWheel.setPower(TURN_POWER);
-                lrWheel.setPower(TURN_POWER);
-                rfWheel.setPower(-TURN_POWER);
-                rrWheel.setPower(-TURN_POWER);
+                lfWheel.set(TURN_POWER);
+                lrWheel.set(TURN_POWER);
+                rfWheel.set(-TURN_POWER);
+                rrWheel.set(-TURN_POWER);
                 Log.i(TAG, prefix);
                 break;
         }

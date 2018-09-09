@@ -39,6 +39,7 @@ public class Elevator
     private static final double ELEVATOR_MIN_HEIGHT             = 0.0;
     private static final double ELEVATOR_MAX_HEIGHT             = 23.5;
     private static final double ELEVATOR_INCHES_PER_COUNT       = (23.5/9700.0);
+    private static final double ELEVATOR_CAL_POWER              = 0.3;
 
     //
     // This subsystem consists of an elevator motor, a lower limit switch, and a PID controller to control the
@@ -60,20 +61,12 @@ public class Elevator
         pidCtrl = new TrcPidController(
                 "elevatorPidCtrl",
                 new TrcPidController.PidCoefficients(ELEVATOR_KP, ELEVATOR_KI, ELEVATOR_KD),
-                ELEVATOR_TOLERANCE, this::getPosition);
+                ELEVATOR_TOLERANCE, actuator::getPosition);
+
         actuator = new TrcPidActuator(
-                "elevator", motor, lowerLimitSwitch, pidCtrl, ELEVATOR_MIN_HEIGHT, ELEVATOR_MAX_HEIGHT);
+                "elevator", motor, lowerLimitSwitch, pidCtrl, ELEVATOR_CAL_POWER,
+                ELEVATOR_MIN_HEIGHT, ELEVATOR_MAX_HEIGHT);
         actuator.setPositionScale(ELEVATOR_INCHES_PER_COUNT);
     }   //Elevator
-
-    /**
-     * This method is called by the PID controller to get the current height of the elevator.
-     *
-     * @return current elevator height.
-     */
-    public double getPosition()
-    {
-        return actuator.getPosition();
-    }   //getPosition
 
 }   //class Elevator

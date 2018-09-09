@@ -36,7 +36,7 @@ public class TrcRobot
 
         /**
          * In FRC, the robot is in this mode before competition starts and between mode transitions from Autonomous
-         * to TeleOp, for example. (i.e. DISABLED_MODE->AUTO_MODE->DISABLED_MODE->TELEOP_MODE->DISABLED_MODE).
+         * to TeleOp, for example. (i.e. DISABLED_MODE to AUTO_MODE to DISABLED_MODE to TELEOP_MODE to DISABLED_MODE).
          * This mode does not exist in FTC.
          */
         DISABLED_MODE,

@@ -53,7 +53,7 @@ public class TrcDigitalTrigger
     private final String instanceName;
     private final TrcDigitalInput digitalInput;
     private final TriggerHandler eventHandler;
-    private final TrcTaskMgr.TaskObject preContinuousTaskObj;
+    private final TrcTaskMgr.TaskObject triggerTaskObj;
     private Boolean prevState = null;
 
     /**
@@ -81,8 +81,7 @@ public class TrcDigitalTrigger
         this.instanceName = instanceName;
         this.digitalInput = digitalInput;
         this.eventHandler = eventHandler;
-        preContinuousTaskObj = TrcTaskMgr.getInstance().createTask(
-            instanceName + ".preContinuous", this::preContinuousTask);
+        triggerTaskObj = TrcTaskMgr.getInstance().createTask(instanceName + ".triggerTask", this::triggerTask);
     }   //TrcDigitalTrigger
 
     /**
@@ -102,11 +101,11 @@ public class TrcDigitalTrigger
         if (enabled)
         {
             prevState = null;
-            preContinuousTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            triggerTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
         }
         else
         {
-            preContinuousTaskObj.unregisterTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            triggerTaskObj.unregisterTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
         }
 
         if (debugEnabled)
@@ -115,19 +114,15 @@ public class TrcDigitalTrigger
         }
     }   //setTaskEnabled
 
-    //
-    // Implements TrcTaskMgr.Task
-    //
-
     /**
      * This method is called periodically to check if the digital input device has changed state.
      *
      * @param taskType specifies the type of task being run.
      * @param runMode specifies the competition mode that is running. (e.g. Autonomous, TeleOp, Test).
      */
-    public void preContinuousTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
+    public void triggerTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
-        final String funcName = "preContinuousTask";
+        final String funcName = "triggerTask";
         boolean currState = digitalInput.isActive();
 
         if (debugEnabled)
@@ -153,6 +148,6 @@ public class TrcDigitalTrigger
         {
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
         }
-    }   //preContinuousTask
+    }   //triggerTask
 
 }   //class TrcDigitalTrigger

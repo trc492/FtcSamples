@@ -23,6 +23,7 @@
 package trclib;
 
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Locale;
 
@@ -67,6 +68,7 @@ public class TrcUtil
     /**
      * This method returns the current time stamp with the specified format.
      *
+     * @param format specifies the time stamp format.
      * @return current time stamp string with the specified format.
      */
     public static String getTimestamp(String format)
@@ -110,6 +112,85 @@ public class TrcUtil
     }   //sleep
 
     /**
+     * This method calculates the modulo of two numbers. Unlike the <code>%</code> operator, this returns a number
+     * in the range [0, b). For some reason, in Java, the <code>%</code> operator actually does remainder, which
+     * means the result is in the range (-b, b).
+     *
+     * @param a specifies the dividend.
+     * @param b specifies the divisor.
+     * @return the modulo in the range [0, b)
+     */
+    public static double modulo(double a, double b)
+    {
+        return ((a % b) + b) % b;
+    }   //modulo
+
+    /**
+     * This method calculates and returns the average of the numbers in the given array.
+     *
+     * @param nums specifies the number array.
+     * @return average of all numbers in the array. If the array is empty, return 0.
+     */
+    public static double average(double... nums)
+    {
+        return Arrays.stream(nums).average().orElse(0.0);
+    }   //average
+
+    /**
+     * This method calculates the magnitudes of the given array of numbers.
+     *
+     * @param nums specifies the number array.
+     * @return magnitude of all numbers in the array.
+     */
+    public static double magnitude(double... nums)
+    {
+        return Math.sqrt(Arrays.stream(nums).map(e -> e*e).sum());
+    }   //magnitude
+
+    /**
+     * This method normalizes the given array of numbers such that no number exceeds +/- 1.0.
+     *
+     * @param nums specifies the number array.
+     * @return normalized number array.
+     */
+    public static double[] normalize(double... nums)
+    {
+        double maxMagnitude = Arrays.stream(nums).map(Math::abs).max().orElse(0.0);
+        return maxMagnitude > 1.0? Arrays.stream(nums).map(x -> x/maxMagnitude).toArray(): nums;
+    }   //normalize
+
+    /**
+     * This method normalizes the given array of numbers such that no number exceeds +/- 1.0. If no number exceeds
+     * the magnitude of 1.0, nothing will change, otherwise the original nums array will be modified in place.
+     *
+     * @param nums specifies the number array.
+     * @return normalized number array.
+     */
+    public static void normalizeInPlace(double[] nums)
+    {
+        double maxMagnitude = Arrays.stream(nums).map(Math::abs).max().orElse(0.0);
+
+        if (maxMagnitude > 1.0)
+        {
+            for(int i = 0; i < nums.length; i++)
+            {
+                nums[i] /= maxMagnitude;
+            }
+        }
+    }   //normalizeInPlace
+
+    /**
+     * This method rounds a double to the nearest integer.
+     *
+     * @param num Number to round.
+     * @return Rounded to the nearest integer.
+     */
+    public static int round(double num)
+    {
+        return (int) Math.floor(num + 0.5);
+    }   //round
+
+    /**
      * This method clips the given value to the range limited by the given low and high limits.
      *
      * @param value specifies the value to be clipped
@@ -119,9 +200,8 @@ public class TrcUtil
      */
     public static int clipRange(int value, int lowLimit, int highLimit)
     {
-        return (value < lowLimit)? lowLimit: (value > highLimit)? highLimit: value;
+        return Math.min(Math.max(value, lowLimit), highLimit);
     }   //clipRange
-
 
     /**
      * This method clips the given value to the range limited by the given low and high limits.
@@ -133,7 +213,7 @@ public class TrcUtil
      */
     public static double clipRange(double value, double lowLimit, double highLimit)
     {
-        return (value < lowLimit)? lowLimit: (value > highLimit)? highLimit: value;
+        return Math.min(Math.max(value, lowLimit), highLimit);
     }   //clipRange
 
     /**

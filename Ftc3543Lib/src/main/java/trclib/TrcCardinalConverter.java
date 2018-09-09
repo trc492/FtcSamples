@@ -52,7 +52,7 @@ public class TrcCardinalConverter<D>
     private final TrcSensor<D> sensor;
     private final D dataType;
     private final int numAxes;
-    private final TrcTaskMgr.TaskObject preContinuousTaskObj;
+    private final TrcTaskMgr.TaskObject converterTaskObj;
     private final double[] cardinalRangeLows;
     private final double[] cardinalRangeHighs;
     private final TrcSensor.SensorData<Double>[] prevData;
@@ -85,8 +85,7 @@ public class TrcCardinalConverter<D>
         this.sensor = sensor;
         this.dataType = dataType;
         numAxes = sensor.getNumAxes();
-        preContinuousTaskObj = TrcTaskMgr.getInstance().createTask(
-            instanceName + ".preContinuous", this::preContinuousTask);
+        converterTaskObj = TrcTaskMgr.getInstance().createTask(instanceName + ".converterTask", this::converterTask);
 
         cardinalRangeLows = new double[numAxes];
         cardinalRangeHighs = new double[numAxes];
@@ -148,12 +147,12 @@ public class TrcCardinalConverter<D>
         if (!this.enabled && enabled)
         {
             reset();
-            preContinuousTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            converterTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
         }
         else if (this.enabled && !enabled)
         {
             reset();
-            preContinuousTaskObj.unregisterTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            converterTaskObj.unregisterTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
         }
         this.enabled = enabled;
 
@@ -255,19 +254,15 @@ public class TrcCardinalConverter<D>
         return data;
     }   //getCartesianData
 
-    //
-    // Implements TrcTaskMgr.Task
-    //
-
     /**
      * This method is called periodically to check for range crossovers.
      *
      * @param taskType specifies the type of task being run.
      * @param runMode specifies the competition mode that is running.
      */
-    public void preContinuousTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
+    public void converterTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
-        final String funcName = "preContinuousTask";
+        final String funcName = "converterTask";
 
         if (debugEnabled)
         {
@@ -300,6 +295,6 @@ public class TrcCardinalConverter<D>
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK,
                 "! (numCrossovers=%s)", Arrays.toString(numCrossovers));
         }
-    }   //preContinuousTask
+    }   //converterTask
 
 }   //class TrcCardinalConverter

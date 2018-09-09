@@ -94,9 +94,9 @@ public abstract class TrcGameController
 
         if (buttonHandler != null)
         {
-            TrcTaskMgr.TaskObject prePeriodicTaskObj = TrcTaskMgr.getInstance().createTask(
-                instanceName + ".prePeriodic", this::prePeriodicTask);
-            prePeriodicTaskObj.registerTask(TrcTaskMgr.TaskType.PREPERIODIC_TASK);
+            TrcTaskMgr.TaskObject buttonEventTaskObj = TrcTaskMgr.getInstance().createTask(
+                instanceName + ".buttonEventTask", this::buttonEventTask);
+            buttonEventTaskObj.registerTask(TrcTaskMgr.TaskType.PREPERIODIC_TASK);
         }
     }   //TrcGameController
 
@@ -260,7 +260,7 @@ public abstract class TrcGameController
     protected double getMagnitude(double x, double y)
     {
         final String funcName = "getMagnitude";
-        double value = Math.sqrt(x*x + y*y);
+        double value = TrcUtil.magnitude(x, y);
 
         if (debugEnabled)
         {
@@ -308,10 +308,6 @@ public abstract class TrcGameController
         return output;
     }   //expValue
 
-    //
-    // Implements TrcTaskMgr.Task
-    //
-
     /**
      * This method runs periodically and checks for changes in the button states. If any button changed state,
      * the button handler is called if one exists.
@@ -319,9 +315,9 @@ public abstract class TrcGameController
      * @param taskType specifies the type of task being run.
      * @param runMode specifies the current robot run mode.
      */
-    public void prePeriodicTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
+    public void buttonEventTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
-        final String funcName = "prePeriodic";
+        final String funcName = "buttonEventTask";
 
         if (debugEnabled)
         {
@@ -371,6 +367,6 @@ public abstract class TrcGameController
         {
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
         }
-    }   //prePeriodicTask
+    }   //buttonEventTask
 
 }   //class TrcGameController

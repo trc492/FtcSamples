@@ -60,7 +60,7 @@ public abstract class TrcRobotBattery
     private boolean voltageSupported = true;
     private boolean currentSupported = true;
     private boolean powerSupported = true;
-    private final TrcTaskMgr.TaskObject preContinuousTaskObj;
+    private final TrcTaskMgr.TaskObject robotBatteryTaskObj;
     private double lowestVoltage = 0.0;
     private double highestVoltage = 0.0;
     private double lowestCurrent = 0.0;
@@ -88,8 +88,8 @@ public abstract class TrcRobotBattery
                 new TrcDbgTrace(moduleName, tracingEnabled, traceLevel, msgLevel);
         }
 
-        preContinuousTaskObj = TrcTaskMgr.getInstance().createTask(
-            moduleName + ".preContinuous", this::preContinuousTask);
+        robotBatteryTaskObj = TrcTaskMgr.getInstance().createTask(
+            moduleName + ".robotBatteryTask", this::robotBatteryTask);
     }   //TrcRobotBattery
 
     /**
@@ -147,11 +147,11 @@ public abstract class TrcRobotBattery
 
             totalEnergy = 0.0;
             lastTimestamp = TrcUtil.getCurrentTime();
-            preContinuousTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            robotBatteryTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
         }
         else
         {
-            preContinuousTaskObj.unregisterTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            robotBatteryTaskObj.unregisterTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
         }
 
         if (debugEnabled)
@@ -266,10 +266,6 @@ public abstract class TrcRobotBattery
         return totalEnergy;
     }   //getTotalEnergy
 
-    //
-    // Implements TrcTaskMgr.Task
-    //
-
     /**
      * This method is called periodically to monitor the battery voltage and to keep track of the lowest voltage it
      * has ever seen.
@@ -277,9 +273,9 @@ public abstract class TrcRobotBattery
      * @param taskType specifies the type of task being run.
      * @param runMode specifies the competition mode that is running.
      */
-    public void preContinuousTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
+    public void robotBatteryTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
-        final String funcName = "preContinuousTask";
+        final String funcName = "robotBatteryTask";
         double currTime = TrcUtil.getCurrentTime();
         double voltage = 0.0, current = 0.0, power = 0.0;
 
@@ -338,6 +334,6 @@ public abstract class TrcRobotBattery
         {
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
         }
-    }   //preContinuousTask
+    }   //robotBatteryTask
 
 }   //class TrcRobotBattery

@@ -208,7 +208,7 @@ public class TrcTaskMgr
         /**
          * This method checks if the given task is associated with this task object.
          *
-         * @param task specifies the task to be checked against.
+         * @param taskObj specifies the task object to be checked against.
          * @return true if it is the same task, false otherwise.
          */
         public boolean isSame(TaskObject taskObj)

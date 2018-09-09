@@ -106,6 +106,7 @@ public abstract class TrcAnalogInput extends TrcSensor<TrcAnalogInput.DataType>
      * Constructor: Creates an instance of the object.
      *
      * @param instanceName specifies the instance name.
+     * @param numAxes specifies the number of axes supporting by the analog input device.
      */
     public TrcAnalogInput(final String instanceName, int numAxes)
     {

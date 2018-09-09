@@ -22,6 +22,8 @@
 
 package trclib;
 
+import trclib.TrcTaskMgr.TaskType;
+
 /**
  * This class implements a song player that can parse a notated song in a string buffer and play the notes on a Tone
  * device.
@@ -38,8 +40,7 @@ public class TrcSongPlayer
 
     private final String instanceName;
     private final TrcTone tone;
-    private final TrcTaskMgr.TaskObject stopTaskObj;
-    private final TrcTaskMgr.TaskObject postContinuousTaskObj;
+    private final TrcTaskMgr.TaskObject songPlayerTaskObj;
     private TrcSong song = null;
     private double barDuration = 0.0;
     private boolean repeat = false;
@@ -63,8 +64,7 @@ public class TrcSongPlayer
         this.instanceName = instanceName;
         this.tone = tone;
         TrcTaskMgr taskMgr = TrcTaskMgr.getInstance();
-        stopTaskObj = taskMgr.createTask(instanceName + ".stop", this::stopTask);
-        postContinuousTaskObj = taskMgr.createTask(instanceName + ".postContinuous", this::postContinuousTask);
+        songPlayerTaskObj = taskMgr.createTask(instanceName + ".songPlayerTask", this::songPlayerTask);
     }   //TrcSongPlayer
 
     /**
@@ -93,13 +93,13 @@ public class TrcSongPlayer
 
         if (enabled)
         {
-            stopTaskObj.registerTask(TrcTaskMgr.TaskType.STOP_TASK);
-            postContinuousTaskObj.registerTask(TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
+            songPlayerTaskObj.registerTask(TrcTaskMgr.TaskType.STOP_TASK);
+            songPlayerTaskObj.registerTask(TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
         }
         else
         {
-            stopTaskObj.unregisterTask(TrcTaskMgr.TaskType.STOP_TASK);
-            postContinuousTaskObj.unregisterTask(TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
+            songPlayerTaskObj.unregisterTask(TrcTaskMgr.TaskType.STOP_TASK);
+            songPlayerTaskObj.unregisterTask(TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
         }
 
         if (debugEnabled)
@@ -536,100 +536,81 @@ public class TrcSongPlayer
         }
     }   //performNotation
 
-    //
-    // Implements TrcTaskMgr.Task
-    //
-
     /**
-     * This method is called when the competition mode is about to end. It stops the player if sound is playing.
-     *
-     * @param taskType specifies the type of task being run.
-     * @param runMode specifies the competition mode that is about to
-     */
-    public void stopTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
-    {
-        final String funcName = "stopTask";
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "taskType=%s,runMode=%s", taskType, runMode);
-        }
-
-        stop();
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
-        }
-    }   //stopTask
-
-    /**
-     * This method is called periodically to check and play the next note in the song.
+     * This method is called periodically to check and play the next note in the song or when the competition mode
+     * is about to end. It stops the player if sound is playing.
      *
      * @param taskType specifies the type of task being run.
      * @param runMode specifies the competition mode that is running.
      */
-    public void postContinuousTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
+    public void songPlayerTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
-        final String funcName = "postContinuous";
+        final String funcName = "songPlayerTask";
 
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "taskType=%s,runMode=%s", taskType, runMode);
         }
 
-        //
-        // Move on to the next note only if the current note has finished playing.
-        //
-        if (!tone.isPlaying())
+        if (taskType == TaskType.POSTCONTINUOUS_TASK)
         {
-            while (true)
+            //
+            // Move on to the next note only if the current note has finished playing.
+            //
+            if (!tone.isPlaying())
             {
-                String note = song.getNextNote();
-
-                if (note == null && repeat)
+                while (true)
                 {
-                    //
-                    // There is no more note in the song. If we are in repeat mode, rewind the song and play it again.
-                    //
-                    song.rewind();
-                    note = song.getNextNote();
-                }
+                    String note = song.getNextNote();
 
-                if (note == null)
-                {
-                    //
-                    // The song has ended, let's signal it and quit.
-                    //
-                    setTaskEnabled(false);
-                    if (event != null)
+                    if (note == null && repeat)
                     {
-                        event.set(true);
+                        //
+                        // There is no more note in the song. If we are in repeat mode, rewind the song and play it again.
+                        //
+                        song.rewind();
+                        note = song.getNextNote();
                     }
-                    break;
-                }
-                else if (note.charAt(0) == '#')
-                {
-                    //
-                    // The note is a notation, perform the action and loop back to process the next one.
-                    //
-                    performNotation(note.substring(1));
-                }
-                else
-                {
-                    //
-                    // This is a playable note, play it and exit the loop.
-                    //
-                    playNote(note, barDuration, song.getCurrentVolume());
-                    break;
+
+                    if (note == null)
+                    {
+                        //
+                        // The song has ended, let's signal it and quit.
+                        //
+                        setTaskEnabled(false);
+                        if (event != null)
+                        {
+                            event.set(true);
+                        }
+                        break;
+                    }
+                    else if (note.charAt(0) == '#')
+                    {
+                        //
+                        // The note is a notation, perform the action and loop back to process the next one.
+                        //
+                        performNotation(note.substring(1));
+                    }
+                    else
+                    {
+                        //
+                        // This is a playable note, play it and exit the loop.
+                        //
+                        playNote(note, barDuration, song.getCurrentVolume());
+                        break;
+                    }
                 }
             }
+        }
+        else if (taskType == TaskType.STOP_TASK)
+        {
+            stop();
         }
 
         if (debugEnabled)
         {
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
         }
-    }   //postContinuousTask
+    }   //songPlayerTask
 
 }   //class TrcSongPlayer

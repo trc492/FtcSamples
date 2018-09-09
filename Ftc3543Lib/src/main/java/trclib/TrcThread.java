@@ -159,6 +159,7 @@ public class TrcThread<T> implements Runnable
      * Constructor: Create an instance of the object.
      *
      * @param instanceName specifies the instance name.
+     * @param task specifies the periodic task the thread is to execute.
      */
     public TrcThread(final String instanceName, PeriodicTask task)
     {

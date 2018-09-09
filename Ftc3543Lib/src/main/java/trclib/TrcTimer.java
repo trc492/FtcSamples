@@ -37,7 +37,7 @@ public class TrcTimer
     private TrcDbgTrace dbgTrace = null;
 
     private final String instanceName;
-    private final TrcTaskMgr.TaskObject preContinuousTaskObj;
+    private final TrcTaskMgr.TaskObject timerTaskObj;
     private double expiredTime;
     private boolean enabled;
     private boolean expired;
@@ -59,8 +59,7 @@ public class TrcTimer
         }
 
         this.instanceName = instanceName;
-        preContinuousTaskObj = TrcTaskMgr.getInstance().createTask(
-            instanceName + ".preContinuous", this::preContinuousTask);
+        timerTaskObj = TrcTaskMgr.getInstance().createTask(instanceName + ".timerTask", this::timerTask);
         expiredTime = 0.0;
         enabled = false;
         expired = false;
@@ -190,11 +189,11 @@ public class TrcTimer
 
         if (enabled)
         {
-            preContinuousTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            timerTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
         }
         else
         {
-            preContinuousTaskObj.unregisterTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            timerTaskObj.unregisterTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
         }
         this.enabled = enabled;
 
@@ -204,10 +203,6 @@ public class TrcTimer
         }
     }   //setTaskEnabled
 
-    //
-    // Implements TrcTaskMgr.Task
-    //
-
     /**
      * This method runs periodically at the fastest rate and checks if the timer has expired. After the timer expired,
      * the task is disabled and if there is an event object, it will be signaled.
@@ -215,9 +210,9 @@ public class TrcTimer
      * @param taskType specifies the type of task being run.
      * @param runMode specifies the current robot run mode.
      */
-    public void preContinuousTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
+    public void timerTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
-        final String funcName = "preContinuousTask";
+        final String funcName = "timerTask";
 
         if (debugEnabled)
         {
@@ -247,6 +242,6 @@ public class TrcTimer
         {
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
         }
-    }   //preContinuousTask
+    }   //timerTask
 
 }   //class TrcTimer

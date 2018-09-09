@@ -35,8 +35,6 @@ import trclib.TrcRobot;
 @Disabled
 public class FtcTeleOpPidElevator extends FtcOpMode implements TrcGameController.ButtonHandler
 {
-    private static final double ELEVATOR_CAL_POWER = 0.3;
-
     private HalDashboard dashboard;
     //
     // Gamepad.
@@ -65,7 +63,7 @@ public class FtcTeleOpPidElevator extends FtcOpMode implements TrcGameController
         // Elevator subsystem.
         //
         elevator = new Elevator();
-        elevator.actuator.zeroCalibrate(ELEVATOR_CAL_POWER);
+        elevator.actuator.zeroCalibrate();
     }   //initRobot
 
     //
@@ -108,7 +106,7 @@ public class FtcTeleOpPidElevator extends FtcOpMode implements TrcGameController
                 case FtcGamepad.GAMEPAD_START:
                     if (pressed)
                     {
-                        elevator.actuator.zeroCalibrate(ELEVATOR_CAL_POWER);
+                        elevator.actuator.zeroCalibrate();
                     }
                     break;
             }

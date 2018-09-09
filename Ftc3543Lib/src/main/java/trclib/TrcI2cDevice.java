@@ -171,7 +171,7 @@ public abstract class TrcI2cDevice
     }   //class Request
 
     private final String instanceName;
-    private final TrcTaskMgr.TaskObject preContinuousTaskObj;
+    private final TrcTaskMgr.TaskObject i2cDeviceTaskObj;
     private final TrcStateMachine<PortCommandState> portCommandSM;
     private final Queue<Request> requestQueue = new LinkedList<>();
     private Request currRequest = null;
@@ -193,8 +193,7 @@ public abstract class TrcI2cDevice
         }
 
         this.instanceName = instanceName;
-        preContinuousTaskObj = TrcTaskMgr.getInstance().createTask(
-            instanceName + ".preContinuous", this::preContinuousTask);
+        i2cDeviceTaskObj = TrcTaskMgr.getInstance().createTask(instanceName + ".i2cDeviceTask", this::i2cDeviceTask);
         portCommandSM = new TrcStateMachine<>(instanceName);
     }   //TrcI2cDevice
 
@@ -224,13 +223,13 @@ public abstract class TrcI2cDevice
 
         if (enabled)
         {
-            preContinuousTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            i2cDeviceTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
             portCommandSM.start(PortCommandState.START);
         }
         else
         {
             portCommandSM.stop();
-            preContinuousTaskObj.unregisterTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            i2cDeviceTaskObj.unregisterTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
         }
 
         if (debugEnabled)
@@ -388,19 +387,15 @@ public abstract class TrcI2cDevice
         }
     }   //sendWordCommand
 
-    //
-    // Implements TrcTaskMgr.Task
-    //
-
     /**
      * This method is called periodically to run the PortCommand state machines.
      *
      * @param taskType specifies the type of task being run.
      * @param runMode specifies the competition mode that is running.
      */
-    public void preContinuousTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
+    public void i2cDeviceTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
-        final String funcName = "preContinuousTask";
+        final String funcName = "i2cDeviceTask";
 
         if (debugEnabled)
         {
@@ -595,6 +590,6 @@ public abstract class TrcI2cDevice
         {
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
         }
-    }   //preContinuousTask
+    }   //i2cDeviceTask
 
 }   //class TrcI2cDevice

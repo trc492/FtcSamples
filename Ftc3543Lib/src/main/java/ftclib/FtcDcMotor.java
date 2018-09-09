@@ -371,6 +371,46 @@ public class FtcDcMotor extends TrcMotor
     }   //resetPosition
 
     /**
+     * This method sets the motor output value. The value can be power or velocity percentage depending on whether
+     * the motor controller is in power mode or velocity mode.
+     *
+     * @param value specifies the percentage power or velocity (range -1.0 to 1.0) to be set.
+     */
+    @Override
+    public void set(double value)
+    {
+        final String funcName = "setPower";
+
+        // TODO: need to add support for velocity mode.
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "value=%f", value);
+        }
+
+        //
+        // If we have limit switches, respect them.
+        //
+        if (value > 0.0 && (upperLimitSwitch != null && upperLimitSwitch.isActive() ||
+                softUpperLimitEnabled && getPosition() >= softUpperLimit) ||
+                value < 0.0 && (lowerLimitSwitch != null && lowerLimitSwitch.isActive() ||
+                        softLowerLimitEnabled && getPosition() <= softLowerLimit))
+        {
+            value = 0.0;
+        }
+
+        if (value != prevPower)
+        {
+            motor.setPower(value);
+            prevPower = value;
+        }
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "! (value=%f)", value);
+        }
+    }   //set
+
+    /**
      * This method enables/disables motor brake mode. In motor brake mode, set power to 0 would stop the motor very
      * abruptly by shorting the motor wires together using the generated back EMF to stop the motor. When brakMode
      * is false (i.e. float/coast mode), the motor wires are just disconnected from the motor controller so the motor
@@ -410,44 +450,6 @@ public class FtcDcMotor extends TrcMotor
 
         motor.setDirection(inverted? DcMotor.Direction.REVERSE: DcMotor.Direction.FORWARD);
     }   //setInverted
-
-    /**
-     * This method sets the output power of the motor controller.
-     *
-     * @param power specifies the output power for the motor controller in the range of -1.0 to 1.0.
-     */
-    @Override
-    public void setPower(double power)
-    {
-        final String funcName = "setPower";
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "power=%f", power);
-        }
-
-        //
-        // If we have limit switches, respect them.
-        //
-        if (power > 0.0 && (upperLimitSwitch != null && upperLimitSwitch.isActive() ||
-                            softUpperLimitEnabled && getPosition() >= softUpperLimit) ||
-            power < 0.0 && (lowerLimitSwitch != null && lowerLimitSwitch.isActive() ||
-                            softLowerLimitEnabled && getPosition() <= softLowerLimit))
-        {
-            power = 0.0;
-        }
-
-        if (power != prevPower)
-        {
-            motor.setPower(power);
-            prevPower = power;
-        }
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "! (power=%f)", power);
-        }
-    }   //setPower
 
     /**
      * This method enables/disables soft limit switches.

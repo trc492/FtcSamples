@@ -34,8 +34,6 @@ import trclib.TrcUtil;
  * platform dependent serial bus device such as I2C device or Serial Port device that provides synchronous methods
  * to access the device. It creates a request queue to allow both synchronous and asynchronous requests to be queued
  * for processing. The request queue is processed by a separate thread for asynchronous access.
- *
- * @param <T> specifies the request tag type.
  */
 public abstract class TrcSerialBusDevice implements Runnable
 {
@@ -293,7 +291,8 @@ public abstract class TrcSerialBusDevice implements Runnable
     /**
      * This method enables/disables performance report.
      *
-     * @param enabled specifies true to enable performance report, false to disable.
+     * @param tracer specifies the tracer to be used for performance tracing, can be null to disable performance
+     *               tracing.
      */
     public void setPerformanceTracer(TrcDbgTrace tracer)
     {

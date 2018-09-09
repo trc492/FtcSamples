@@ -82,6 +82,14 @@ public interface TrcMotorController
     void resetPosition(boolean hardware);
 
     /**
+     * This method sets the motor output value. The value can be power or velocity percentage depending on whether
+     * the motor controller is in power mode or velocity mode.
+     *
+     * @param value specifies the percentage power or velocity (range -1.0 to 1.0) to be set.
+     */
+    void set(double value);
+
+    /**
      * This method enables/disables motor brake mode. In motor brake mode, set power to 0 would stop the motor very
      * abruptly by shorting the motor wires together using the generated back EMF to stop the motor. When brakMode
      * is false (i.e. float/coast mode), the motor wires are just disconnected from the motor controller so the motor
@@ -107,13 +115,6 @@ public interface TrcMotorController
      * @param inverted specifies true to invert position sensor direction, false otherwise.
      */
     void setPositionSensorInverted(boolean inverted);
-
-    /**
-     * This method sets the output power of the motor controller.
-     *
-     * @param power specifies the output power for the motor controller in the range of -1.0 to 1.0.
-     */
-    void setPower(double power);
 
     /**
      * This method enables/disables soft limit switches.

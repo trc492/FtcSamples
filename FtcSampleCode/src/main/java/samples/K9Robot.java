@@ -32,17 +32,16 @@ import org.firstinspires.ftc.robotcontroller.internal.FtcRobotControllerActivity
 import ftclib.FtcDcMotor;
 import ftclib.FtcMRColorSensor;
 import ftclib.FtcMRGyro;
-import ftclib.FtcMRI2cColorSensor;
 import ftclib.FtcOpMode;
 import ftclib.FtcOpticalDistanceSensor;
 import ftclib.FtcServo;
 import hallib.HalDashboard;
 import trclib.TrcAnalogTrigger;
-import trclib.TrcDriveBase;
 import trclib.TrcEnhancedServo;
 import trclib.TrcPidController;
 import trclib.TrcPidDrive;
 import trclib.TrcRobot;
+import trclib.TrcSimpleDriveBase;
 
 public class K9Robot
 {
@@ -129,7 +128,7 @@ public class K9Robot
     //
     public FtcDcMotor motorLeft;
     public FtcDcMotor motorRight;
-    public TrcDriveBase driveBase;
+    public TrcSimpleDriveBase driveBase;
     //
     // PID drive.
     //
@@ -187,8 +186,8 @@ public class K9Robot
         motorLeft = new FtcDcMotor("motor_1");
         motorRight = new FtcDcMotor("motor_2");
         motorLeft.setInverted(true);
-        driveBase = new TrcDriveBase(motorLeft, motorRight, gyro);
-        driveBase.setYPositionScale(DRIVE_INCHES_PER_COUNT);
+        driveBase = new TrcSimpleDriveBase(motorLeft, motorRight, gyro);
+        driveBase.setPositionScales(DRIVE_INCHES_PER_COUNT);
         //
         // PID drive.
         //
@@ -310,7 +309,7 @@ public class K9Robot
         dashboard.clearDisplay();
         gyro.setEnabled(true);
         colorSensor.sensor.enableLed(true);
-        driveBase.resetPosition();
+        driveBase.resetOdometry();
     }   //startMode
 
     public void stopMode(TrcRobot.RunMode runMode)

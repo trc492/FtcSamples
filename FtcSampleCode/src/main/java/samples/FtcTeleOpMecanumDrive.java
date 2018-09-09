@@ -34,8 +34,8 @@ import ftclib.FtcDcMotor;
 import ftclib.FtcGamepad;
 import ftclib.FtcOpMode;
 import hallib.HalDashboard;
-import trclib.TrcDriveBase;
 import trclib.TrcGameController;
+import trclib.TrcMecanumDriveBase;
 import trclib.TrcRobot;
 
 @TeleOp(name="TeleOp: Mecanum Drive", group="3543TeleOpSamples")
@@ -48,7 +48,7 @@ public class FtcTeleOpMecanumDrive extends FtcOpMode implements TrcGameControlle
     private FtcDcMotor rfWheel;
     private FtcDcMotor lrWheel;
     private FtcDcMotor rrWheel;
-    private TrcDriveBase driveBase;
+    private TrcMecanumDriveBase driveBase;
 
     //
     // Implements FtcOpMode abstract methods.
@@ -79,7 +79,7 @@ public class FtcTeleOpMecanumDrive extends FtcOpMode implements TrcGameControlle
         rrWheel = new FtcDcMotor("rrWheel");
         rfWheel.setInverted(true);
         rrWheel.setInverted(true);
-        driveBase = new TrcDriveBase(
+        driveBase = new TrcMecanumDriveBase(
                 lfWheel, lrWheel, rfWheel, rrWheel, null);
     }   //initRobot
 
@@ -91,7 +91,7 @@ public class FtcTeleOpMecanumDrive extends FtcOpMode implements TrcGameControlle
     public void startMode(TrcRobot.RunMode prevMode)
     {
         dashboard.clearDisplay();
-        driveBase.resetPosition();
+        driveBase.resetOdometry();
     }   //startMode
 
     @Override
@@ -104,7 +104,7 @@ public class FtcTeleOpMecanumDrive extends FtcOpMode implements TrcGameControlle
         double x = gamepad.getLeftStickX(true);
         double y = gamepad.getRightStickY(true);
         double rotation = gamepad.getRightTrigger(true) - gamepad.getLeftTrigger(true);
-        driveBase.mecanumDrive_Cartesian(x, y, rotation, false);
+        driveBase.holonomicDrive(x, y, rotation, false);
 
         dashboard.displayPrintf(1, LABEL_WIDTH, "Text: ", "*** Robot Data ***");
         dashboard.displayPrintf(2, LABEL_WIDTH, "x: ", "%.2f", x);
