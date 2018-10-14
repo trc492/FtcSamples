@@ -345,8 +345,6 @@ public class TrcSimpleDriveBase extends TrcDriveBase
             }
             catch (UnsupportedOperationException e)
             {
-                lfEnc = 0.0;
-                lfSpeed = 0.0;
             }
         }
 
@@ -359,8 +357,6 @@ public class TrcSimpleDriveBase extends TrcDriveBase
             }
             catch (UnsupportedOperationException e)
             {
-                rfEnc = 0.0;
-                rfSpeed = 0.0;
             }
         }
 
@@ -373,8 +369,6 @@ public class TrcSimpleDriveBase extends TrcDriveBase
             }
             catch (UnsupportedOperationException e)
             {
-                lrEnc = 0.0;
-                lrSpeed = 0.0;
             }
         }
 
@@ -387,8 +381,6 @@ public class TrcSimpleDriveBase extends TrcDriveBase
             }
             catch (UnsupportedOperationException e)
             {
-                rrEnc = 0.0;
-                rrSpeed = 0.0;
             }
         }
 

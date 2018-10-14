@@ -122,20 +122,32 @@ public class TrcMecanumDriveBase extends TrcSimpleDriveBase
 
         double wheelPower;
 
-        wheelPower = motorPowerMapper.translateMotorPower(
-            wheelPowers[MotorType.LEFT_FRONT.value], leftFrontMotor.getSpeed());
+        wheelPower = wheelPowers[MotorType.LEFT_FRONT.value];
+        if (motorPowerMapper != null)
+        {
+            wheelPower = motorPowerMapper.translateMotorPower(wheelPower, leftFrontMotor.getSpeed());
+        }
         leftFrontMotor.set(wheelPower);
 
-        wheelPower = motorPowerMapper.translateMotorPower(
-            wheelPowers[MotorType.RIGHT_FRONT.value], rightFrontMotor.getSpeed());
+        wheelPower = wheelPowers[MotorType.RIGHT_FRONT.value];
+        if (motorPowerMapper != null)
+        {
+            wheelPower = motorPowerMapper.translateMotorPower(wheelPower, rightFrontMotor.getSpeed());
+        }
         rightFrontMotor.set(wheelPower);
 
-        wheelPower = motorPowerMapper.translateMotorPower(
-            wheelPowers[MotorType.LEFT_REAR.value], leftRearMotor.getSpeed());
+        wheelPower = wheelPowers[MotorType.LEFT_REAR.value];
+        if (motorPowerMapper != null)
+        {
+            wheelPower = motorPowerMapper.translateMotorPower(wheelPower, leftRearMotor.getSpeed());
+        }
         leftRearMotor.set(wheelPower);
 
-        wheelPower = motorPowerMapper.translateMotorPower(
-            wheelPowers[MotorType.RIGHT_REAR.value], rightRearMotor.getSpeed());
+        wheelPower = wheelPowers[MotorType.RIGHT_REAR.value];
+        if (motorPowerMapper != null)
+        {
+            wheelPower = motorPowerMapper.translateMotorPower(wheelPower, rightRearMotor.getSpeed());
+        }
         rightRearMotor.set(wheelPower);
 
         if (debugEnabled)

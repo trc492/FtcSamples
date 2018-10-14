@@ -121,4 +121,25 @@ public class TrcRobot
 
     }   //interface RobotCommand
 
+    private static RunMode currRunMode = RunMode.INVALID_MODE;
+
+    /**
+     * This method is used by the robot scheduler to set the current run mode.
+     *
+     * @param runMode specifies the current robot RunMode.
+     */
+    public static void setRunMode(RunMode runMode)
+    {
+        currRunMode = runMode;
+    }   //setRunMode
+
+    /**
+     * This method returns the current robot RunMode.
+     * @return robot RunMode.
+     */
+    public static RunMode getRunMode()
+    {
+        return currRunMode;
+    }   //getRunMode
+
 }   //class TrcRobot

@@ -6,7 +6,7 @@
 
 <!-- The package name here determines the package for your R class and your BuildConfig class -->
 <manifest
-    package="team3543"
+    package="org.firstinspires.ftc.teamcode"
     xmlns:android="http://schemas.android.com/apk/res/android">
     <application/>
 </manifest>

@@ -102,7 +102,7 @@ public class TrcVisionTask<I, O> implements TrcThread.PeriodicTask
         this.visionProcessor = visionProcessor;
         this.imageBuffers = imageBuffers;
         this.detectedObjectBuffers = detectedObjectBuffers;
-        visionTask = new TrcThread<>(instanceName, this);
+        visionTask = new TrcThread<>(instanceName, this, null);
     }   //TrcVisionTask
 
     /**
@@ -235,9 +235,11 @@ public class TrcVisionTask<I, O> implements TrcThread.PeriodicTask
 
     /**
      * This method runs the vision processing task.
+     *
+     * @param context specifies the context (not used).
      */
     @Override
-    public void runPeriodic()
+    public void runPeriodic(Object context)
     {
         final String funcName = "runPeriodic";
         double startTime;

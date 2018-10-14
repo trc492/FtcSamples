@@ -25,10 +25,6 @@ package trclib;
 import java.util.Arrays;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import trclib.TrcDbgTrace;
-import trclib.TrcEvent;
-import trclib.TrcUtil;
-
 /**
  * This class implements a platform independent serial bus device. This class is intended to be inherited by a
  * platform dependent serial bus device such as I2C device or Serial Port device that provides synchronous methods
@@ -46,7 +42,7 @@ public abstract class TrcSerialBusDevice implements Runnable
     protected TrcDbgTrace dbgTrace = null;
 
     /**
-     * This method is called to read data from the device with the specified length.
+     * This method is called to read data from the device synchronously with the specified length.
      *
      * @param address specifies the data address if any, can be -1 if no address is required.
      * @param length specifies the number of bytes to read.
@@ -55,7 +51,7 @@ public abstract class TrcSerialBusDevice implements Runnable
     public abstract byte[] readData(int address, int length);
 
     /**
-     * This method is called to write data to the device with the specified data buffer and length.
+     * This method is called to write data to the device synchronously with the specified data buffer and length.
      *
      * @param address specifies the data address if any, can be -1 if no address is required.
      * @param buffer specifies the buffer containing the data to be written to the device.

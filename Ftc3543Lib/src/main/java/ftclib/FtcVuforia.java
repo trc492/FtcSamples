@@ -24,6 +24,7 @@
 package ftclib;
 
 import android.graphics.Bitmap;
+import android.support.annotation.NonNull;
 
 import com.vuforia.HINT;
 import com.vuforia.Image;
@@ -43,52 +44,58 @@ import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackables;
 import org.opencv.android.Utils;
 import org.opencv.core.Mat;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+
 import trclib.TrcVideoSource;
 
 /**
  * This class makes using Vuforia a little easier by minimizing the number of calls to it. It only exposes the
- * minimum things you need to set for the FTC competition. If you want to do more complex stuff, you may want
- * to not use this and call Vuforia directly so you can customize other stuff.
+ * minimum things you need to set for the FTC competition. If you want to do more complex stuff, you may consider
+ * not using this and call Vuforia directly so you can customize other stuff.
  */
 public class FtcVuforia implements TrcVideoSource<Mat>
 {
     /**
-     * This class contains information required to make a trackable target. It has two constructors. One with all the
-     * rotation/translation info for tracking the robot location on the field. If you don't need to track the robot's
-     * location, then you can use the constructor with only the target name.
+     * This class contains information about a trackable target.
      */
-    public static class Target
+    public static class TargetInfo
     {
+        public final int index;
         public final String name;
-        public final float rotateX;
-        public final float rotateY;
-        public final float rotateZ;
-        public final float translateX;
-        public final float translateY;
-        public final float translateZ;
+        public final boolean isObjectTarget;
+        public final OpenGLMatrix locationOnField;
+        public VuforiaTrackables targetList = null;
 
-        public Target(
-                final String name, final float rotateX, final float rotateY, final float rotateZ,
-                final float translateX, final float translateY, final float translateZ)
+        /**
+         * Constructor: Create an instance of the object.
+         *
+         * @param index specifies the target index in the trackables list.
+         * @param name specifies the target name.
+         * @param isObjectTarget specifies true if target is an object, false if target is an image.
+         * @param locationOnField specifies the target location on field.
+         */
+        public TargetInfo(int index, @NonNull String name, boolean isObjectTarget, OpenGLMatrix locationOnField)
         {
+            this.index = index;
             this.name = name;
-            this.rotateX = rotateX;
-            this.rotateY = rotateY;
-            this.rotateZ = rotateZ;
-            this.translateX = translateX;
-            this.translateY = translateY;
-            this.translateZ = translateZ;
-        }   //Target
+            this.isObjectTarget = isObjectTarget;
+            this.locationOnField = locationOnField;
+        }   //TargetInfo
 
-        public Target(final String name)
+        private void setTargetList(VuforiaTrackables targetList)
         {
-            this(name, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
-        }   //Target
-    }   //class Target
+            this.targetList = targetList;
+        }   //setTargetList
 
-    public VuforiaLocalizer localizer;
+    }   //class TargetInfo
+
     private VuforiaLocalizer.CameraDirection cameraDir;
-    private VuforiaTrackables targetList = null;
+    private VuforiaLocalizer localizer;
+    private ArrayList<VuforiaTrackables> targetLists = new ArrayList<>();
+    private HashMap<String, TargetInfo> targetMap = new HashMap<>();
+    private int numImageTargets = 0;
+    private int numObjectTargets = 0;
     private int imageWidth = 0;
     private int imageHeight = 0;
 
@@ -99,13 +106,10 @@ public class FtcVuforia implements TrcVideoSource<Mat>
      * @param licenseKey specifies the Vuforia license key.
      * @param cameraViewId specifies the camera view ID on the activity, -1 if none given.
      * @param cameraDir specifies which camera to use (front or back).
-     * @param trackablesFile specifies the XML file that contains the target info, can be null.
-     * @param numTargets specifies the number of simultaneous trackable targets.
      * @param cameraMonitorFeedback specifies the feedback image showing the orientation of the target.
      */
     public FtcVuforia(
             String licenseKey, int cameraViewId, VuforiaLocalizer.CameraDirection cameraDir,
-            String trackablesFile, int numTargets,
             VuforiaLocalizer.Parameters.CameraMonitorFeedback cameraMonitorFeedback)
     {
         this.cameraDir = cameraDir;
@@ -117,12 +121,7 @@ public class FtcVuforia implements TrcVideoSource<Mat>
         params.vuforiaLicenseKey = licenseKey;
         params.cameraDirection = cameraDir;
         params.cameraMonitorFeedback = cameraMonitorFeedback;
-        localizer = ClassFactory.createVuforiaLocalizer(params);
-        Vuforia.setHint(HINT.HINT_MAX_SIMULTANEOUS_IMAGE_TARGETS, numTargets);
-        if (trackablesFile != null)
-        {
-            targetList = localizer.loadTrackablesFromAsset(trackablesFile);
-        }
+        localizer = ClassFactory.getInstance().createVuforia(params);
     }   //FtcVuforia
 
     /**
@@ -130,31 +129,51 @@ public class FtcVuforia implements TrcVideoSource<Mat>
      * other parameters.
      *
      * @param licenseKey specifies the Vuforia license key.
-     * @param cameraViewId specifies the camera view ID on the activity.
-     * @param cameraDir specifies which camera to use (front or back).
-     * @param trackablesFile specifies the XML file that contains the target info.
-     * @param numTargets specifies the number of simultaneous trackable targets.
-     */
-    public FtcVuforia(
-            String licenseKey, int cameraViewId, VuforiaLocalizer.CameraDirection cameraDir,
-            String trackablesFile, int numTargets)
-    {
-        this(licenseKey, cameraViewId, cameraDir, trackablesFile, numTargets,
-             VuforiaLocalizer.Parameters.CameraMonitorFeedback.AXES);
-    }   //FtcVuforia
-
-    /**
-     * Constructor: Create an instance of this object. It initializes Vuforia with the specified target images and
-     * other parameters.
-     *
-     * @param licenseKey specifies the Vuforia license key.
-     * @param cameraViewId specifies the camera view ID on the activity.
+     * @param cameraViewId specifies the camera view ID on the activity, -1 if none given.
      * @param cameraDir specifies which camera to use (front or back).
      */
     public FtcVuforia(String licenseKey, int cameraViewId, VuforiaLocalizer.CameraDirection cameraDir)
     {
-        this(licenseKey, cameraViewId, cameraDir, null, 0, VuforiaLocalizer.Parameters.CameraMonitorFeedback.AXES);
+        this(licenseKey, cameraViewId, cameraDir, VuforiaLocalizer.Parameters.CameraMonitorFeedback.AXES);
     }   //FtcVuforia
+
+    public void addTargetList(@NonNull String trackablesFile, TargetInfo[] targets, OpenGLMatrix phoneLocationOnRobot)
+    {
+        VuforiaTrackables targetList = localizer.loadTrackablesFromAsset(trackablesFile);
+
+        targetLists.add(targetList);
+        for (TargetInfo targetInfo: targets)
+        {
+            VuforiaTrackable target = targetList.get(targetInfo.index);
+
+            target.setName(targetInfo.name);
+            targetInfo.setTargetList(targetList);
+
+            if (targetInfo.locationOnField != null)
+            {
+                target.setLocation(targetInfo.locationOnField);
+            }
+
+            if (phoneLocationOnRobot != null)
+            {
+                ((VuforiaTrackableDefaultListener) target.getListener()).setPhoneInformation(
+                        phoneLocationOnRobot, cameraDir);
+            }
+
+            targetMap.put(targetInfo.name, targetInfo);
+            if (targetInfo.isObjectTarget)
+            {
+                numObjectTargets++;
+            }
+            else
+            {
+                numImageTargets++;
+            }
+        }
+
+        Vuforia.setHint(HINT.HINT_MAX_SIMULTANEOUS_IMAGE_TARGETS, numImageTargets);
+        Vuforia.setHint(HINT.HINT_MAX_SIMULTANEOUS_OBJECT_TARGETS, numObjectTargets);
+    }   //addTargetList
 
     /**
      * This method enables/disables target tracking.
@@ -163,76 +182,18 @@ public class FtcVuforia implements TrcVideoSource<Mat>
      */
     public void setTrackingEnabled(boolean enabled)
     {
-        if (targetList != null)
+        for (VuforiaTrackables targetList: targetLists)
         {
             if (enabled)
             {
                 targetList.activate();
-            } else
+            }
+            else
             {
                 targetList.deactivate();
             }
         }
     }   //setTrackingEnabled
-
-    /**
-     * This method sets the properties of the specified target.
-     *
-     * @param index specifies the target index in the XML file.
-     * @param name specifies the target name.
-     * @param locationOnField specifies the target location on the field, can be null if no robot tracking.
-     * @param phoneLocationOnRobot specifies the phone location on the robot, can be null if no robot tracking.
-     */
-    public void setTargetInfo(int index, String name, OpenGLMatrix locationOnField, OpenGLMatrix phoneLocationOnRobot)
-    {
-        if (targetList != null)
-        {
-            VuforiaTrackable target = targetList.get(index);
-            target.setName(name);
-
-            if (locationOnField != null)
-            {
-                target.setLocation(locationOnField);
-            }
-
-            if (phoneLocationOnRobot != null)
-            {
-                ((VuforiaTrackableDefaultListener) target.getListener()).setPhoneInformation(
-                        phoneLocationOnRobot, cameraDir);
-            }
-        }
-    }   //setTargetInfo
-
-    /**
-     * This method sets the properties of the specified target.
-     *
-     * @param index specifies the target index in the XML file.
-     * @param name specifies the target name.
-     */
-    public void setTargetInfo(int index, String name)
-    {
-        setTargetInfo(index, name, null, null);
-    }   //setTargetInfo
-
-    /**
-     * This method sets tracking info for the targets described in the given target array.
-     *
-     * @param targets specifies the array of targets to set tracking info.
-     * @param phoneLocationOnRobot specifies the location marix of the phone on the robot.
-     */
-    public void setTargets(Target[] targets, OpenGLMatrix phoneLocationOnRobot)
-    {
-        for (int i = 0; i < targets.length; i++)
-        {
-            OpenGLMatrix targetLocationOnField =
-                    phoneLocationOnRobot == null?
-                            null:
-                            locationMatrix(
-                                    targets[i].rotateX, targets[i].rotateY, targets[i].rotateZ,
-                                    targets[i].translateX, targets[i].translateY, targets[i].translateZ);
-            setTargetInfo(i, targets[i].name, targetLocationOnField, phoneLocationOnRobot);
-        }
-    }   //setTargets
 
     /**
      * This method creates a location matrix that can be used to relocate an object to its final location by rotating
@@ -258,49 +219,39 @@ public class FtcVuforia implements TrcVideoSource<Mat>
     }   //locationMatrix
 
     /**
-     * This method returns the list of trackable targets.
+     * This method returns the number of trackable image targets.
      *
-     * @return list of trackable targets.
+     * @return number of trackable image targets.
      */
-    public VuforiaTrackables getTargetList()
+    public int getNumImageTargets()
     {
-        return targetList;
-    }   //getTargetList
+        return numImageTargets;
+    }   //getNumImageTargets
+
+    /**
+     * This method returns the number of trackable object targets.
+     *
+     * @return number of trackable object targets.
+     */
+    public int getNumObjectTargets()
+    {
+        return numObjectTargets;
+    }   //getNumObjectTargets
 
     /**
      * This method returns the target object with the specified index in the target list.
      *
-     * @param index specifies the target index in the list.
-     * @return target.
-     */
-    public VuforiaTrackable getTarget(int index)
-    {
-        return targetList != null? targetList.get(index): null;
-    }   //getTarget
-
-    /**
-     * This method returns the target object with the specified target name.
-     *
-     * @param name specifies the name of the target.
+     * @param name specifies the target name.
      * @return target.
      */
     public VuforiaTrackable getTarget(String name)
     {
         VuforiaTrackable target = null;
+        TargetInfo targetInfo = targetMap.get(name);
 
-        if (targetList != null)
+        if (targetInfo != null)
         {
-            for (int i = 0; i < targetList.size(); i++)
-            {
-                target = targetList.get(i);
-                if (name.equals(target.getName()))
-                {
-                    break;
-                } else
-                {
-                    target = null;
-                }
-            }
+            target = targetInfo.targetList.get(targetInfo.index);
         }
 
         return target;

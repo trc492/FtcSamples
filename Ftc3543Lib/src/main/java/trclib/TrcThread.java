@@ -27,7 +27,7 @@ package trclib;
  * periodically calls the runPeriodic method. Typically, this class is to be extended by a platform dependent task
  * who will provide the runPeriodic method that will acquire and/or process data of the given type. This class will
  * take care of the thread synchronization so the caller doesn't have to deal with it.
- * 
+ *
  * @param <T> specifies the data type that the periodic task will be acquiring/processing.
  */
 public class TrcThread<T> implements Runnable
@@ -42,7 +42,7 @@ public class TrcThread<T> implements Runnable
 
     public interface PeriodicTask
     {
-        void runPeriodic();
+        void runPeriodic(Object context);
     }   //interface PeriodicTask
 
     /**
@@ -53,6 +53,7 @@ public class TrcThread<T> implements Runnable
     {
         private volatile boolean taskEnabled;
         private volatile boolean oneShotEnabled;
+        private volatile boolean taskInterrupted;
         private T data;
 
         /**
@@ -62,6 +63,7 @@ public class TrcThread<T> implements Runnable
         {
             taskEnabled = false;
             oneShotEnabled = false;
+            taskInterrupted = false;
             data = null;
         }   //TaskState
 
@@ -151,6 +153,7 @@ public class TrcThread<T> implements Runnable
 
     private final String instanceName;
     private PeriodicTask task;
+    private Object context;
     private long processingInterval = 0;    // in msec
     private TaskState taskState = new TaskState();
     private Thread periodicThread = null;
@@ -161,7 +164,7 @@ public class TrcThread<T> implements Runnable
      * @param instanceName specifies the instance name.
      * @param task specifies the periodic task the thread is to execute.
      */
-    public TrcThread(final String instanceName, PeriodicTask task)
+    public TrcThread(final String instanceName, PeriodicTask task, Object context)
     {
         if (debugEnabled)
         {
@@ -172,6 +175,7 @@ public class TrcThread<T> implements Runnable
 
         this.instanceName = instanceName;
         this.task = task;
+        this.context = context;
         periodicThread = new Thread(this, instanceName);
         periodicThread.start();
     }   //TrcThread
@@ -334,17 +338,20 @@ public class TrcThread<T> implements Runnable
 
             if (taskState.isTaskEnabled())
             {
-                task.runPeriodic();
+                task.runPeriodic(context);
             }
 
             if (processingInterval > 0)
             {
-                long sleepTime = processingInterval - (TrcUtil.getCurrentTimeMillis() - startTime);
-                TrcUtil.sleep(sleepTime);
-            }
-            else
-            {
-                Thread.yield();
+                try
+                {
+                    long sleepTime = processingInterval - (TrcUtil.getCurrentTimeMillis() - startTime);
+                    Thread.sleep(sleepTime);
+                }
+                catch (InterruptedException e)
+                {
+                    break;
+                }
             }
         }
 

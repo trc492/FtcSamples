@@ -29,7 +29,7 @@ import java.util.HashSet;
  * This class provides methods for the callers to register/unregister cooperative multi-tasking tasks. It manages
  * these tasks and will work with the cooperative multi-tasking scheduler to run these tasks.
  */
-public class TrcTaskMgr
+public class TrcTaskMgr implements TrcThread.PeriodicTask
 {
     private static final String moduleName = "TrcTaskMgr";
     private static final boolean debugEnabled = false;
@@ -76,11 +76,16 @@ public class TrcTaskMgr
          * POSTCONTINUOUS_TASK is called periodically at a rate as fast as the schedule is able to loop and is run
          * after runContinuous() typically 10 msec interval.
          */
-        POSTCONTINUOUS_TASK(5);
+        POSTCONTINUOUS_TASK(5),
+
+        /**
+         * STANDALONE_TASK is a task with its own thread. It is called periodically at the specified interval.
+         */
+        STANDALONE_TASK(6);
 
         public int value;
 
-        private TaskType(int value)
+        TaskType(int value)
         {
             this.value = value;
         }   //TaskType
@@ -144,6 +149,8 @@ public class TrcTaskMgr
         private HashSet<TaskType> taskTypes;
         private final String taskName;
         private Task task;
+        private TrcThread<Object> taskThread = null;
+        private long taskInterval = 0;
         private long[] taskTotalNanoTimes = new long[TaskType.values().length];
         private int[] taskTimeSlotCounts = new int[TaskType.values().length];
 
@@ -180,18 +187,42 @@ public class TrcTaskMgr
          * This method adds the given task type to the task object.
          *
          * @param type specifies the task type.
+         * @param taskInterval specifies the periodic interval for STANDALONE_TASK, ignore for any other task types.
+         *                     If zero interval is specified, the task will be run in a tight loop.
+         * @return true if successful, false if the task with that task type is already registered in the task list.
+         */
+        public boolean registerTask(TaskType type, long taskInterval)
+        {
+            if (type == TaskType.STANDALONE_TASK && taskInterval < 0)
+            {
+                throw new IllegalArgumentException("taskInterval must be greater than or equal to 0.");
+            }
+
+            boolean added = taskTypes.add(type);
+
+            if (added)
+            {
+                if (type == TaskType.STANDALONE_TASK)
+                {
+                    taskThread = new TrcThread<>(taskName, TrcTaskMgr.getInstance(), this);
+                    this.taskInterval = taskInterval;
+                    taskThread.setProcessingInterval(taskInterval);
+                    taskThread.setTaskEnabled(true);
+                }
+            }
+
+            return added;
+        }   //registerTask
+
+        /**
+         * This method adds the given task type to the task object.
+         *
+         * @param type specifies the task type.
          * @return true if successful, false if the task with that task type is already registered in the task list.
          */
         public boolean registerTask(TaskType type)
         {
-            boolean added = false;
-
-            if (!taskTypes.contains(type))
-            {
-                added = taskTypes.add(type);
-            }
-
-            return added;
+            return registerTask(type, 0);
         }   //registerTask
 
         /**
@@ -202,6 +233,13 @@ public class TrcTaskMgr
          */
         public boolean unregisterTask(TaskType type)
         {
+            if (type == TaskType.STANDALONE_TASK && taskThread != null)
+            {
+                taskThread.terminateTask();
+                taskThread = null;
+                taskInterval = 0;
+            }
+
             return taskTypes.remove(type);
         }   //unregisterTask
 
@@ -247,6 +285,16 @@ public class TrcTaskMgr
             return task;
         }   //getTask
 
+        /**
+         * This method returns the task interval for TaskType.STANDALONE_TASK.
+         *
+         * @return task interval in msec. If there is no STANDALONE_TASK type in the task object, zero is returned.
+         */
+        public long getTaskInterval()
+        {
+            return taskInterval;
+        }   //getTaskInterval
+
     }   //class TaskObject
 
     private static TrcTaskMgr instance = null;
@@ -281,7 +329,7 @@ public class TrcTaskMgr
     public TaskObject createTask(final String taskName, Task task)
     {
         final String funcName = "createTask";
-        TaskObject taskObj = null;
+        TaskObject taskObj;
 
         if (debugEnabled)
         {
@@ -301,6 +349,14 @@ public class TrcTaskMgr
 
     public boolean removeTask(TaskObject taskObj)
     {
+        if (taskObj.hasType(TaskType.STANDALONE_TASK))
+        {
+            //
+            // Task contains the type STANDALONE_TASK, unregister it so that the task thread will terminate.
+            //
+            taskObj.unregisterTask(TaskType.STANDALONE_TASK);
+        }
+
         return taskList.remove(taskObj);
     }   //removeTask
 
@@ -371,6 +427,9 @@ public class TrcTaskMgr
                         }
                         task.runTask(TaskType.POSTCONTINUOUS_TASK, mode);
                         break;
+
+                    default:
+                        break;
                 }
 
                 long elapsedTime = TrcUtil.getCurrentTimeNanos() - startNanoTime;
@@ -412,5 +471,43 @@ public class TrcTaskMgr
                             taskObj.taskTimeSlotCounts[TaskType.POSTCONTINUOUS_TASK.value]/1000000000);
         }
     }   //printTaskPerformanceMetrics
+
+    //
+    // Implements TrcThread.PeriodicTask interface.
+    //
+
+    /**
+     * This method runs the vision processing task.
+     *
+     * @param context specifies the context (task object).
+     */
+    @Override
+    public void runPeriodic(Object context)
+    {
+        final String funcName = "runPeriodic";
+        TaskObject taskObj = (TaskObject)context;
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceInfo(funcName, "Executing StandaloneTask %s", taskObj.toString());
+        }
+
+        long startNanoTime = TrcUtil.getCurrentTimeNanos();
+
+        taskObj.getTask().runTask(TaskType.STANDALONE_TASK, TrcRobot.getRunMode());
+
+        long elapsedTime = TrcUtil.getCurrentTimeNanos() - startNanoTime;
+        taskObj.taskTotalNanoTimes[TaskType.STANDALONE_TASK.value] += elapsedTime;
+        taskObj.taskTimeSlotCounts[TaskType.STANDALONE_TASK.value]++;
+
+        if (debugEnabled)
+        {
+            if (elapsedTime > taskObj.getTaskInterval())
+            {
+                dbgTrace.traceWarn(funcName, "%s.%s takes too long (%.3f)",
+                        taskObj.taskName, TaskType.STANDALONE_TASK, elapsedTime/1000000000.0);
+            }
+        }
+    }   //runPeriodic
 
 }   //class TaskMgr

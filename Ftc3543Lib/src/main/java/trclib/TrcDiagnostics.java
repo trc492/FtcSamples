@@ -26,8 +26,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 /**
  * This class implements a diagnostics test collection. The client adds a bunch of diagnostics tests into the
@@ -72,7 +70,7 @@ public class TrcDiagnostics<T> implements Iterable<TrcDiagnostics.Test<T>>
 
         private final String testName;
         private T testGroup;
-        private Supplier<Boolean> conditional;
+        private TrcUtil.DataSupplier<Boolean> conditional;
         private boolean defStatus = false;
         private boolean testPassed = true;
         private String testError = null;
@@ -87,7 +85,7 @@ public class TrcDiagnostics<T> implements Iterable<TrcDiagnostics.Test<T>>
          * @param defStatus specifies the default test status to be returned if the test is not run because
          *                  conditional was false.
          */
-        public Test(String name, T group, Supplier<Boolean> conditional, boolean defStatus)
+        public Test(String name, T group, TrcUtil.DataSupplier<Boolean> conditional, boolean defStatus)
         {
             if (debugEnabled)
             {
@@ -275,7 +273,11 @@ public class TrcDiagnostics<T> implements Iterable<TrcDiagnostics.Test<T>>
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        testCollection.forEach(Test::runTestAndUpdateStatus);
+        for (Test<T> test: testCollection)
+        {
+            test.runTestAndUpdateStatus();
+        }
+//        testCollection.forEach(Test::runTestAndUpdateStatus);
 
         if (debugEnabled)
         {
@@ -298,14 +300,16 @@ public class TrcDiagnostics<T> implements Iterable<TrcDiagnostics.Test<T>>
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        return testCollection.stream()
-                .collect(
-                    Collectors.groupingBy(
-                        Test::getTestGroup,
-                        Collectors.reducing(
-                            true, // Show green by default
-                            test -> test.hasPassed(), // Show green if not faulted
-                            Boolean::logicalAnd))); // Show green only if all are OK
+        //TODO: need to rewrite this to be independent of API level 24 (we only support API level 19).
+        return null;
+//        return testCollection.stream()
+//                .collect(
+//                    Collectors.groupingBy(
+//                        Test::getTestGroup,
+//                        Collectors.reducing(
+//                            true, // Show green by default
+//                            test -> test.hasPassed(), // Show green if not faulted
+//                            Boolean::logicalAnd))); // Show green only if all are OK
     }   //getTestGroupResults
 
     //

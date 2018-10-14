@@ -22,8 +22,6 @@
 
 package trclib;
 
-import java.util.function.Supplier;
-
 /**
  * This class implements a diagnostics test to monitor if an analog sensor value has changed. If a sensor value
  * doesn't change, it could mean the sensor is malfunctioning or disconnected.
@@ -34,7 +32,7 @@ import java.util.function.Supplier;
  */
 public class TrcTestAnalogSensorValueChange<T> extends TrcDiagnostics.Test<T>
 {
-    private final Supplier<Double> sensor;
+    private final TrcUtil.DataSupplier<Double> sensor;
     private final double minValueChange;
     private final String errorMsg;
     private final Boolean stickyStatus;
@@ -58,8 +56,8 @@ public class TrcTestAnalogSensorValueChange<T> extends TrcDiagnostics.Test<T>
      *                     or false sticky (i.e. true sticky: one success will make the test always return success).
      */
     public TrcTestAnalogSensorValueChange(
-        String name, T group, Supplier<Boolean> conditional, boolean defStatus,
-        Supplier<Double> sensor, double minValueChange, String errorMsg, Boolean stickyStatus)
+            String name, T group, TrcUtil.DataSupplier<Boolean> conditional, boolean defStatus,
+            TrcUtil.DataSupplier<Double> sensor, double minValueChange, String errorMsg, Boolean stickyStatus)
     {
         super(name, group, conditional, defStatus);
         this.sensor = sensor;
@@ -82,7 +80,8 @@ public class TrcTestAnalogSensorValueChange<T> extends TrcDiagnostics.Test<T>
      *                     or false sticky (i.e. true sticky: one success will make the test always return success).
      */
     public TrcTestAnalogSensorValueChange(
-        String name, T group, Supplier<Double> sensor, double minValueChange, String errorMsg, Boolean stickyStatus)
+            String name, T group, TrcUtil.DataSupplier<Double> sensor, double minValueChange, String errorMsg,
+            Boolean stickyStatus)
     {
         this(name, group, null, false, sensor, minValueChange, errorMsg, stickyStatus);
     }   //TrcTestAnalogSensorValueChange

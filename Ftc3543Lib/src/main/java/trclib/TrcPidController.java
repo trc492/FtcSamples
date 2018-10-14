@@ -24,7 +24,6 @@ package trclib;
 
 import java.util.EmptyStackException;
 import java.util.Stack;
-import java.util.function.Supplier;
 
 import hallib.HalDashboard;
 
@@ -103,6 +102,22 @@ public class TrcPidController
 
     }   //class PidCoefficients
 
+    /**
+     * PID controller needs input from a feedback device for calculating the output power. Whoever is providing this
+     * input must implement this interface.
+     */
+    public interface PidInput
+    {
+        /**
+         * This method is called by the PID controller to get input data from the feedback device. The feedback
+         * device can be motor encoders, gyro, ultrasonic sensor, light sensor etc.
+         *
+         * @return input value of the feedback device.
+         */
+        double get();
+
+    }   //interface PidInput
+
     public static final double DEF_SETTLING_TIME = 0.2;
 
     private HalDashboard dashboard;
@@ -110,7 +125,7 @@ public class TrcPidController
     private PidCoefficients pidCoefficients;
     private double tolerance;
     private double settlingTime;
-    private Supplier<Double> pidInput;
+    private PidInput pidInput;
 
     private boolean inverted = false;
     private boolean absSetPoint = false;
@@ -151,7 +166,7 @@ public class TrcPidController
             PidCoefficients pidCoefficients,
             double tolerance,
             double settlingTime,
-            Supplier<Double> pidInput)
+            PidInput pidInput)
     {
         if (debugEnabled)
         {
@@ -183,7 +198,7 @@ public class TrcPidController
             final String instanceName,
             PidCoefficients pidCoefficients,
             double tolerance,
-            Supplier<Double> pidInput)
+            PidInput pidInput)
     {
         this(instanceName, pidCoefficients, tolerance, DEF_SETTLING_TIME, pidInput);
     }   //TrcPidController

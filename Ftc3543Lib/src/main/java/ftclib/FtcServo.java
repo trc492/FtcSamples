@@ -234,19 +234,19 @@ public class FtcServo extends TrcServo
      * @return true if the servo direction is inverted, false otherwise.
      */
     @Override
-    public boolean getInverted()
+    public boolean isInverted()
     {
-        final String funcName = "getInverted";
-        boolean isInverted = servo.getDirection() == Servo.Direction.REVERSE;;
+        final String funcName = "isInverted";
+        boolean inverted = servo.getDirection() == Servo.Direction.REVERSE;;
 
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", isInverted);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", inverted);
         }
 
-        return isInverted;
-    }   //getInverted
+        return inverted;
+    }   //isInverted
 
     /**
      * This method sets the servo motor position.

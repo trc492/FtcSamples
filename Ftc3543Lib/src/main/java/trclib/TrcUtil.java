@@ -23,7 +23,6 @@
 package trclib;
 
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.Locale;
 
@@ -34,6 +33,22 @@ import java.util.Locale;
 public class TrcUtil
 {
     public static final double INCHES_PER_CM = 0.393701;
+    public static final double MM_PER_INCH = 25.4;
+
+    /**
+     * This interface provides the method to get data of the specified type. This is to replaced the Supplier
+     * interface that Java SDK provides but Android API level 19 does not have.
+     */
+    public interface DataSupplier<T>
+    {
+        /**
+         * This method returns the data of the designated type.
+         *
+         * @return data of the designated type.
+         */
+        T get();
+
+    }   //interface DataSupplier
 
     /**
      * This method returns the current time in seconds with nano-second precision.
@@ -126,6 +141,25 @@ public class TrcUtil
     }   //modulo
 
     /**
+     * This method sums an array of numbers.
+     *
+     * @param nums specifies the array of numbers to be summed.
+     *
+     * @return sum of the numbers.
+     */
+    public static double sum(double... nums)
+    {
+        double total = 0.0;
+
+        for (double num: nums)
+        {
+            total += num;
+        }
+
+        return total;
+    }   //sum
+
+    /**
      * This method calculates and returns the average of the numbers in the given array.
      *
      * @param nums specifies the number array.
@@ -133,7 +167,8 @@ public class TrcUtil
      */
     public static double average(double... nums)
     {
-        return Arrays.stream(nums).average().orElse(0.0);
+        return sum(nums)/nums.length;
+//        return Arrays.stream(nums).average().orElse(0.0);
     }   //average
 
     /**
@@ -144,20 +179,39 @@ public class TrcUtil
      */
     public static double magnitude(double... nums)
     {
-        return Math.sqrt(Arrays.stream(nums).map(e -> e*e).sum());
+        double total = 0.0;
+
+        for (double num: nums)
+        {
+            total += num*num;
+        }
+
+        return Math.sqrt(total);
+//        return Math.sqrt(Arrays.stream(nums).map(e -> e*e).sum());
     }   //magnitude
 
     /**
-     * This method normalizes the given array of numbers such that no number exceeds +/- 1.0.
+     * This method returns the maximum magnitude of numbers in the specified array.
      *
      * @param nums specifies the number array.
-     * @return normalized number array.
+     *
+     * @return maximum magnitude of the numbers in the array.
      */
-    public static double[] normalize(double... nums)
+    public static double maxMagnitude(double... nums)
     {
-        double maxMagnitude = Arrays.stream(nums).map(Math::abs).max().orElse(0.0);
-        return maxMagnitude > 1.0? Arrays.stream(nums).map(x -> x/maxMagnitude).toArray(): nums;
-    }   //normalize
+        double maxMag = Math.abs(nums[0]);
+
+        for (double num: nums)
+        {
+            double magnitude = Math.abs(num);
+            if (magnitude > maxMag)
+            {
+                maxMag = magnitude;
+            }
+        }
+
+        return maxMag;
+    }   //maxMagnitude
 
     /**
      * This method normalizes the given array of numbers such that no number exceeds +/- 1.0. If no number exceeds
@@ -168,16 +222,32 @@ public class TrcUtil
      */
     public static void normalizeInPlace(double[] nums)
     {
-        double maxMagnitude = Arrays.stream(nums).map(Math::abs).max().orElse(0.0);
+        double maxMag = maxMagnitude(nums);
 
-        if (maxMagnitude > 1.0)
+        if (maxMag > 1.0)
         {
-            for(int i = 0; i < nums.length; i++)
+            for (int i = 0; i < nums.length; i++)
             {
-                nums[i] /= maxMagnitude;
+                nums[i] /= maxMag;
             }
         }
     }   //normalizeInPlace
+
+    /**
+     * This method normalizes the given array of numbers such that no number exceeds +/- 1.0.
+     *
+     * @param nums specifies the number array.
+     * @return normalized number array.
+     */
+    public static double[] normalize(double... nums)
+    {
+        double[] result = nums.clone();
+        normalizeInPlace(result);
+
+        return result;
+//        double maxMagnitude = Arrays.stream(nums).map(Math::abs).max().orElse(0.0);
+//        return maxMagnitude > 1.0? Arrays.stream(nums).map(x -> x/maxMagnitude).toArray(): nums;
+    }   //normalize
 
     /**
      * This method rounds a double to the nearest integer.

@@ -85,7 +85,7 @@ public abstract class TrcDriveBase
     private double gyroHeading, gyroTurnRate;
     private double[] stallStartTimes;
     private double[] prevPositions;
-    protected MotorPowerMapper motorPowerMapper = this::defaultMotorPowerMapper;
+    protected MotorPowerMapper motorPowerMapper = null;
     private double sensitivity = DEF_SENSITIVITY;
     private double maxOutput = DEF_MAX_OUTPUT;
     private double gyroMaxRotationRate = 0.0;
@@ -131,18 +131,6 @@ public abstract class TrcDriveBase
     {
         this(motors, null);
     }   //TrcDriveBase
-
-    /**
-     * This method provides the default motor power mapping which is returning the same power unchanged.
-     *
-     * @param power specifies the motor power.
-     * @param speed specifies the motor speed (not used).
-     * @return the same motor power.
-     */
-    private double defaultMotorPowerMapper(double power, double speed)
-    {
-        return power;
-    }   //defaultMotorPowerMapper
 
     /**
      * This method sets the position scales. The raw position from the encoder is in encoder counts. By setting the
@@ -498,7 +486,7 @@ public abstract class TrcDriveBase
      */
     public void setMotorPowerMapper(MotorPowerMapper motorPowerMapper)
     {
-        this.motorPowerMapper = motorPowerMapper == null? this::defaultMotorPowerMapper: motorPowerMapper;
+        this.motorPowerMapper = motorPowerMapper;
     }   //setMotorPowerMapper
 
     /**

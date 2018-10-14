@@ -41,18 +41,21 @@ public class TrcSwerveModule implements TrcMotorController
     private final String instanceName;
     public final TrcMotorController driveMotor;
     public final TrcPidMotor steerMotor;
+    public final TrcEnhancedServo steerServo;
     private double prevSteerAngle = 0.0;
     private double optimizedWheelDir = 1.0;
 
     /**
      * Constructor: Create an instance of the object.
+     * Note: steerMotor and steerServo are exclusive. You can either have a steerMotor or a steerServo but not both.
      *
      * @param instanceName specifies the instance name.
      * @param driveMotor specifies the drive motor.
      * @param steerMotor specifies the steering motor.
+     * @param steerServo specifies the steering servo.
      */
-    public TrcSwerveModule(
-        String instanceName, TrcMotorController driveMotor, TrcPidActuator steerMotor)
+    private TrcSwerveModule(
+        String instanceName, TrcMotorController driveMotor, TrcPidMotor steerMotor, TrcEnhancedServo steerServo)
     {
         if (debugEnabled)
         {
@@ -64,6 +67,33 @@ public class TrcSwerveModule implements TrcMotorController
         this.instanceName = instanceName;
         this.driveMotor = driveMotor;
         this.steerMotor = steerMotor;
+        this.steerServo = steerServo;
+    }   //TrcSwerveModule
+
+    /**
+     * Constructor: Create an instance of the object.
+     *
+     * @param instanceName specifies the instance name.
+     * @param driveMotor specifies the drive motor.
+     * @param steerMotor specifies the steering motor.
+     */
+    public TrcSwerveModule(
+        String instanceName, TrcMotorController driveMotor, TrcPidMotor steerMotor)
+    {
+        this(instanceName, driveMotor, steerMotor, null);
+    }   //TrcSwerveModule
+
+    /**
+     * Constructor: Create an instance of the object.
+     *
+     * @param instanceName specifies the instance name.
+     * @param driveMotor specifies the drive motor.
+     * @param steerServo specifies the steering servo.
+     */
+    public TrcSwerveModule(
+        String instanceName, TrcMotorController driveMotor, TrcEnhancedServo steerServo)
+    {
+        this(instanceName, driveMotor, null, steerServo);
     }   //TrcSwerveModule
 
     /**
@@ -86,12 +116,44 @@ public class TrcSwerveModule implements TrcMotorController
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        steerMotor.zeroCalibrate();
-        setSteerAngle(0.0, false, true);
+        if (steerMotor != null)
+        {
+            steerMotor.zeroCalibrate();
+            setSteerAngle(0.0, false, true);
+        }
+        else
+        {
+            throw new RuntimeException("zeroCalibrateSteering can only be done on a motor.");
+        }
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
     }   //zeroCalibrateSteering
+
+    public void rangeCalibrateSteering(double stepRate)
+    {
+        final String funcName = "rangeCalibrateSteering";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "stepRate=%f", stepRate);
+        }
+
+        if (steerServo != null)
+        {
+            steerServo.rangeCalibrate(-180.0, 180.0, stepRate);
+            setSteerAngle(0.0, false, true);
+        }
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+    }   //rangeCalibrateSteering
 
     /**
      * This method sets the steer angle.

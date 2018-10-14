@@ -281,15 +281,23 @@ public class TrcSwerveDriveBase extends TrcSimpleDriveBase
         lrPower = this.clipMotorOutput(normalizedPowers[2]);
         rrPower = this.clipMotorOutput(normalizedPowers[3]);
 
+        if (motorPowerMapper != null)
+        {
+            lfPower = motorPowerMapper.translateMotorPower(lfPower, lfModule.getSpeed());
+            rfPower = motorPowerMapper.translateMotorPower(rfPower, rfModule.getSpeed());
+            lrPower = motorPowerMapper.translateMotorPower(lrPower, lrModule.getSpeed());
+            rrPower = motorPowerMapper.translateMotorPower(rrPower, rrModule.getSpeed());
+        }
+
         lfModule.setSteerAngle(lfAngle);
         rfModule.setSteerAngle(rfAngle);
         lrModule.setSteerAngle(lrAngle);
         rrModule.setSteerAngle(rrAngle);
 
-        lfModule.set(motorPowerMapper.translateMotorPower(lfPower, lfModule.getSpeed()));
-        rfModule.set(motorPowerMapper.translateMotorPower(rfPower, rfModule.getSpeed()));
-        lrModule.set(motorPowerMapper.translateMotorPower(lrPower, lrModule.getSpeed()));
-        rrModule.set(motorPowerMapper.translateMotorPower(rrPower, rrModule.getSpeed()));
+        lfModule.set(lfPower);
+        rfModule.set(rfPower);
+        lrModule.set(lrPower);
+        rrModule.set(rrPower);
 
         if (debugEnabled)
         {

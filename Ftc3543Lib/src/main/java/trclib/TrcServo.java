@@ -49,7 +49,7 @@ public abstract class TrcServo
      *
      * @return true if the servo direction is inverted, false otherwise.
      */
-    public abstract boolean getInverted();
+    public abstract boolean isInverted();
 
     /**
      * This method sets the servo position. On a 180-degree servo, 0.0 is at 0-degree and 1.0 is at 180-degree.

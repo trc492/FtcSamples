@@ -22,8 +22,6 @@
 
 package trclib;
 
-import java.util.function.Supplier;
-
 /**
  * This class implements a Cascade PID Controller. A Cascade PID controller consists of two PID controllers in cascade.
  * The output of the primary PID controller feeds into the input of the secondary PID controller. If the motor is not
@@ -54,7 +52,7 @@ public class TrcCascadePidController extends TrcPidController
             final String instanceName,
             PidCoefficients primaryPidCoefficients, double primaryTolerance, double primarySettlingTime,
             PidCoefficients secondaryPidCoefficients, double secondaryTolerance, double secondarySettlingTime,
-            Supplier<Double> primaryInput, Supplier<Double> secondaryInput)
+            PidInput primaryInput, PidInput secondaryInput)
     {
         super(instanceName + ".primary",
               primaryPidCoefficients, primaryTolerance, primarySettlingTime, primaryInput);
@@ -78,7 +76,7 @@ public class TrcCascadePidController extends TrcPidController
             final String instanceName,
             PidCoefficients primaryPidCoefficients, double primaryTolerance,
             PidCoefficients secondaryPidCoefficients, double secondaryTolerance,
-            Supplier<Double> primaryInput, Supplier<Double> secondaryInput)
+            PidInput primaryInput, PidInput secondaryInput)
     {
         this(instanceName,
              primaryPidCoefficients, primaryTolerance, DEF_SETTLING_TIME,

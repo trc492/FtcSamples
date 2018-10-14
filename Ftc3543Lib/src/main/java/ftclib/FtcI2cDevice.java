@@ -32,11 +32,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 import trclib.TrcDbgTrace;
+import trclib.TrcSerialBusDevice;
 
 /**
  * This class implements a platform dependent I2C device.
  */
-public class FtcI2cDevice
+public class FtcI2cDevice extends TrcSerialBusDevice
 {
     private static final String moduleName = "FtcI2cDevice";
     private static final boolean debugEnabled = false;
@@ -49,7 +50,6 @@ public class FtcI2cDevice
     private I2cAddr i2cAddr;
     private I2cDeviceSynchImpl syncDevice;
     private ArrayList<FtcI2cDeviceReader> readers = new ArrayList<>();
-    private FtcI2cDeviceState deviceState;
 
     /**
      * Constructor: Creates an instance of the object.
@@ -61,13 +61,14 @@ public class FtcI2cDevice
      */
     public FtcI2cDevice(HardwareMap hardwareMap, final String instanceName, int i2cAddress, boolean addressIs7Bit)
     {
+        super(instanceName);
+
         if (debugEnabled)
         {
             dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         device = hardwareMap.i2cDevice.get(instanceName);
-        deviceState = new FtcI2cDeviceState(instanceName, device);
         setI2cAddress(i2cAddress, addressIs7Bit);
     }   //FtcI2cDevice
 
@@ -81,6 +82,18 @@ public class FtcI2cDevice
     public FtcI2cDevice(HardwareMap hardwareMap, final String instanceName, int i2cAddress)
     {
         this(hardwareMap, instanceName, i2cAddress, false);
+    }   //FtcI2cDevice
+
+    /**
+     * Constructor: Creates an instance of the object.
+     *
+     * @param instanceName specifies the instance name.
+     * @param i2cAddress specifies the I2C address of the device.
+     * @param addressIs7Bit specifies true if the I2C address is a 7-bit address, false if it is 8-bit.
+     */
+    public FtcI2cDevice(final String instanceName, int i2cAddress, boolean addressIs7Bit)
+    {
+        this(FtcOpMode.getInstance().hardwareMap, instanceName, i2cAddress, addressIs7Bit);
     }   //FtcI2cDevice
 
     /**
@@ -136,7 +149,7 @@ public class FtcI2cDevice
     public boolean isDeviceEnabled()
     {
         final String funcName = "isDeviceEnabled";
-        boolean enabled = deviceState.isEnabled();
+        boolean enabled = syncDevice.isEngaged();
 
         if (debugEnabled)
         {
@@ -163,7 +176,14 @@ public class FtcI2cDevice
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        deviceState.setEnabled(enabled);
+        if (enabled)
+        {
+            syncDevice.engage();
+        }
+        else
+        {
+            syncDevice.disengage();
+        }
     }   //setDeviceEnabled
 
     /**
@@ -190,49 +210,6 @@ public class FtcI2cDevice
 
         return readerId;
     }   //addReader
-
-    /**
-     * This method is doing a synchronous read from the device with the specified starting address and length of the
-     * register block.
-     *
-     * @param startAddress specifies the starting register to read from.
-     * @param length specifies the length of the register block to read.
-     * @return data read.
-     */
-    public byte[] syncRead(int startAddress, int length)
-    {
-        final String funcName = "syncRead";
-        byte[] data = syncDevice.read(startAddress, length);
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "start=0x%02x,len=%d", startAddress, length);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", Arrays.toString(data));
-        }
-
-        return data;
-    }   //syncRead
-
-    /**
-     * This method is doing a synchronous write to the device with the specified starting address and data of the
-     * register block.
-     *
-     * @param startAddress specifies the starting register to read from.
-     * @param data specifies the data to write to the device.
-     */
-    public void syncWrite(int startAddress, byte[] data)
-    {
-        final String funcName = "syncWrite";
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
-                                "start=0x%02x,data=%s", startAddress, Arrays.toString(data));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
-        }
-
-        syncDevice.write(startAddress, data, I2cWaitControl.WRITTEN);
-    }   //syncWrite
 
     /**
      * This method is doing an asynchronous write to the device with the specified starting address and data of the
@@ -341,5 +318,55 @@ public class FtcI2cDevice
 
         return timestamp;
     }   //getDataTimestamp
+
+    //
+    // Implements TrcSerialBusDevice abstract methods.
+    //
+
+    /**
+     * This method is called to read data from the device synchronously with the specified length.
+     *
+     * @param address specifies the data address if any, can be -1 if no address is required.
+     * @param length specifies the number of bytes to read.
+     * @return a byte array containing the data read.
+     */
+    @Override
+    public byte[] readData(int address, int length)
+    {
+        final String funcName = "readData";
+        byte[] data = syncDevice.read(address, length);
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "start=0x%02x,len=%d", address, length);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", Arrays.toString(data));
+        }
+
+        return data;
+    }   //readData
+
+    /**
+     * This method is called to write data to the device synchronously with the specified data buffer and length.
+     *
+     * @param address specifies the data address if any, can be -1 if no address is required.
+     * @param buffer specifies the buffer containing the data to be written to the device.
+     * @param length specifies the number of bytes to write.
+     * @return number of bytes written.
+     */
+    @Override
+    public int writeData(int address, byte[] buffer, int length)
+    {
+        final String funcName = "writeData";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
+                    "start=0x%02x,data=%s", address, Arrays.toString(buffer));
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+
+        syncDevice.write(address, buffer, I2cWaitControl.WRITTEN);
+        return length;
+    }   //writeData
 
 }   //class FtcI2cDevice

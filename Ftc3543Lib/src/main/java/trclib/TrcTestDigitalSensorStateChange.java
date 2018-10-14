@@ -22,8 +22,6 @@
 
 package trclib;
 
-import java.util.function.Supplier;
-
 /**
  * This class implements a diagnostics test to monitor if a digital sensor state has changed. If a sensor state
  * doesn't change, it could mean the sensor is malfunctioning or disconnected.
@@ -50,10 +48,10 @@ public class TrcTestDigitalSensorStateChange<T> extends TrcTestAnalogSensorValue
      *                     or false sticky (i.e. true sticky: one success will make the test always return success).
      */
     public TrcTestDigitalSensorStateChange(
-        String name, T group, Supplier<Boolean> conditional, boolean defStatus,
-        Supplier<Boolean> sensor, String errorMsg, Boolean stickyStatus)
+            String name, T group, TrcUtil.DataSupplier<Boolean> conditional, boolean defStatus,
+            TrcUtil.DataSupplier<Boolean> sensor, String errorMsg, Boolean stickyStatus)
     {
-        super(name, group, conditional, defStatus, () -> sensor.get()? 1.0: 0.0, 1.0, errorMsg, stickyStatus);
+        super(name, group, conditional, defStatus, ()->sensor.get()? 1.0: 0.0, 1.0, errorMsg, stickyStatus);
     }   //TrcTestDigitalSensorStateChange
 
     /**
@@ -68,7 +66,7 @@ public class TrcTestDigitalSensorStateChange<T> extends TrcTestAnalogSensorValue
      *                     or false sticky (i.e. true sticky: one success will make the test always return success).
      */
     public TrcTestDigitalSensorStateChange(
-        String name, T group, Supplier<Boolean> sensor, String errorMsg, Boolean stickyStatus)
+            String name, T group, TrcUtil.DataSupplier<Boolean> sensor, String errorMsg, Boolean stickyStatus)
     {
         this(name, group, null, false, sensor, errorMsg, stickyStatus);
     }   //TrcTestDigitalSensorStateChange

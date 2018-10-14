@@ -31,7 +31,7 @@ import java.util.Arrays;
  * to read and parse the object block from the pixy camera. It also provides access to the last detected objects
  * reported by the pixy camera asynchronously.
  */
-public abstract class TrcPixyCam implements TrcSerialBusDevice.CompletionHandler
+public abstract class TrcPixyCam
 {
     protected static final String moduleName = "TrcPixyCam";
     protected static final boolean debugEnabled = false;
@@ -51,23 +51,23 @@ public abstract class TrcPixyCam implements TrcSerialBusDevice.CompletionHandler
     private static final byte PIXY_CMD_SET_PAN_TILT             = (byte)0xff;
 
     /**
-     * This method issues an asynchronous read of the specified number of bytes from the device.
+     * This method issues an synchronous read of the specified number of bytes from the device.
      *
-     * @param requestTag specifies the tag to identify the request. Can be null if none was provided.
      * @param length specifies the number of bytes to read.
+     * @return data read.
      */
-    public abstract void asyncReadData(RequestTag requestTag, int length);
+    public abstract byte[] readData(int length);
 
     /**
-     * This method writes the data buffer to the device asynchronously.
+     * This method writes the data buffer to the device.
      *
-     * @param requestTag specifies the tag to identify the request. Can be null if none was provided.
      * @param data specifies the data buffer.
+     * @param waitForCompletion specifies true to wait for write completion, false otherwise.
      */
-    public abstract void asyncWriteData(RequestTag requestTag, byte[] data);
+    public abstract void writeData(byte[] data, boolean waitForCompletion);
 
     /**
-     * This class implements the pixy camera object block communication protocol. 
+     * This class implements the pixy camera object block communication protocol.
      */
     public class ObjectBlock
     {
@@ -91,42 +91,27 @@ public abstract class TrcPixyCam implements TrcSerialBusDevice.CompletionHandler
     /**
      * This is used identify the request type.
      */
-    public static enum RequestTag
+    public static enum ReaderState
     {
         SYNC,
         ALIGN,
         CHECKSUM,
         NORMAL_BLOCK,
         COLOR_CODE_BLOCK,
-        //
-        // Tags for BYTE_TRANSACTION.
-        //
-        SYNC_LOW,
-        SYNC_HIGH,
-        CHECKSUM_LOW,
-        CHECKSUM_HIGH,
-        SIGNATURE_LOW,
-        SIGNATURE_HIGH,
-        CENTERX_LOW,
-        CENTERX_HIGH,
-        CENTERY_LOW,
-        CENTERY_HIGH,
-        WIDTH_LOW,
-        WIDTH_HIGH,
-        HEIGHT_LOW,
-        HEIGHT_HIGH,
-        ANGLE_LOW,
-        ANGLE_HIGH
-    }   //enum RequestTag
+        PROCESS_BLOCK
+    }   //enum ReaderState
 
     private final String instanceName;
     private final boolean msbFirst;
+    private TrcTaskMgr.TaskObject readerTaskObj;
+    private TrcStateMachine<ReaderState> sm;
+    private boolean enabled = false;
     private ArrayList<ObjectBlock> objects = new ArrayList<>();
     private ObjectBlock[] detectedObjects = null;
     private ObjectBlock currBlock = null;
     private Object objectLock = new Object();
+    private byte[] data = null;
     private int runningChecksum = 0;
-    private boolean started = false;
 
     /**
      * Constructor: Create an instance of the object.
@@ -140,11 +125,13 @@ public abstract class TrcPixyCam implements TrcSerialBusDevice.CompletionHandler
         {
             dbgTrace = useGlobalTracer?
                 TrcDbgTrace.getGlobalTracer():
-                new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
+                new TrcDbgTrace(instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         this.instanceName = instanceName;
         this.msbFirst = msbFirst;
+        readerTaskObj = TrcTaskMgr.getInstance().createTask(instanceName + ".readerTask", this::readerTask);
+        sm = new TrcStateMachine<>(instanceName);
     }   //TrcPixyCam
 
     /**
@@ -158,32 +145,54 @@ public abstract class TrcPixyCam implements TrcSerialBusDevice.CompletionHandler
     }   //toString
 
     /**
-     * This method starts the pixy camera by queuing the initial read request if not already.
+     * This method enables/disables the reader task.
+     *
+     * @param enabled specifies true to enable, false to disable.
      */
-    public void start()
+    public void setEnabled(boolean enabled)
     {
-        if (!started)
+        final String funcName = "setEnabled";
+
+        if (debugEnabled)
         {
-            started = true;
-            asyncReadData(RequestTag.SYNC, 2);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC, "enabled=%b", enabled);
         }
-    }   //start
+
+        if (enabled)
+        {
+            sm.start(ReaderState.SYNC);
+            readerTaskObj.registerTask(TrcTaskMgr.TaskType.STANDALONE_TASK);
+        }
+        else
+        {
+            readerTaskObj.unregisterTask(TrcTaskMgr.TaskType.STANDALONE_TASK);
+            sm.stop();
+        }
+        this.enabled = enabled;
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC);
+        }
+    }   //setEnabled
 
     /**
-     * This method writes the data to the device one byte at a time.
+     * This method checks if the reader task is enabled.
      *
-     * @param data specifies the buffer containing the data to be written to the device.
+     * @return true if enabled, false otherwise.
      */
-    public void asyncWriteBytes(byte[] data)
+    public boolean isEnabled()
     {
-        byte[] byteData = new byte[1];
+        final String funcName = "isEnabled";
 
-        for (int i = 0; i < data.length; i++)
+        if (debugEnabled)
         {
-            byteData[0] = data[i];
-            asyncWriteData(null, byteData);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", enabled);
         }
-    }   //asyncWriteBytes
+
+        return enabled;
+    }   //isEnabled
 
     /**
      * This method sets the LED to the specified color.
@@ -208,7 +217,7 @@ public abstract class TrcPixyCam implements TrcSerialBusDevice.CompletionHandler
         data[3] = green;
         data[4] = blue;
 
-        asyncWriteData(null, data);
+        writeData(data, false);
 
         if (debugEnabled)
         {
@@ -235,7 +244,7 @@ public abstract class TrcPixyCam implements TrcSerialBusDevice.CompletionHandler
         data[1] = PIXY_CMD_SET_BRIGHTNESS;
         data[2] = brightness;
 
-        asyncWriteData(null, data);
+        writeData(data, false);
 
         if (debugEnabled)
         {
@@ -270,7 +279,7 @@ public abstract class TrcPixyCam implements TrcSerialBusDevice.CompletionHandler
         data[4] = (byte)(tilt & 0xff);
         data[5] = (byte)(tilt >> 8);
 
-        asyncWriteData(null, data);
+        writeData(data, false);
 
         if (debugEnabled)
         {
@@ -308,199 +317,218 @@ public abstract class TrcPixyCam implements TrcSerialBusDevice.CompletionHandler
         return objectBlocks;
     }   //getDetectedObjects
 
-    /**
-     * This method processes the data from the read completion handler.
-     *
-     * @param requestTag specifies the tag to identify the request. Can be null if none was provided.
-     * @param data specifies the data read.
-     * @param length specifies the number of bytes read.
-     */
-    private void processData(RequestTag requestTag, byte[] data, int length)
+    public void readerTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
-        final String funcName = "processData";
-        int word;
+        final String funcName = "readerTask";
 
         if (debugEnabled)
         {
-            dbgTrace.traceVerbose(funcName, "tag=%s,data=%s,len=%d", requestTag, Arrays.toString(data), length);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "taskType=%s,runMode=%s",
+                    taskType, runMode);
         }
 
-        switch (requestTag)
+        ReaderState state = sm.checkReadyAndGetState();
+        if (debugEnabled)
         {
-            case SYNC:
-                //
-                // If we don't already have an object block allocated, allocate it now.
-                //
-                if (currBlock == null)
-                {
-                    currBlock = new ObjectBlock();
-                }
+            dbgTrace.traceInfo(funcName, "State: %s", state != null? state: "Disabled");
+        }
 
-                if (length != 2)
-                {
+        if (state != null)
+        {
+            int word;
+            int index;
+
+            switch (state)
+            {
+                case SYNC:
                     //
-                    // We should never get here. But if we do, probably due to device read failure, we will initiate
-                    // another read for SYNC.
+                    // If we don't already have an object block allocated, allocate it now.
                     //
-                    asyncReadData(RequestTag.SYNC, 2);
-                    if (debugEnabled)
+                    if (currBlock == null)
                     {
-                        dbgTrace.traceWarn(funcName, "Unexpected data length %d in %s", length, requestTag);
+                        currBlock = new ObjectBlock();
                     }
-                }
-                else
-                {
-                    word = getWord(data[0], data[1], msbFirst);
-                    if (word == PIXY_START_WORD || word == PIXY_START_WORD_CC)
+
+                    data = readData(2);
+                    if (data == null || data.length != 2)
                     {
                         //
-                        // Found a sync word, initiate the read for CHECKSUM.
+                        // Read failed, remain in this state.
                         //
-                        currBlock.sync = word;
-                        asyncReadData(RequestTag.CHECKSUM, 2);
-                    }
-                    else if (word == PIXY_START_WORDX)
-                    {
-                        //
-                        // We are word misaligned. Realign it by reading one byte and expecting it to be the high
-                        // sync byte.
-                        //
-                        currBlock.sync = PIXY_START_WORD;
-                        asyncReadData(RequestTag.ALIGN, 1);
                         if (debugEnabled)
                         {
-                            dbgTrace.traceInfo(funcName, "Word misaligned, realigning...");
+                            dbgTrace.traceWarn(funcName, "%s: Read failed (data=%s)",
+                                    state, data == null? null: Arrays.toString(data));
                         }
                     }
                     else
                     {
-                        //
-                        // We don't find the sync word, throw it away and initiate another read for SYNC.
-                        //
-                        asyncReadData(RequestTag.SYNC, 2);
-                        if (debugEnabled)
+                        word = getWord(data[0], data[1], msbFirst);
+                        if (word == PIXY_START_WORD || word == PIXY_START_WORD_CC)
                         {
-                            if (word != 0)
+                            //
+                            // Found a sync word, go to next state.
+                            //
+                            currBlock.sync = word;
+                            sm.setState(ReaderState.CHECKSUM);
+                        }
+                        else if (word == PIXY_START_WORDX)
+                        {
+                            //
+                            // We are word misaligned. Realign it by reading one byte and expecting it to be the high
+                            // sync byte.
+                            //
+                            currBlock.sync = PIXY_START_WORD;
+                            sm.setState(ReaderState.ALIGN);
+                            if (debugEnabled)
                             {
-                                dbgTrace.traceWarn(funcName, "Unexpected word 0x%04x read in %s", word, requestTag);
+                                dbgTrace.traceInfo(funcName, "%s: Word misaligned, realigning...", state);
                             }
-                        }
-                    }
-                }
-                break;
-
-            case ALIGN:
-                if (length != 1)
-                {
-                    //
-                    // We should never come here. Let's throw an exception to catch this unlikely scenario.
-                    //
-                    throw new IllegalStateException(String.format("Unexpected data length %d in %s.",
-                        length, requestTag));
-                }
-                else if (data[0] == PIXY_SYNC_HIGH)
-                {
-                    //
-                    // Found the expected upper sync byte, so initiate the read for CHECKSUM.
-                    //
-                    asyncReadData(RequestTag.CHECKSUM, 2);
-                }
-                else
-                {
-                    //
-                    // Don't see the expected upper sync byte, let's initiate another read for SYNC assuming we are
-                    // now word aligned again.
-                    //
-                    asyncReadData(RequestTag.SYNC, 2);
-                    if (debugEnabled)
-                    {
-                        dbgTrace.traceWarn(funcName, "Unexpected data byte 0x%02x in %s", data[0], requestTag);
-                    }
-                }
-                break;
-
-            case CHECKSUM:
-                if (length != 2)
-                {
-                    //
-                    // We should never come here. Let's throw an exception to catch this unlikely scenario.
-                    //
-                    throw new IllegalStateException(String.format("Unexpected data length %d in %s.",
-                        length, requestTag));
-                }
-                else
-                {
-                    word = getWord(data[0], data[1], msbFirst);
-                    if (word == PIXY_START_WORD || word == PIXY_START_WORD_CC)
-                    {
-                        //
-                        // We were expecting a checksum but found a sync word. It means that's the end-of-frame.
-                        // Save away the sync word for the next frame and initiate the next read for CHECKSUM.
-                        //
-                        currBlock.sync = word;
-                        asyncReadData(RequestTag.CHECKSUM, 2);
-                        //
-                        // Detected end-of-frame, convert the array list of objects into detected object array.
-                        //
-                        if (objects.size() > 0)
-                        {
-                            synchronized (objectLock)
-                            {
-                                ObjectBlock[] array = new ObjectBlock[objects.size()];
-                                detectedObjects = objects.toArray(array);
-                                objects.clear();
-                                if (debugEnabled)
-                                {
-                                    for (int i = 0; i < detectedObjects.length; i++)
-                                    {
-                                        dbgTrace.traceInfo(funcName, "[%02d] %s", i, detectedObjects[i].toString());
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        //
-                        // Looks like we have a checksum, save it away and initiate the read for the rest of the
-                        // block. If the sync word was PIXY_START_WORD, then it is a 10-byte NORMAL_BLOCK, else it
-                        // is a 12-byte COLOR_CODE_BLOCK.
-                        //
-                        currBlock.checksum = word;
-                        if (currBlock.sync == PIXY_START_WORD)
-                        {
-                            asyncReadData(RequestTag.NORMAL_BLOCK, 10);
-                        }
-                        else if (currBlock.sync == PIXY_START_WORD_CC)
-                        {
-                            asyncReadData(RequestTag.COLOR_CODE_BLOCK, 12);
                         }
                         else
                         {
                             //
-                            // We should never come here. Let's throw an exception to catch this unlikely scenario.
+                            // We don't find the sync word, throw it away and remain in this state.
                             //
-                            throw new IllegalStateException(String.format("Unexpected sync word 0x%04x in %s.",
-                                currBlock.sync, requestTag));
+                            if (debugEnabled)
+                            {
+                                if (word != 0)
+                                {
+                                    dbgTrace.traceWarn(funcName, "%s: Unexpected word 0x%04x", state, word);
+                                }
+                            }
                         }
                     }
-                }
-                break;
+                    break;
 
-            case NORMAL_BLOCK:
-            case COLOR_CODE_BLOCK:
-                if (requestTag == RequestTag.NORMAL_BLOCK && length != 10 ||
-                    requestTag == RequestTag.COLOR_CODE_BLOCK && length != 12)
-                {
-                    //
-                    // We should never come here. Let's throw an exception to catch this unlikely scenario.
-                    //
-                    throw new IllegalStateException(String.format("Unexpected data length %d in %s.",
-                        length, requestTag));
-                }
-                else
-                {
-                    int index;
+                case ALIGN:
+                    data = readData(1);
+                    if (data == null || data.length != 1)
+                    {
+                        //
+                        // We should never come here. Let's throw an exception to catch this unlikely scenario.
+                        //
+                        throw new IllegalStateException(String.format("%s: Read failed (data=%s)",
+                                state, data == null? null: Arrays.toString(data)));
+                    }
+                    else if (data[0] == PIXY_SYNC_HIGH)
+                    {
+                        //
+                        // Found the expected upper sync byte, go to next state.
+                        //
+                        sm.setState(ReaderState.CHECKSUM);
+                    }
+                    else
+                    {
+                        //
+                        // Don't see the expected upper sync byte, let's go back to the SYNC state assuming we are
+                        // now word aligned again.
+                        //
+                        sm.setState(ReaderState.SYNC);
+                        if (debugEnabled)
+                        {
+                            dbgTrace.traceWarn(funcName, "%s: Unexpected data byte 0x%02x.", state, data[0]);
+                        }
+                    }
+                    break;
+
+                case CHECKSUM:
+                    data = readData(2);
+                    if (data == null || data.length != 2)
+                    {
+                        //
+                        // We should never come here. Let's throw an exception to catch this unlikely scenario.
+                        //
+                        throw new IllegalStateException(String.format("%s: Read failed (data=%s)",
+                                state, data == null? null: Arrays.toString(data)));
+                    }
+                    else
+                    {
+                        word = getWord(data[0], data[1], msbFirst);
+                        if (word == PIXY_START_WORD || word == PIXY_START_WORD_CC)
+                        {
+                            //
+                            // We were expecting a checksum but found a sync word. It means that's the end-of-frame.
+                            // Save away the sync word for the next frame and expecting next state to be CHECKSUM.
+                            //
+                            currBlock.sync = word;
+                            sm.setState(ReaderState.CHECKSUM);
+                            //
+                            // Detected end-of-frame, convert the array list of objects into detected object array.
+                            //
+                            if (objects.size() > 0)
+                            {
+                                synchronized (objectLock)
+                                {
+                                    ObjectBlock[] array = new ObjectBlock[objects.size()];
+                                    detectedObjects = objects.toArray(array);
+                                    objects.clear();
+                                    if (debugEnabled)
+                                    {
+                                        for (int i = 0; i < detectedObjects.length; i++)
+                                        {
+                                            dbgTrace.traceInfo(funcName, "[%02d] %s",
+                                                    i, detectedObjects[i].toString());
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            //
+                            // Looks like we have a checksum, save it away and go to the next state to read the rest
+                            // of the block. If the sync word was PIXY_START_WORD, then it is a 10-byte NORMAL_BLOCK,
+                            // else it is a 12-byte COLOR_CODE_BLOCK.
+                            //
+                            currBlock.checksum = word;
+                            if (currBlock.sync == PIXY_START_WORD)
+                            {
+                                sm.setState(ReaderState.NORMAL_BLOCK);
+                            }
+                            else if (currBlock.sync == PIXY_START_WORD_CC)
+                            {
+                                sm.setState(ReaderState.COLOR_CODE_BLOCK);
+                            }
+                            else
+                            {
+                                //
+                                // We should never come here. Let's throw an exception to catch this unlikely scenario.
+                                //
+                                throw new IllegalStateException(String.format("%s: Unexpected sync word 0x%04x.",
+                                        state, currBlock.sync));
+                            }
+                        }
+                    }
+                    break;
+
+                case NORMAL_BLOCK:
+                    data = readData(10);
+                    if (data == null || data.length != 10)
+                    {
+                        //
+                        // We should never come here. Let's throw an exception to catch this unlikely scenario.
+                        //
+                        throw new IllegalStateException(String.format("%s: Read failed (data=%s)",
+                                state, data == null? null: Arrays.toString(data)));
+                    }
+                    sm.setState(ReaderState.PROCESS_BLOCK);
+                    break;
+
+                case COLOR_CODE_BLOCK:
+                    data = readData(12);
+                    if (data == null || data.length != 12)
+                    {
+                        //
+                        // We should never come here. Let's throw an exception to catch this unlikely scenario.
+                        //
+                        throw new IllegalStateException(String.format("%s: Read failed (data=%s)",
+                                state, data == null? null: Arrays.toString(data)));
+                    }
+                    sm.setState(ReaderState.PROCESS_BLOCK);
+                    break;
+
+                case PROCESS_BLOCK:
                     runningChecksum = 0;
                     //
                     // Save away the signature and accumulate checksum.
@@ -540,7 +568,7 @@ public abstract class TrcPixyCam implements TrcSerialBusDevice.CompletionHandler
                     //
                     // If it is a COLOR_CODE_BLOCK, save away the object angle and accumulate checksum.
                     //
-                    if (requestTag == RequestTag.COLOR_CODE_BLOCK)
+                    if (currBlock.sync == PIXY_START_WORD_CC)
                     {
                         index += 2;
                         word = getWord(data[index], data[index + 1], msbFirst);
@@ -558,23 +586,28 @@ public abstract class TrcPixyCam implements TrcSerialBusDevice.CompletionHandler
                     }
                     else if (debugEnabled)
                     {
-                        dbgTrace.traceWarn(funcName, "Incorrect checksum %d (expecting %d).",
-                            runningChecksum, currBlock.checksum);
+                        dbgTrace.traceWarn(funcName, "%s: Incorrect checksum %d (expecting %d).",
+                                state, runningChecksum, currBlock.checksum);
                     }
                     //
-                    // Initiate the read for the SYNC word of the next block.
+                    // Go back to the SYNC state for the next block.
                     //
-                    asyncReadData(RequestTag.SYNC, 2);
-                }
-                break;
+                    sm.setState(ReaderState.SYNC);
+                    break;
 
-            default:
-                //
-                // We should never come here. Let's throw an exception to catch this unlikely scenario.
-                //
-                throw new IllegalStateException(String.format("Unexpected request tag %s.", requestTag));
+                default:
+                    //
+                    // We should never come here. Let's throw an exception to catch this unlikely scenario.
+                    //
+                    throw new IllegalStateException(String.format("Unexpected state %s.", state));
+            }
         }
-    }   //processData
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
+        }
+    }   //runPeriodic
 
     /**
      * This method combines the two byte into a 16-bit word according to whether the MSB is first.
@@ -589,55 +622,4 @@ public abstract class TrcPixyCam implements TrcSerialBusDevice.CompletionHandler
         return msbFirst? TrcUtil.bytesToInt(secondByte, firstByte): TrcUtil.bytesToInt(firstByte, secondByte);
     }   //getWord
 
-    //
-    // Implements TrcDeviceQueue.CompletionHandler interface.
-    //
-
-    /**
-     * This method is called when the read operation has been completed.
-     *
-     * @param requestTag specifies the tag to identify the request. Can be null if none was provided.
-     * @param address specifies the data address read from if any, can be -1 if none specified.
-     * @param data specifies the byte array containing data read.
-     * @param error specifies true if the request failed, false otherwise. When true, data is invalid.
-     * @return true if retry the read request, false otherwise (always no retry).
-     */
-    @Override
-    public boolean readCompletion(Object requestTag, int address, byte[] data, boolean error)
-    {
-        final String funcName = "readCompletion";
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.CALLBK, "tag=%s,addr=0x%x,data=%s,error=%s",
-                requestTag, address, data != null? Arrays.toString(data): "null", Boolean.toString(error));
-        }
-
-        if (address == -1 && !error && data != null)
-        {
-            processData((RequestTag)requestTag, data, data.length);
-        }
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.CALLBK, "false");
-        }
-
-        return false;
-    }   //readCompletion
-
-    /**
-     * This method is called when the write operation has been completed.
-     *
-     * @param requestTag specifies the tag to identify the request. Can be null if none was provided.
-     * @param address specifies the data address wrote to if any, can be -1 if none specified.
-     * @param length specifies the number of bytes written.
-     * @param error specifies true if the request failed to write the specified length, false otherwise.
-     *              When true, length is invalid.
-     */
-    @Override
-    public void writeCompletion(Object requestTag, int address, int length, boolean error)
-    {
-    }   //writeCompletion
-
-}   //class FrcPixyCam
+}   //class TrcPixyCam
