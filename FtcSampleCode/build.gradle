@@ -1,28 +1,31 @@
 import java.util.regex.Pattern
+
 //
 // build.gradle in FtcSampleCode
 //
 apply plugin: 'com.android.library'
+
 android {
 
     defaultConfig {
-        minSdkVersion 21
-        targetSdkVersion 26
+        minSdkVersion 19
+        targetSdkVersion 19
     }
 
     compileSdkVersion 26
     buildToolsVersion '27.0.3'
-
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
 }
+
 repositories {
     flatDir {
         dirs '../libs'
     }
 }
+
 apply from: 'build.release.gradle'
 
 dependencies {
