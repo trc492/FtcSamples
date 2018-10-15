@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 Titan Robotics Club (http://www.titanrobotics.com)
+ * Copyright (c) 2018 Titan Robotics Club (http://www.titanrobotics.com)
  * Based on sample code by Robert Atkinson.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -24,7 +24,6 @@
 package samples;
 
 import android.speech.tts.TextToSpeech;
-import android.widget.TextView;
 
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -55,7 +54,6 @@ import static org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocaliz
 @Disabled
 public class FtcTestVuforia extends FtcOpMode
 {
-    private static final boolean TRACK_ROBOT_LOC = true;
     private static final boolean SPEECH_ENABLED = true;
 
     private static final int IMAGE_WIDTH = 640;
@@ -96,7 +94,7 @@ public class FtcTestVuforia extends FtcOpMode
         hardwareMap.logDevices();
         dashboard = HalDashboard.getInstance();
         FtcRobotControllerActivity activity = (FtcRobotControllerActivity)hardwareMap.appContext;
-        dashboard.setTextView((TextView)activity.findViewById(R.id.textOpMode));
+        dashboard.setTextView(activity.findViewById(R.id.textOpMode));
 
         vuforia = new FtcVuforia(VUFORIA_LICENSE_KEY, CAMERAVIEW_ID, CAMERA_DIR);
         vuforia.configVideoSource(IMAGE_WIDTH, IMAGE_HEIGHT, FRAME_QUEUE_CAPACITY);
@@ -194,7 +192,7 @@ public class FtcTestVuforia extends FtcOpMode
         FtcVuforia.TargetInfo[] imageTargetsInfo =
         {
                 new FtcVuforia.TargetInfo(0, "Blue-Rover", false, blueRoverLocationOnField),
-                new FtcVuforia.TargetInfo(1, "Red-Footprint", false, blueRoverLocationOnField),
+                new FtcVuforia.TargetInfo(1, "Red-Footprint", false, redFootprintLocationOnField),
                 new FtcVuforia.TargetInfo(2, "Front-Craters", false, frontCratersLocationOnField),
                 new FtcVuforia.TargetInfo(3, "Back-Space", false, backSpaceLocationOnField)
         };
@@ -213,15 +211,11 @@ public class FtcTestVuforia extends FtcOpMode
         {
             textToSpeech = new TextToSpeech(
                     hardwareMap.appContext,
-                    new TextToSpeech.OnInitListener()
+                    status ->
                     {
-                        @Override
-                        public void onInit(int status)
+                        if (status != TextToSpeech.ERROR)
                         {
-                            if (status != TextToSpeech.ERROR)
-                            {
-                                textToSpeech.setLanguage(Locale.US);
-                            }
+                            textToSpeech.setLanguage(Locale.US);
                         }
                     });
             targetsFound = new boolean[imageTargets.length];
