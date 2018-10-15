@@ -35,7 +35,7 @@ import hallib.HalDashboard;
 import trclib.TrcRobot;
 
 @TeleOp(name="Test: Grip Vision", group="3543TestSamples")
-//@Disabled
+@Disabled
 public class FtcTestGripVision extends FtcOpMode
 {
     private static final int IMAGE_WIDTH = 640;

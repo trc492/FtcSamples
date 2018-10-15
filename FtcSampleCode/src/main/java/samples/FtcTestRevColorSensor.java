@@ -24,6 +24,7 @@ package samples;
 
 import android.graphics.Color;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
@@ -34,7 +35,7 @@ import hallib.HalDashboard;
 import trclib.TrcRobot;
 
 @TeleOp(name="Test: REV Color Sensor", group="3543TestSamples")
-//@Disabled
+@Disabled
 public class FtcTestRevColorSensor extends FtcOpMode
 {
     private HalDashboard dashboard;

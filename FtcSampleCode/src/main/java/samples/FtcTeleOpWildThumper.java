@@ -22,19 +22,14 @@
 
 package samples;
 
-import android.speech.tts.TextToSpeech;
 import android.widget.TextView;
 
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.robotcontroller.internal.FtcRobotControllerActivity;
-import org.firstinspires.ftc.robotcore.external.matrices.OpenGLMatrix;
-import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
-import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackable;
 
 import java.io.InputStream;
-import java.util.Locale;
 
 import FtcSampleCode.R;
 import ftclib.FtcAnalogOutTone;

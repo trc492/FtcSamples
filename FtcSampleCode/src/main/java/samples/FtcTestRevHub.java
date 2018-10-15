@@ -22,61 +22,81 @@
 
 package samples;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 
+import ftclib.FtcAnalogInput;
 import ftclib.FtcBNO055Imu;
 import ftclib.FtcColorSensor;
+import ftclib.FtcDcMotor;
 import ftclib.FtcDigitalInput;
-import ftclib.FtcDistanceSensor;
+import ftclib.FtcGamepad;
 import ftclib.FtcOpMode;
-import hallib.HalDashboard;
+import ftclib.FtcServo;
+import trclib.TrcGameController;
 import trclib.TrcRobot;
 
 @TeleOp(name="Test: REV Expansion Hub", group="3543TestSamples")
-//@Disabled
+@Disabled
 public class FtcTestRevHub extends FtcOpMode
 {
-    private HalDashboard dashboard;
-    private FtcBNO055Imu imu;
-    private FtcDigitalInput touchSensor;
-    private FtcColorSensor colorSensor;
-    private FtcDistanceSensor rangeSensor;
-    private float hsvValues[] = {0.0f, 0.0f, 0.0f};
+    private static final int NUM_MOTORS = 4;
+    private static final int NUM_SERVOS = 6;
+    private static final int NUM_ANALOG_INPUTS = 4;
+    private static final int NUM_DIGITAL_INPUTS = 8;
 
-    //
-    // Implements FtcOpMode abstract methods.
-    //
+    private FtcGamepad gamepad;
+    private FtcBNO055Imu imu;
+    private FtcColorSensor colorSensor;
+    private FtcDcMotor[] motors = new FtcDcMotor[NUM_MOTORS];
+    private FtcServo[] servos = new FtcServo[NUM_SERVOS];
+    private FtcAnalogInput[] analogInputs = new FtcAnalogInput[NUM_ANALOG_INPUTS];
+    private FtcDigitalInput[] digitalInputs = new FtcDigitalInput[NUM_DIGITAL_INPUTS];
+    private boolean dpadRightPressed = false;
 
     @Override
     public void initRobot()
     {
-        //
-        // Initializing sensors on or connected to the REV hub.
-        //
-        dashboard = HalDashboard.getInstance();
+        gamepad = new FtcGamepad("GamePad", gamepad1, this::buttonEvent);
+        gamepad.setYInverted(true);
+
         imu = new FtcBNO055Imu("imu");
-        touchSensor = new FtcDigitalInput("touchSensor");
-        colorSensor = new FtcColorSensor("colorRangeSensor");
-        rangeSensor = new FtcDistanceSensor("colorRangeSensor");
+        colorSensor = new FtcColorSensor("colorSensor");
+
+        for (int i = 0; i < motors.length; i++)
+        {
+            motors[i] = new FtcDcMotor("motor" + i);
+        }
+
+        for (int i = 0; i < servos.length; i++)
+        {
+            servos[i] = new FtcServo("servo" + i);
+        }
+
+        for (int i = 0; i < analogInputs.length; i++)
+        {
+            analogInputs[i] = new FtcAnalogInput("analog" + i);
+        }
+
+        for (int i = 0; i < digitalInputs.length; i++)
+        {
+            digitalInputs[i] = new FtcDigitalInput("digital" + i);
+        }
     }   //initRobot
 
-    //
-    // Overrides TrcRobot.RobotMode methods.
-    //
-
     @Override
-    public void startMode(TrcRobot.RunMode prevMode)
+    public void startMode(TrcRobot.RunMode runMode)
     {
-        dashboard.clearDisplay();
+        imu.gyro.resetZIntegrator();
         imu.gyro.setEnabled(true);
     }   //startMode
 
     @Override
-    public void stopMode(TrcRobot.RunMode nextMode)
+    public void stopMode(TrcRobot.RunMode runMode)
     {
         imu.gyro.setEnabled(false);
     }   //stopMode
@@ -84,42 +104,83 @@ public class FtcTestRevHub extends FtcOpMode
     @Override
     public void runPeriodic(double elapsedTime)
     {
-        dashboard.displayPrintf(1, "Angle:x=%6.1f,y=%6.1f,z=%6.1f",
+        //
+        // Test I2C IMU.
+        //
+        telemetry.addData("Heading", "Heading: x=%6.1f,y=%6.1f,z=%6.1f",
+                imu.gyro.getXHeading().value, imu.gyro.getYHeading().value, imu.gyro.getZHeading().value);
+        telemetry.addData("TurnRate", "TurnRate: x=%6.1f,y=%6.1f,z=%6.1f",
+                imu.gyro.getXRotationRate().value, imu.gyro.getYRotationRate().value, imu.gyro.getZRotationRate().value);
+        telemetry.addData("ImuAngle", "Angle:x=%6.1f,y=%6.1f,z=%6.1f",
                 imu.imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES).firstAngle,
                 imu.imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES).secondAngle,
                 imu.imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES).thirdAngle);
-        dashboard.displayPrintf(2, "Heading: x=%6.1f,y=%6.1f,z=%6.1f",
-                imu.gyro.getXHeading().value,
-                imu.gyro.getYHeading().value,
-                imu.gyro.getZHeading().value);
-        dashboard.displayPrintf(3, "TurnRate: x=%6.1f,y=%6.1f,z=%6.1f",
-                imu.gyro.getXRotationRate().value,
-                imu.gyro.getYRotationRate().value,
-                imu.gyro.getZRotationRate().value);
-        dashboard.displayPrintf(4, "Accel: x=%6.1f,y=%6.1f,z=%6.1f",
-                imu.accel.getXAcceleration().value,
-                imu.accel.getYAcceleration().value,
-                imu.accel.getZAcceleration().value);
-        dashboard.displayPrintf(5, "Vel: x=%6.1f,y=%6.1f,z=%6.1f",
-                imu.accel.getXVelocity().value,
-                imu.accel.getYVelocity().value,
-                imu.accel.getZVelocity().value);
-        dashboard.displayPrintf(6, "Dist: x=%6.1f,y=%6.1f,z=%6.1f",
-                imu.accel.getXDistance().value,
-                imu.accel.getYDistance().value,
-                imu.accel.getZDistance().value);
-        dashboard.displayPrintf(7, "Touch=%s", touchSensor.isActive());
-        dashboard.displayPrintf(8, "Color=%x,rgb=%f/%f/%f",
+        telemetry.addData("Accel", "x=%6.1f,y=%6.1f,z=%6.1f",
+                imu.accel.getXAcceleration().value, imu.accel.getYAcceleration().value, imu.accel.getZAcceleration().value);
+        telemetry.addData("Vel", "Vel: x=%6.1f,y=%6.1f,z=%6.1f",
+                imu.accel.getXVelocity().value, imu.accel.getYVelocity().value, imu.accel.getZVelocity().value);
+        telemetry.addData("Dist", "x=%6.1f,y=%6.1f,z=%6.1f",
+                imu.accel.getXDistance().value, imu.accel.getYDistance().value, imu.accel.getZDistance().value);
+        //
+        // Test I2C Color Sensor.
+        //
+        telemetry.addData("ColorRGB", "Color=%x,rgb=%f/%f/%f",
                 colorSensor.getRawData(0, FtcColorSensor.DataType.COLOR_NUMBER).value.intValue(),
                 colorSensor.getRawData(0, FtcColorSensor.DataType.RED).value,
                 colorSensor.getRawData(0, FtcColorSensor.DataType.GREEN).value,
                 colorSensor.getRawData(0, FtcColorSensor.DataType.BLUE).value);
-        dashboard.displayPrintf(9, "HSV=%f/%f/%f",
+        telemetry.addData("ColorHSV", "HSV=%f/%f/%f",
                 colorSensor.getRawData(0, FtcColorSensor.DataType.HUE).value,
                 colorSensor.getRawData(0, FtcColorSensor.DataType.SATURATION).value,
                 colorSensor.getRawData(0, FtcColorSensor.DataType.VALUE).value);
-        dashboard.displayPrintf(10, "Range=%f",
-                rangeSensor.getRawData(0, FtcDistanceSensor.DataType.DISTANCE_INCH).value);
+        //
+        // Test DC motors.
+        //
+        double motorPower = gamepad.getRightStickY(true);
+        for (int i = 0; i < motors.length; i++)
+        {
+            motors[i].set(motorPower);
+            telemetry.addData("Motor" + i, "power=%.1f, enc=%d", motorPower, motors[i].getPosition());
+        }
+        //
+        // Test Servos.
+        //
+        double pos = dpadRightPressed? 1.0: 0.0;
+        for (int i = 0; i < servos.length; i++)
+        {
+            servos[i].setPosition(pos);
+        }
+        telemetry.addData("Servo", "pos=%.0f", pos);
+        //
+        // Test Analog Inputs.
+        //
+        double data;
+        for (int i = 0; i < analogInputs.length; i++)
+        {
+            data = analogInputs[i].getData(0).value;
+            telemetry.addData("Analog" + i, "volt=%.2f", data);
+        }
+        //
+        // Test Digital Inputs.
+        //
+        boolean state;
+        for (int i = 0; i < digitalInputs.length; i++)
+        {
+            state = digitalInputs[i].isActive();
+            telemetry.addData("Digital" + i, "state=%s", state);
+        }
+
+        telemetry.update();
     }   //runPeriodic
+
+    private void buttonEvent(TrcGameController gameCtrl, int button, boolean pressed)
+    {
+        switch(button)
+        {
+            case FtcGamepad.GAMEPAD_DPAD_RIGHT:
+                dpadRightPressed = pressed;
+                break;
+        }
+    }   //buttonEvent
 
 }   //class FtcTestRevHub
