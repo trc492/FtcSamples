@@ -22,7 +22,9 @@
 
 package ftclib;
 
+import com.qualcomm.robotcore.hardware.HardwareDevice;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.I2cDeviceSynch;
 
 import trclib.TrcDbgTrace;
 import trclib.TrcSensor;
@@ -59,8 +61,6 @@ public class FtcMRI2cRangeSensor extends FtcMRI2cDevice implements TrcSensor.Dat
     private static final int READ_END               = REG_OPTICAL_DISTANCE;
     private static final int READ_LENGTH            = (READ_END - READ_START + 1);
 
-    private int readerId = -1;
-
     /**
      * Constructor: Creates an instance of the object.
      *
@@ -78,7 +78,8 @@ public class FtcMRI2cRangeSensor extends FtcMRI2cDevice implements TrcSensor.Dat
             dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
-        readerId = addReader(instanceName, READ_START, READ_LENGTH);
+        deviceSynch.setDeviceInfo(HardwareDevice.Manufacturer.ModernRobotics, "MR Range Sensor");
+        deviceSynch.setBufferedReadWindow(READ_START, READ_LENGTH, I2cDeviceSynch.ReadMode.REPEAT, READ_LENGTH);
     }   //FtcMRI2cRangeSensor
 
     /**
@@ -111,9 +112,9 @@ public class FtcMRI2cRangeSensor extends FtcMRI2cDevice implements TrcSensor.Dat
     public TrcSensor.SensorData<Double> getUltrasonicDistance()
     {
         final String funcName = "getUltrasonicDistance";
-        byte[] regData = getData(readerId);
+        byte[] regData = readData(READ_START, READ_LENGTH);
         TrcSensor.SensorData<Double> data = new TrcSensor.SensorData<>(
-                getDataTimestamp(readerId), (double)TrcUtil.bytesToInt(regData[REG_ULTRSONIC_DISTANCE - READ_START]));
+                TrcUtil.getCurrentTime(), (double)TrcUtil.bytesToInt(regData[REG_ULTRSONIC_DISTANCE - READ_START]));
 
         if (debugEnabled)
         {
@@ -133,9 +134,9 @@ public class FtcMRI2cRangeSensor extends FtcMRI2cDevice implements TrcSensor.Dat
     public TrcSensor.SensorData<Double> getOpticalDistance()
     {
         final String funcName = "getOpticalDistance";
-        byte[] regData = getData(readerId);
+        byte[] regData = readData(READ_START, READ_LENGTH);
         TrcSensor.SensorData<Double> data = new TrcSensor.SensorData<>(
-                getDataTimestamp(readerId), (double)TrcUtil.bytesToInt(regData[REG_OPTICAL_DISTANCE - READ_START]));
+                TrcUtil.getCurrentTime(), (double)TrcUtil.bytesToInt(regData[REG_OPTICAL_DISTANCE - READ_START]));
 
         if (debugEnabled)
         {

@@ -88,7 +88,7 @@ public class FtcTeleOpMecanumDrive extends FtcOpMode implements TrcGameControlle
     //
 
     @Override
-    public void startMode(TrcRobot.RunMode prevMode)
+    public void startMode(TrcRobot.RunMode prevMode, TrcRobot.RunMode nextMode)
     {
         dashboard.clearDisplay();
         driveBase.resetOdometry();

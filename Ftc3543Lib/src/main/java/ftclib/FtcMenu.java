@@ -75,6 +75,18 @@ public abstract class FtcMenu
     public abstract void menuDown();
 
     /**
+     * This method allows this class to signal to the subclass that a menu Alt-up button has been pressed
+     * so it will perform the necessary operation on it.
+     */
+    public abstract void menuAltUp();
+
+    /**
+     * This method allows this class to signal to the subclass that a menu Alt-down button has been pressed
+     * so it will perform the necessary operation on it.
+     */
+    public abstract void menuAltDown();
+
+    /**
      * The user of this class is required to implement the MenuButtons interface. The methods in this interface
      * allows this class to check for button activities the user made without hard coding what particular buttons
      * are associated with up/down/enter/back. So you can associate the activities with gamepad buttons or even
@@ -97,6 +109,20 @@ public abstract class FtcMenu
         boolean isMenuDownButton();
 
         /**
+         * This method is called by this class to check if the ALT-UP button is pressed.
+         *
+         * @return true if the ALT-UP button is pressed, false otherwise.
+         */
+        boolean isMenuAltUpButton();
+
+        /**
+         * This method is called by this class to check if the ALT-DOWN button is pressed.
+         *
+         * @return true if the ALT-DOWN button is pressed, false otherwise.
+         */
+        boolean isMenuAltDownButton();
+
+        /**
          * This method is called by this class to check if the ENTER button is pressed.
          *
          * @return true if the ENTER button is pressed, false otherwise.
@@ -112,12 +138,14 @@ public abstract class FtcMenu
 
     }   //interface MenuButtons
 
-    private static final long LOOP_INTERVAL     = 20;       //in msec.
+    private static final long LOOP_INTERVAL             = 20;       //in msec.
 
-    private static final int MENUBUTTON_BACK    = (1 << 0);
-    private static final int MENUBUTTON_ENTER   = (1 << 1);
-    private static final int MENUBUTTON_UP      = (1 << 2);
-    private static final int MENUBUTTON_DOWN    = (1 << 3);
+    private static final int MENUBUTTON_BACK            = (1 << 0);
+    private static final int MENUBUTTON_ENTER           = (1 << 1);
+    private static final int MENUBUTTON_UP              = (1 << 2);
+    private static final int MENUBUTTON_DOWN            = (1 << 3);
+    private static final int MENUBUTTON_ALT_UP          = (1 << 4);
+    private static final int MENUBUTTON_ALT_DOWN        = (1 << 5);
 
     protected HalDashboard dashboard;
     private String menuTitle;
@@ -209,10 +237,11 @@ public abstract class FtcMenu
      * of a state machine. To use the menus in a multitasking environment, you must use the runMenus() method instead.
      *
      * @param rootMenu specifies the root of the menu tree.
-     * @param opmode specifies the linear opmode that calls this.
      */
-    public static void walkMenuTree(FtcMenu rootMenu, LinearOpMode opmode)
+    public static void walkMenuTree(FtcMenu rootMenu)
     {
+        LinearOpMode opmode = FtcOpMode.getInstance();
+
         setRootMenu(rootMenu);
         rootMenu.displayMenu();
         while (!runMenus() && !opmode.isStopRequested())
@@ -274,6 +303,14 @@ public abstract class FtcMenu
                 {
                     currMenu.menuDown();
                 }
+                else if ((buttonsPressed & MENUBUTTON_ALT_UP) != 0)
+                {
+                    currMenu.menuAltUp();
+                }
+                else if ((buttonsPressed & MENUBUTTON_ALT_DOWN) != 0)
+                {
+                    currMenu.menuAltDown();
+                }
                 //
                 // Refresh the display to update the menu state.
                 //
@@ -310,6 +347,8 @@ public abstract class FtcMenu
         if (menuButtons.isMenuEnterButton()) buttons |= MENUBUTTON_ENTER;
         if (menuButtons.isMenuUpButton()) buttons |= MENUBUTTON_UP;
         if (menuButtons.isMenuDownButton()) buttons |= MENUBUTTON_DOWN;
+        if (menuButtons.isMenuAltUpButton()) buttons |= MENUBUTTON_ALT_UP;
+        if (menuButtons.isMenuAltDownButton()) buttons |= MENUBUTTON_ALT_DOWN;
 
         if (debugEnabled)
         {

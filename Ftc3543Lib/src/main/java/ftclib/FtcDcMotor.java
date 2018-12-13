@@ -32,7 +32,7 @@ import trclib.TrcDbgTrace;
 import trclib.TrcMotor;
 
 /**
- * This class implements the Modern Robotics Motor Controller extending TrcMotor. It provides implementation of the
+ * This class implements the generic DC Motor Controller extending TrcMotor. It provides implementation of the
  * abstract methods in TrcMotor. It supports limit switches. When this class is constructed with limit switches,
  * setPower will respect them and will not move the motor into the direction where the limit switch is activated.
  * It also provides a software encoder reset without switching the Modern Robotics motor controller mode which is
@@ -41,19 +41,14 @@ import trclib.TrcMotor;
 public class FtcDcMotor extends TrcMotor
 {
     private static final String moduleName = "FtcDcMotor";
-    private static final boolean debugEnabled = false;
-    private static final boolean tracingEnabled = false;
-    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
-    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
-    private TrcDbgTrace dbgTrace = null;
 
-    private String instanceName;
-    private TrcDigitalInput lowerLimitSwitch = null;
-    private TrcDigitalInput upperLimitSwitch = null;
-    private TrcAnalogInput analogSensor = null;
-    public DcMotor motor;
-    private int zeroEncoderValue;
+    private final String instanceName;
+    private final TrcDigitalInput lowerLimitSwitch;
+    private final TrcDigitalInput upperLimitSwitch;
+    private final TrcAnalogInput analogSensor;
+    public final DcMotor motor;
     private int prevEncPos;
+    private int zeroEncoderValue;
     private int positionSensorSign = 1;
     private double prevPower = 0.0;
     private boolean softLowerLimitEnabled = false;
@@ -77,7 +72,8 @@ public class FtcDcMotor extends TrcMotor
 
         if (debugEnabled)
         {
-            dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
+            dbgTrace = useGlobalTracer? globalTracer:
+                    new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         this.instanceName = instanceName;
@@ -85,8 +81,8 @@ public class FtcDcMotor extends TrcMotor
         this.upperLimitSwitch = upperLimitSwitch;
         this.analogSensor = analogSensor;
         motor = hardwareMap.dcMotor.get(instanceName);
-        zeroEncoderValue = motor.getCurrentPosition();
-        prevEncPos = zeroEncoderValue;
+        prevEncPos = motor.getCurrentPosition();
+        zeroEncoderValue = prevEncPos;
     }   //FtcDcMotor
 
     /**
@@ -146,29 +142,62 @@ public class FtcDcMotor extends TrcMotor
         return instanceName;
     }   //toString
 
-    //
-    // Implements TrcMotor abstract methods.
-    //
-
     /**
-     * This method returns the state of the motor controller direction.
+     * This method returns the battery voltage that powers the motor. This method is specific to FTC.
      *
-     * @return true if the motor direction is inverted, false otherwise.
+     * @return battery voltage.
      */
-    @Override
-    public boolean getInverted()
+    public double getVoltage()
     {
-        final String funcName = "getInverted";
-        boolean inverted = motor.getDirection() == DcMotor.Direction.REVERSE;
+        final String funcName = "getVoltage";
+        double voltage = ((ModernRoboticsUsbDcMotorController)motor.getController()).getVoltage();
 
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", Boolean.toString(inverted));
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%.3f", voltage);
         }
 
-        return inverted;
-    }   //getInverted
+        return voltage;
+    }   //getVoltage
+
+    /**
+     * Ensures that the given requested motor power does not violate limit switch constraints (e.g. if the upper limit
+     * switch is pressed, the motor may not be commanded forward).
+     *
+     * If the given value does not violate limit switch constraints, it is returned as-is; otherwise, 0;
+     *
+     * @param motorPower The requested motor power value.
+     * @return The given motor power value respecting limit switch constraints.
+     */
+    private double constrainMotorPowerByLimitSwitches(double motorPower)
+    {
+        final String funcName = "constrainMotorPowerByLimitSwitches";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "power=%f", motorPower);
+        }
+
+        if (motorPower > 0.0 && (upperLimitSwitch != null && upperLimitSwitch.isActive() ||
+                softUpperLimitEnabled && getPosition() >= softUpperLimit) ||
+                motorPower < 0.0 && (lowerLimitSwitch != null && lowerLimitSwitch.isActive() ||
+                        softLowerLimitEnabled && getPosition() <= softLowerLimit))
+        {
+            motorPower = 0.0;
+        }
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", motorPower);
+        }
+
+        return motorPower;
+    }   //constrainMotorPowerByLimitSwitches
+
+    //
+    // Implements TrcMotor abstract methods.
+    //
 
     /**
      * This method returns the motor position by reading the position sensor. The position sensor can be an encoder
@@ -177,9 +206,9 @@ public class FtcDcMotor extends TrcMotor
      * @return current motor position.
      */
     @Override
-    public double getPosition()
+    public double getMotorPosition()
     {
-        final String funcName = "getPosition";
+        final String funcName = "getMotorPosition";
         double currPos = analogSensor == null?
                 motor.getCurrentPosition(): analogSensor.getRawData(0, TrcAnalogInput.DataType.INPUT_DATA).value;
 
@@ -187,7 +216,6 @@ public class FtcDcMotor extends TrcMotor
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
         }
-
         //
         // Somebody said if motor controller got disconnected, we may get a zero. Let's detect this and see if this
         // really happened.
@@ -196,12 +224,9 @@ public class FtcDcMotor extends TrcMotor
         {
             if (currPos == 0.0 && Math.abs(prevEncPos) > 1000)
             {
-                if (debugEnabled)
-                {
-                    dbgTrace.traceWarn(funcName,
-                            "Detected possible motor controller disconnect for %s (prevEncPos=%d).",
-                            instanceName, prevEncPos);
-                }
+                globalTracer.traceWarn(
+                        funcName, "Detected possible motor controller disconnect for %s (prevEncPos=%d).",
+                        instanceName, prevEncPos);
                 currPos = prevEncPos;
             }
             else
@@ -222,28 +247,60 @@ public class FtcDcMotor extends TrcMotor
         }
 
         return currPos;
-    }   //getPosition
+    }   //getMotorPosition
 
     /**
-     * This method inverts the position sensor direction. This may be rare but there are scenarios where the motor
-     * encoder may be mounted somewhere in the power train that it rotates opposite to the motor rotation. This will
-     * cause the encoder reading to go down when the motor is receiving positive power. This method can correct this
-     * situation.
+     * This method sets the raw motor power.
      *
-     * @param inverted specifies true to invert position sensor direction, false otherwise.
+     * @param power specifies the percentage power (range -1.0 to 1.0) to be set.
      */
-    public void setPositionSensorInverted(boolean inverted)
+    @Override
+    public void setMotorPower(double power)
     {
-        final String funcName = "setPositionSensorInverted";
+        final String funcName = "setMotorPower";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "inverted=%s", Boolean.toString(inverted));
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "value=%f", power);
         }
 
-        positionSensorSign = inverted? -1: 1;
-    }   //setPositionSensorInverted
+        power = constrainMotorPowerByLimitSwitches(power);
+
+        if (power != prevPower)
+        {
+            motor.setPower(power);
+            prevPower = power;
+        }
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "! (value=%f)", power);
+        }
+    }   //setMotorPower
+
+    //
+    // Implements TrcMotorController interface.
+    //
+
+    /**
+     * This method returns the state of the motor controller direction.
+     *
+     * @return true if the motor direction is inverted, false otherwise.
+     */
+    @Override
+    public boolean getInverted()
+    {
+        final String funcName = "getInverted";
+        boolean inverted = motor.getDirection() == DcMotor.Direction.REVERSE;
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", inverted);
+        }
+
+        return inverted;
+    }   //getInverted
 
     /**
      * This method gets the last set power.
@@ -254,7 +311,7 @@ public class FtcDcMotor extends TrcMotor
     public double getPower()
     {
         final String funcName = "getPower";
-        double power = motor.getPower();
+        double power = prevPower;
 
         if (debugEnabled)
         {
@@ -264,25 +321,6 @@ public class FtcDcMotor extends TrcMotor
 
         return power;
     }   //getPower
-
-    /**
-     * This method returns the battery voltage that powers the motor.
-     *
-     * @return battery voltage.
-     */
-    public double getVoltage()
-    {
-        final String funcName = "getVoltage";
-        double voltage = ((ModernRoboticsUsbDcMotorController)motor.getController()).getVoltage();
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%.3f", voltage);
-        }
-
-        return voltage;
-    }   //getVoltage
 
     /**
      * This method returns the state of the lower limit switch.
@@ -343,7 +381,7 @@ public class FtcDcMotor extends TrcMotor
         // Modern Robotics motor controllers supports resetting encoders by setting the motor controller mode. This
         // is a long operation and has side effect of disabling the motor controller unless you do another setMode
         // to re-enable it. Therefore, resetPosition with hardware set to true is a synchronous call. This should
-        // only be called in robotInit time. For other times, it should call resetPosition with hardware set to false
+        // only be called at robotInit time. For other times, it should call resetPosition with hardware set to false
         // (software reset).
         //
         if (hardware)
@@ -363,52 +401,26 @@ public class FtcDcMotor extends TrcMotor
     }   //resetPosition
 
     /**
-     * This method resets the motor position sensor, typically an encoder.
-     */
-    public void resetPosition()
-    {
-        resetPosition(false);
-    }   //resetPosition
-
-    /**
-     * This method sets the motor output value. The value can be power or velocity percentage depending on whether
-     * the motor controller is in power mode or velocity mode.
+     * This method inverts the position sensor direction. This may be rare but there are scenarios where the motor
+     * encoder may be mounted somewhere in the power train that it rotates opposite to the motor rotation. This will
+     * cause the encoder reading to go down when the motor is receiving positive power. This method can correct this
+     * situation.
      *
-     * @param value specifies the percentage power or velocity (range -1.0 to 1.0) to be set.
+     * @param inverted specifies true to invert position sensor direction, false otherwise.
      */
     @Override
-    public void set(double value)
+    public void setPositionSensorInverted(boolean inverted)
     {
-        final String funcName = "setPower";
-
-        // TODO: need to add support for velocity mode.
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "value=%f", value);
-        }
-
-        //
-        // If we have limit switches, respect them.
-        //
-        if (value > 0.0 && (upperLimitSwitch != null && upperLimitSwitch.isActive() ||
-                softUpperLimitEnabled && getPosition() >= softUpperLimit) ||
-                value < 0.0 && (lowerLimitSwitch != null && lowerLimitSwitch.isActive() ||
-                        softLowerLimitEnabled && getPosition() <= softLowerLimit))
-        {
-            value = 0.0;
-        }
-
-        if (value != prevPower)
-        {
-            motor.setPower(value);
-            prevPower = value;
-        }
+        final String funcName = "setPositionSensorInverted";
 
         if (debugEnabled)
         {
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "! (value=%f)", value);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "inverted=%s", Boolean.toString(inverted));
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
-    }   //set
+
+        positionSensorSign = inverted? -1: 1;
+    }   //setPositionSensorInverted
 
     /**
      * This method enables/disables motor brake mode. In motor brake mode, set power to 0 would stop the motor very
@@ -457,7 +469,7 @@ public class FtcDcMotor extends TrcMotor
      * @param lowerLimitEnabled specifies true to enable lower soft limit switch, false otherwise.
      * @param upperLimitEnabled specifies true to enable upper soft limit switch, false otherwise.
      */
-    public void setSoftLimitEnabled(boolean lowerLimitEnabled, boolean upperLimitEnabled)
+    public synchronized void setSoftLimitEnabled(boolean lowerLimitEnabled, boolean upperLimitEnabled)
     {
         final String funcName = "setSoftLimitEnabled";
 
@@ -477,7 +489,7 @@ public class FtcDcMotor extends TrcMotor
      *
      * @param position specifies the position of the lower limit.
      */
-    public void setSoftLowerLimit(double position)
+    public synchronized void setSoftLowerLimit(double position)
     {
         final String funcName = "setSoftLowerLimit";
 
@@ -495,7 +507,7 @@ public class FtcDcMotor extends TrcMotor
      *
      * @param position specifies the position of the upper limit.
      */
-    public void setSoftUpperLimit(double position)
+    public synchronized void setSoftUpperLimit(double position)
     {
         final String funcName = "setSoftUpperLimit";
 

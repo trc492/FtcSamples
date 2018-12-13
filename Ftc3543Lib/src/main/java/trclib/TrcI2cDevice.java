@@ -23,8 +23,7 @@
 package trclib;
 
 import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * This class implements a platform independent I2C device. Typically, this class is extended by a platform dependent
@@ -173,7 +172,7 @@ public abstract class TrcI2cDevice
     private final String instanceName;
     private final TrcTaskMgr.TaskObject i2cDeviceTaskObj;
     private final TrcStateMachine<PortCommandState> portCommandSM;
-    private final Queue<Request> requestQueue = new LinkedList<>();
+    private final ConcurrentLinkedQueue<Request> requestQueue = new ConcurrentLinkedQueue<>();
     private Request currRequest = null;
     private double expiredTime = 0.0;
     private byte[] dataRead = null;
@@ -193,7 +192,8 @@ public abstract class TrcI2cDevice
         }
 
         this.instanceName = instanceName;
-        i2cDeviceTaskObj = TrcTaskMgr.getInstance().createTask(instanceName + ".i2cDeviceTask", this::i2cDeviceTask);
+        i2cDeviceTaskObj = TrcTaskMgr.getInstance().createTask(
+                instanceName + ".i2cDeviceTask", this::i2cDeviceTask);
         portCommandSM = new TrcStateMachine<>(instanceName);
     }   //TrcI2cDevice
 
@@ -223,7 +223,7 @@ public abstract class TrcI2cDevice
 
         if (enabled)
         {
-            i2cDeviceTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            i2cDeviceTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);  //TODO: should use STANDALONE_TASK
             portCommandSM.start(PortCommandState.START);
         }
         else
@@ -246,7 +246,7 @@ public abstract class TrcI2cDevice
      * @param handler specifies the completion handler to call when done. Can be null if none needed.
      * @param timeout specifies the timeout for the operation in seconds.
      */
-    public void read(int regAddress, int length, CompletionHandler handler, double timeout)
+    public synchronized void read(int regAddress, int length, CompletionHandler handler, double timeout)
     {
         final String funcName = "read";
 
@@ -298,7 +298,7 @@ public abstract class TrcI2cDevice
      * @param handler specifies the completion handler to call when done. Can be null if none needed.
      * @param timeout specifies the timeout for the operation in seconds.
      */
-    public void write(int regAddress, int length, byte[] writeBuffer, CompletionHandler handler, double timeout)
+    public synchronized void write(int regAddress, int length, byte[] writeBuffer, CompletionHandler handler, double timeout)
     {
         final String funcName = "write";
 
@@ -393,7 +393,7 @@ public abstract class TrcI2cDevice
      * @param taskType specifies the type of task being run.
      * @param runMode specifies the competition mode that is running.
      */
-    public void i2cDeviceTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
+    private synchronized void i2cDeviceTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
         final String funcName = "i2cDeviceTask";
 

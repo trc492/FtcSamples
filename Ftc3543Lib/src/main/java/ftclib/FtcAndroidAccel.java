@@ -69,11 +69,21 @@ public class FtcAndroidAccel extends TrcAccelerometer
     }   //FtcAndroidAccel
 
     /**
+     * Constructor: Creates an instance of the object.
+     *
+     * @param instanceName specifies the instance name.
+     */
+    public FtcAndroidAccel(String instanceName)
+    {
+        this(instanceName, null);
+    }   //FtcAndroidAccel
+
+    /**
      * This method sets the sampling period of the Android accelerometer sensor.
      *
      * @param period specifies the period with SensorManager.SENSOR_DELAY_* constants, or the number of microseconds.
      */
-    public void setSamplingPeriod(int period)
+    public synchronized void setSamplingPeriod(int period)
     {
         final String funcName = "setSamplingPeriod";
 
@@ -87,22 +97,12 @@ public class FtcAndroidAccel extends TrcAccelerometer
     }   //setSamplingPeriod
 
     /**
-     * Constructor: Creates an instance of the object.
-     *
-     * @param instanceName specifies the instance name.
-     */
-    public FtcAndroidAccel(String instanceName)
-    {
-        this(instanceName, null);
-    }   //FtcAndroidAccel
-
-    /**
      * This method enables/disables the sensor.
      *
      * @param enabled specifies true if enabling, false otherwise.
      */
     @Override
-    public void setEnabled(boolean enabled)
+    public synchronized void setEnabled(boolean enabled)
     {
         sensor.setEnabled(enabled, samplingPeriod);
         super.setEnabled(enabled);
@@ -112,7 +112,7 @@ public class FtcAndroidAccel extends TrcAccelerometer
      * This method calibrates the sensor. If the sensor is not enabled, it must enable it first before starting
      * calibration. It will disable the sensor if it was disabled before calibration.
      */
-    public void calibrate()
+    public synchronized void calibrate()
     {
         boolean sensorEnabled = sensor.isEnabled();
 
@@ -140,7 +140,7 @@ public class FtcAndroidAccel extends TrcAccelerometer
      * @return raw data of the specified type for the x-axis.
      */
     @Override
-    public SensorData<Double> getRawXData(DataType dataType)
+    public synchronized SensorData<Double> getRawXData(DataType dataType)
     {
         final String funcName = "getRawXData";
         SensorData<Double> data;
@@ -171,7 +171,7 @@ public class FtcAndroidAccel extends TrcAccelerometer
      * @return raw data of the specified type for the y-axis.
      */
     @Override
-    public SensorData<Double> getRawYData(DataType dataType)
+    public synchronized SensorData<Double> getRawYData(DataType dataType)
     {
         final String funcName = "getRawYData";
         SensorData<Double> data;
@@ -202,7 +202,7 @@ public class FtcAndroidAccel extends TrcAccelerometer
      * @return raw data of the specified type for the z-axis.
      */
     @Override
-    public SensorData<Double> getRawZData(DataType dataType)
+    public synchronized SensorData<Double> getRawZData(DataType dataType)
     {
         final String funcName = "getRawZData";
         SensorData<Double> data;

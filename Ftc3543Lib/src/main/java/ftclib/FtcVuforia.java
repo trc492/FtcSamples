@@ -26,6 +26,7 @@ package ftclib;
 import android.graphics.Bitmap;
 import android.support.annotation.NonNull;
 
+import com.vuforia.CameraDevice;
 import com.vuforia.HINT;
 import com.vuforia.Image;
 import com.vuforia.PIXEL_FORMAT;
@@ -134,8 +135,18 @@ public class FtcVuforia implements TrcVideoSource<Mat>
      */
     public FtcVuforia(String licenseKey, int cameraViewId, VuforiaLocalizer.CameraDirection cameraDir)
     {
-        this(licenseKey, cameraViewId, cameraDir, VuforiaLocalizer.Parameters.CameraMonitorFeedback.AXES);
+        this(licenseKey, cameraViewId, cameraDir, null);
     }   //FtcVuforia
+
+    /**
+     * This method returns the Vuforia Localizer.
+     *
+     * @return vuforia localizer.
+     */
+    public VuforiaLocalizer getLocalizer()
+    {
+        return localizer;
+    }   //getLocalizer
 
     public void addTargetList(@NonNull String trackablesFile, TargetInfo[] targets, OpenGLMatrix phoneLocationOnRobot)
     {
@@ -308,6 +319,16 @@ public class FtcVuforia implements TrcVideoSource<Mat>
         Vuforia.setFrameFormat(PIXEL_FORMAT.RGB565, true);
         localizer.setFrameQueueCapacity(queueCapacity);
     }   //configVideoSource
+
+    /**
+     * This methods turns the phone flash light ON or OFF.
+     *
+     * @param enabled specifies true to turn flashlight on, false to turn off.
+     */
+    public void setFlashlightEnabled(boolean enabled)
+    {
+        CameraDevice.getInstance().setFlashTorchMode(enabled);
+    }   //setFlashlightEnabled
 
     //
     // Implements HalVideoSource interface.

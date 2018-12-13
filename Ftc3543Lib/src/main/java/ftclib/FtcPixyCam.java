@@ -37,10 +37,9 @@ import trclib.TrcPixyCam;
  */
 public class FtcPixyCam extends TrcPixyCam
 {
-    private static final boolean USE_BUFFERED_READ = true;
     private static final int DEF_I2C_ADDRESS = 0x54;
-
-    private final FtcI2cDeviceSynch i2cDevice;
+    private static final boolean USE_BUFFERED_READ = false;
+    private final FtcI2cDevice pixyCam;
 
     /**
      * Constructor: Create an instance of the object.
@@ -53,13 +52,13 @@ public class FtcPixyCam extends TrcPixyCam
     public FtcPixyCam(HardwareMap hardwareMap, String instanceName, int devAddress, boolean addressIs7Bit)
     {
         super(instanceName, false);
-
-        i2cDevice = hardwareMap.get(FtcI2cDeviceSynch.class, instanceName);
-        i2cDevice.setDeviceInfo(HardwareDevice.Manufacturer.Other, "Pixy Camera v1");
+        pixyCam = new FtcI2cDevice(hardwareMap, instanceName, devAddress, addressIs7Bit);
+        pixyCam.deviceSynch.setDeviceInfo(HardwareDevice.Manufacturer.Other, "Pixy Camera v1");
         if (USE_BUFFERED_READ)
         {
-            i2cDevice.setBufferedReadWindow(1, I2cDeviceSynch.ReadWindow.READ_REGISTER_COUNT_MAX,
-                    I2cDeviceSynch.ReadMode.REPEAT, 14);
+            pixyCam.deviceSynch.setBufferedReadWindow(
+                    1, I2cDeviceSynch.ReadWindow.READ_REGISTER_COUNT_MAX, I2cDeviceSynch.ReadMode.REPEAT,
+                    14);
         }
     }   //FtcPixyCam
 
@@ -93,7 +92,7 @@ public class FtcPixyCam extends TrcPixyCam
     public boolean isEnabled()
     {
         final String funcName = "isEnabled";
-        boolean enabled = i2cDevice.isEnabled();
+        boolean enabled = pixyCam.isEnabled() && pixyCam.deviceSynch.isEnabled();
 
         if (debugEnabled)
         {
@@ -118,8 +117,12 @@ public class FtcPixyCam extends TrcPixyCam
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "enanbled=%b", enabled);
         }
 
-        i2cDevice.setEnabled(enabled);
-        super.setEnabled(enabled);
+        pixyCam.deviceSynch.setEnabled(enabled);
+        pixyCam.setEnabled(enabled);
+        if (enabled)
+        {
+            start();
+        }
 
         if (debugEnabled)
         {
@@ -132,55 +135,53 @@ public class FtcPixyCam extends TrcPixyCam
     //
 
     /**
-     * This method issues an synchronous read of the specified number of bytes from the device.
+     * This method issues an asynchronous read of the specified number of bytes from the device.
      *
+     * @param requestTag specifies the tag to identify the request. Can be null if none was provided.
      * @param length specifies the number of bytes to read.
-     * @return data read.
      */
     @Override
-    public byte[] readData(int length)
+    public void asyncReadData(RequestTag requestTag, int length)
     {
-        final String funcName = "readData";
-        byte[] data;
+        final String funcName = "asyncReadData";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "length=%d", length);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "tag=%s,length=%d",
+                    requestTag != null? requestTag: "null", length);
         }
 
-        data = i2cDevice.readData(length);
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", Arrays.toString(data));
-        }
-
-        return data;
-    }   //readData
-
-    /**
-     * This method writes the data buffer to the device.
-     *
-     * @param data specifies the data buffer.
-     * @param waitForCompletion specifies true to wait for write completion, false otherwise.
-     */
-    @Override
-    public void writeData(byte[] data, boolean waitForCompletion)
-    {
-        final String funcName = "writeData";
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "data=%s,waitForCompletion=%s",
-                    Arrays.toString(data), waitForCompletion);
-        }
-
-        i2cDevice.writeData(0, data, waitForCompletion);
+        pixyCam.asyncRead(requestTag, length, null, this);
 
         if (debugEnabled)
         {
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
-    }   //writeData
+    }   //asyncReadData
+
+    /**
+     * This method writes the data buffer to the device asynchronously.
+     *
+     * @param requestTag specifies the tag to identify the request. Can be null if none was provided.
+     * @param data specifies the data buffer.
+     */
+    @Override
+    public void asyncWriteData(RequestTag requestTag, byte[] data)
+    {
+        final String funcName = "asyncWriteData";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "tag=%s,data=%s,length=%d",
+                    requestTag != null? requestTag: "null", Arrays.toString(data), data.length);
+        }
+
+        pixyCam.asyncWrite(requestTag, data, data.length, null, null);
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+    }   //asyncWriteData
 
 }   //class FtcPixyCam

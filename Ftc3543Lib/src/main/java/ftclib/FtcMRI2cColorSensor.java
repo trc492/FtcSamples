@@ -22,7 +22,9 @@
 
 package ftclib;
 
+import com.qualcomm.robotcore.hardware.HardwareDevice;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.I2cDeviceSynch;
 
 import trclib.TrcDbgTrace;
 import trclib.TrcSensor;
@@ -96,8 +98,6 @@ public class FtcMRI2cColorSensor extends FtcMRI2cDevice implements TrcSensor.Dat
     private static final byte COLORNUM_LIGHT_BLUE   = 15;
     private static final byte COLORNUM_WHITE        = 16;
 
-    private int readerId = -1;
-
     /**
      * Constructor: Creates an instance of the object.
      *
@@ -115,7 +115,8 @@ public class FtcMRI2cColorSensor extends FtcMRI2cDevice implements TrcSensor.Dat
             dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
-        readerId = addReader(instanceName, READ_START, READ_LENGTH);
+        deviceSynch.setDeviceInfo(HardwareDevice.Manufacturer.ModernRobotics, "MR Color Sensor");
+        deviceSynch.setBufferedReadWindow(READ_START, READ_LENGTH, I2cDeviceSynch.ReadMode.REPEAT, READ_LENGTH);
     }   //FtcMRI2cColorSensor
 
     /**
@@ -208,9 +209,9 @@ public class FtcMRI2cColorSensor extends FtcMRI2cDevice implements TrcSensor.Dat
     public TrcSensor.SensorData<Double> getColorNumber()
     {
         final String funcName = "getColorNumber";
-        byte[] regData = getData(readerId);
+        byte[] regData = readData(READ_START, READ_LENGTH);
         TrcSensor.SensorData<Double> data = new TrcSensor.SensorData<>(
-                getDataTimestamp(readerId), (double)TrcUtil.bytesToInt(regData[REG_COLOR_NUMBER - READ_START]));
+                TrcUtil.getCurrentTime(), (double)TrcUtil.bytesToInt(regData[REG_COLOR_NUMBER - READ_START]));
 
         if (debugEnabled)
         {
@@ -230,9 +231,9 @@ public class FtcMRI2cColorSensor extends FtcMRI2cDevice implements TrcSensor.Dat
     public TrcSensor.SensorData<Double> getRedValue()
     {
         final String funcName = "getRedValue";
-        byte[] regData = getData(readerId);
+        byte[] regData = readData(READ_START, READ_LENGTH);
         TrcSensor.SensorData<Double> data = new TrcSensor.SensorData<>(
-                getDataTimestamp(readerId), (double)TrcUtil.bytesToInt(regData[REG_RED - READ_START]));
+                TrcUtil.getCurrentTime(), (double)TrcUtil.bytesToInt(regData[REG_RED - READ_START]));
 
         if (debugEnabled)
         {
@@ -252,9 +253,9 @@ public class FtcMRI2cColorSensor extends FtcMRI2cDevice implements TrcSensor.Dat
     public TrcSensor.SensorData<Double> getGreenValue()
     {
         final String funcName = "getGreenValue";
-        byte[] regData = getData(readerId);
+        byte[] regData = readData(READ_START, READ_LENGTH);
         TrcSensor.SensorData<Double> data = new TrcSensor.SensorData<>(
-                getDataTimestamp(readerId), (double)TrcUtil.bytesToInt(regData[REG_GREEN - READ_START]));
+                TrcUtil.getCurrentTime(), (double)TrcUtil.bytesToInt(regData[REG_GREEN - READ_START]));
 
         if (debugEnabled)
         {
@@ -274,9 +275,9 @@ public class FtcMRI2cColorSensor extends FtcMRI2cDevice implements TrcSensor.Dat
     public TrcSensor.SensorData<Double> getBlueValue()
     {
         final String funcName = "getBlueValue";
-        byte[] regData = getData(readerId);
+        byte[] regData = readData(READ_START, READ_LENGTH);
         TrcSensor.SensorData<Double> data = new TrcSensor.SensorData<>(
-                getDataTimestamp(readerId), (double)TrcUtil.bytesToInt(regData[REG_BLUE - READ_START]));
+                TrcUtil.getCurrentTime(), (double)TrcUtil.bytesToInt(regData[REG_BLUE - READ_START]));
 
         if (debugEnabled)
         {
@@ -296,9 +297,9 @@ public class FtcMRI2cColorSensor extends FtcMRI2cDevice implements TrcSensor.Dat
     public TrcSensor.SensorData<Double> getWhiteValue()
     {
         final String funcName = "getWhiteValue";
-        byte[] regData = getData(readerId);
+        byte[] regData = readData(READ_START, READ_LENGTH);
         TrcSensor.SensorData<Double> data = new TrcSensor.SensorData<>(
-                getDataTimestamp(readerId), (double)TrcUtil.bytesToInt(regData[REG_WHITE - READ_START]));
+                TrcUtil.getCurrentTime(), (double)TrcUtil.bytesToInt(regData[REG_WHITE - READ_START]));
 
         if (debugEnabled)
         {

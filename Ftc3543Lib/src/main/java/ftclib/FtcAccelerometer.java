@@ -47,8 +47,6 @@ public class FtcAccelerometer extends TrcAccelerometer
     private TrcDbgTrace dbgTrace = null;
 
     private AccelerationSensor accel;
-    private Acceleration accelData = null;
-    private long dataTagId = -1;
 
     /**
      * Constructor: Creates an instance of the object.
@@ -113,20 +111,14 @@ public class FtcAccelerometer extends TrcAccelerometer
      * @return raw data of the specified type for the x-axis.
      */
     @Override
-    public SensorData<Double> getRawXData(DataType dataType)
+    public synchronized SensorData<Double> getRawXData(DataType dataType)
     {
         final String funcName = "getRawXData";
         SensorData<Double> data;
 
         if (dataType == DataType.ACCELERATION)
         {
-            long currTagId = FtcOpMode.getLoopCounter();
-            if (currTagId != dataTagId)
-            {
-                accelData = accel.getAcceleration();
-                dataTagId = currTagId;
-            }
-
+            Acceleration accelData = accel.getAcceleration();
             data = new SensorData<>(TrcUtil.getCurrentTime(), accelData.xAccel);
         }
         else
@@ -151,20 +143,14 @@ public class FtcAccelerometer extends TrcAccelerometer
      * @return raw data of the specified type for the y-axis.
      */
     @Override
-    public SensorData<Double> getRawYData(DataType dataType)
+    public synchronized SensorData<Double> getRawYData(DataType dataType)
     {
         final String funcName = "getRawYData";
         SensorData<Double> data;
 
         if (dataType == DataType.ACCELERATION)
         {
-            long currTagId = FtcOpMode.getLoopCounter();
-            if (currTagId != dataTagId)
-            {
-                accelData = accel.getAcceleration();
-                dataTagId = currTagId;
-            }
-
+            Acceleration accelData = accel.getAcceleration();
             data = new SensorData<>(TrcUtil.getCurrentTime(), accelData.yAccel);
         }
         else
@@ -189,20 +175,14 @@ public class FtcAccelerometer extends TrcAccelerometer
      * @return raw data of the specified type for the z-axis.
      */
     @Override
-    public SensorData<Double> getRawZData(DataType dataType)
+    public synchronized SensorData<Double> getRawZData(DataType dataType)
     {
         final String funcName = "getRawZData";
         SensorData<Double> data;
 
         if (dataType == DataType.ACCELERATION)
         {
-            long currTagId = FtcOpMode.getLoopCounter();
-            if (currTagId != dataTagId)
-            {
-                accelData = accel.getAcceleration();
-                dataTagId = currTagId;
-            }
-
+            Acceleration accelData = accel.getAcceleration();
             data = new SensorData<>(TrcUtil.getCurrentTime(), accelData.zAccel);
         }
         else

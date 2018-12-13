@@ -27,7 +27,7 @@ import java.util.Arrays;
 /**
  * This class implements the Lidar Lite v3 Laser Ranging sensor.
  */
-public class TrcLidarLite implements TrcSerialBusDevice.CompletionHandler
+public class TrcLidarLite implements TrcNotifier.Receiver
 {
     private static final String moduleName = "TrcLidarLite";
     private static final boolean debugEnabled = true;
@@ -579,50 +579,59 @@ public class TrcLidarLite implements TrcSerialBusDevice.CompletionHandler
 //    }   //processData
 
     //
-    // Implements TrcDeviceQueue.CompletionHandler interface.
+    // Implements TrcNotifier.Receiver interface.
     //
 
     /**
-     * This method is called when the read operation has been completed.
+     * This method is called when the read request is completed.
      *
-     * @param requestTag specifies the tag to identify the request. Can be null if none was provided.
-     * @param address specifies the data address read from if any, can be -1 if none specified.
-     * @param data specifies the byte array containing data read.
-     * @param error specifies true if the request failed, false otherwise. When true, data is invalid.
-     * @return true if retry the read request, false otherwise (always no retry).
+     * @param context specifies the read request.
      */
     @Override
-    public boolean readCompletion(Object requestTag, int address, byte[] data, boolean error)
+    public void notify(Object context)
     {
-        final String funcName = "readCompletion";
+        final String funcName = "notify";
+        TrcSerialBusDevice.Request request = (TrcSerialBusDevice.Request) context;
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.CALLBK, "tag=%s,addr=0x%x,data=%s,error=%s",
-                requestTag, address, data != null? Arrays.toString(data): "null", Boolean.toString(error));
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.CALLBK, "request=%s", request);
         }
 
-        dbgTrace.traceInfo(funcName, "tag=%s,addr=%x,data=%s,err=%b",
-            requestTag, address, data != null? Arrays.toString(data): "null", error);
-        if (!error && data != null)
+        if (request.readRequest)
         {
-            switch ((RequestTag)requestTag)
+            if (!request.error && !request.canceled && request.buffer != null)
+            {
+                switch ((RequestTag)request.requestCtxt)
+                {
+                    case READ_DISTANCE:
+                        if ((request.buffer[0] & 0x1) == 0x1)
+                        {
+                            // Not ready yet, read status again.
+                            device.asyncRead(request.requestCtxt, REG_STATUS, 1, null, this);
+                        }
+                        else
+                        {
+                            device.asyncRead(RequestTag.GET_DISTANCE, REG_FULL_DELAY_HIGH, 2, null, this);
+                        }
+                        break;
+
+                    case GET_DISTANCE:
+                        distance.timestamp = TrcUtil.getCurrentTime();
+                        distance.value = (double)TrcUtil.bytesToInt(request.buffer[1], request.buffer[0]);
+                        break;
+
+                    default:
+                        break;
+                }
+            }
+        }
+        else
+        {
+            switch ((RequestTag)request.requestCtxt)
             {
                 case READ_DISTANCE:
-                    if ((data[0] & 0x1) == 0x1)
-                    {
-                        // Not ready yet, read status again.
-                        device.asyncRead(requestTag, REG_STATUS, 1, null, this);
-                    }
-                    else
-                    {
-                        device.asyncRead(RequestTag.GET_DISTANCE, REG_FULL_DELAY_HIGH, 2, null, this);
-                    }
-                    break;
-
-                case GET_DISTANCE:
-                    distance.timestamp = TrcUtil.getCurrentTime();
-                    distance.value = (double)TrcUtil.bytesToInt(data[1], data[0]);
+                    device.asyncRead(request.requestCtxt, REG_STATUS, 1, null, this);
                     break;
 
                 default:
@@ -632,35 +641,8 @@ public class TrcLidarLite implements TrcSerialBusDevice.CompletionHandler
 
         if (debugEnabled)
         {
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.CALLBK, "false");
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.CALLBK);
         }
-
-        return false;
-    }   //readCompletion
-
-    /**
-     * This method is called when the write operation has been completed.
-     *
-     * @param requestTag specifies the tag to identify the request. Can be null if none was provided.
-     * @param address specifies the data address wrote to if any, can be -1 if none specified.
-     * @param length specifies the number of bytes written.
-     * @param error specifies true if the request failed to write the specified length, false otherwise.
-     *              When true, length is invalid.
-     */
-    @Override
-    public void writeCompletion(Object requestTag, int address, int length, boolean error)
-    {
-        dbgTrace.traceInfo("writeCompletion", "tag=%s,addr=%x,len=%d,err=%b",
-            requestTag, address, length, error);
-        switch ((RequestTag)requestTag)
-        {
-            case READ_DISTANCE:
-                device.asyncRead(requestTag, REG_STATUS, 1, null, this);
-                break;
-
-            default:
-                break;
-        }
-    }   //writeCompletion
+    }   //notify
 
 }   //class TrcLidarLite

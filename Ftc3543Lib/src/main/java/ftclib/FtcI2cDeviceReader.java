@@ -26,6 +26,8 @@ import com.qualcomm.robotcore.hardware.I2cAddr;
 import com.qualcomm.robotcore.hardware.I2cDevice;
 import com.qualcomm.robotcore.hardware.I2cDeviceReader;
 
+import trclib.TrcUtil;
+
 /**
  * This class extends I2cDeviceReader so we can add methods to retrieve different parameters of the reader.
  */
@@ -36,7 +38,6 @@ public class FtcI2cDeviceReader extends I2cDeviceReader
     private I2cAddr i2cAddr;
     private int memStart;
     private int memLen;
-    private byte[] data = null;
     private double timestamp = 0.0;
 
     /**
@@ -118,15 +119,8 @@ public class FtcI2cDeviceReader extends I2cDeviceReader
      */
     public byte[] getData()
     {
-        double loopStartTime = FtcOpMode.getLoopStartTime();
-
-        if (loopStartTime > timestamp)
-        {
-            data = getReadBuffer();
-            timestamp = loopStartTime;
-        }
-
-        return data;
+        timestamp = TrcUtil.getCurrentTime();
+        return getReadBuffer();
     }   //getData
 
     /**

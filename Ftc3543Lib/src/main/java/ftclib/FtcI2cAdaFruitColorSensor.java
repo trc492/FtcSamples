@@ -23,7 +23,9 @@
 
 package ftclib;
 
+import com.qualcomm.robotcore.hardware.HardwareDevice;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.I2cDeviceSynch;
 
 import trclib.TrcDbgTrace;
 import trclib.TrcSensor;
@@ -107,14 +109,11 @@ public class FtcI2cAdaFruitColorSensor extends FtcI2cDevice
     private static final byte STATUS_AVALID = ((byte)(1 << 0)); //RGBC Valid.
     private static final byte STATUS_AINT   = ((byte)(1 << 4)); //RGBC clear channel Interrupt.
 
-    private int readerId = -1;
     private int deviceID = 0;
-    private int deviceStatus = 0;
     private TrcSensor.SensorData<Integer> clearValue = new TrcSensor.SensorData<>(0.0, null);
     private TrcSensor.SensorData<Integer> redValue = new TrcSensor.SensorData<>(0.0, null);
     private TrcSensor.SensorData<Integer> greenValue = new TrcSensor.SensorData<>(0.0, null);
     private TrcSensor.SensorData<Integer> blueValue = new TrcSensor.SensorData<>(0.0, null);
-    private long dataTagId = -1;
 
     /**
      * Constructor: Creates an instance of the object.
@@ -134,10 +133,12 @@ public class FtcI2cAdaFruitColorSensor extends FtcI2cDevice
             dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
+        deviceSynch.setDeviceInfo(HardwareDevice.Manufacturer.Adafruit, "Adafruit Color Sensor");
+        deviceSynch.setBufferedReadWindow(READ_START, READ_LENGTH, I2cDeviceSynch.ReadMode.REPEAT, READ_LENGTH);
+
         setSensorEnabled(true);
         byte[] data = syncRead(REG_ID, 1);
         deviceID = TrcUtil.bytesToInt(data[0]);
-        readerId = addReader(instanceName, READ_START, READ_LENGTH);
     }   //FtcI2cAdaFruitColorSensor
 
     /**
@@ -237,38 +238,30 @@ public class FtcI2cAdaFruitColorSensor extends FtcI2cDevice
      *
      * @return device status.
      */
-    public int getStatus()
+    public synchronized int getStatus()
     {
-        long currTagId = FtcOpMode.getLoopCounter();
-        if (currTagId != dataTagId)
+        byte[] regData = readData(READ_START, READ_LENGTH);
+
+        int deviceStatus = TrcUtil.bytesToInt(regData[REG_STATUS - READ_START]);
+        if ((deviceStatus & STATUS_AVALID) != 0)
         {
-            //
-            // We only update the cache if we are in a different time slice loop as before.
-            //
-            byte[] regData = getData(readerId);
+            double timestamp = TrcUtil.getCurrentTime();
 
-            deviceStatus = TrcUtil.bytesToInt(regData[REG_STATUS - READ_START]);
-            if ((deviceStatus & STATUS_AVALID) != 0)
-            {
-                double timestamp = getDataTimestamp(readerId);
+            clearValue.timestamp = timestamp;
+            clearValue.value = TrcUtil.bytesToInt(
+                    regData[REG_CDATAL - READ_START], regData[REG_CDATAH - READ_START]);
 
-                clearValue.timestamp = timestamp;
-                clearValue.value = TrcUtil.bytesToInt(
-                        regData[REG_CDATAL - READ_START], regData[REG_CDATAH - READ_START]);
+            redValue.timestamp = timestamp;
+            redValue.value = TrcUtil.bytesToInt(
+                    regData[REG_RDATAL - READ_START], regData[REG_RDATAH - READ_START]);
 
-                redValue.timestamp = timestamp;
-                redValue.value = TrcUtil.bytesToInt(
-                        regData[REG_RDATAL - READ_START], regData[REG_RDATAH - READ_START]);
+            greenValue.timestamp = timestamp;
+            greenValue.value = TrcUtil.bytesToInt(
+                    regData[REG_GDATAL - READ_START], regData[REG_GDATAH - READ_START]);
 
-                greenValue.timestamp = timestamp;
-                greenValue.value = TrcUtil.bytesToInt(
-                        regData[REG_GDATAL - READ_START], regData[REG_GDATAH - READ_START]);
-
-                blueValue.timestamp = timestamp;
-                blueValue.value = TrcUtil.bytesToInt(
-                        regData[REG_BDATAL - READ_START], regData[REG_BDATAH - READ_START]);
-            }
-            dataTagId = currTagId;
+            blueValue.timestamp = timestamp;
+            blueValue.value = TrcUtil.bytesToInt(
+                    regData[REG_BDATAL - READ_START], regData[REG_BDATAH - READ_START]);
         }
 
         return deviceStatus;
@@ -279,7 +272,7 @@ public class FtcI2cAdaFruitColorSensor extends FtcI2cDevice
      *
      * @return clear value.
      */
-    public TrcSensor.SensorData<Integer> getClearValue()
+    public synchronized TrcSensor.SensorData<Integer> getClearValue()
     {
         final String funcName = "getClearValue";
         getStatus();
@@ -300,7 +293,7 @@ public class FtcI2cAdaFruitColorSensor extends FtcI2cDevice
      *
      * @return red value.
      */
-    public TrcSensor.SensorData<Integer> getRedValue()
+    public synchronized TrcSensor.SensorData<Integer> getRedValue()
     {
         final String funcName = "getRedValue";
         getStatus();
@@ -321,7 +314,7 @@ public class FtcI2cAdaFruitColorSensor extends FtcI2cDevice
      *
      * @return green value.
      */
-    public TrcSensor.SensorData<Integer> getGreenValue()
+    public synchronized TrcSensor.SensorData<Integer> getGreenValue()
     {
         final String funcName = "getGreenValue";
         getStatus();
@@ -342,7 +335,7 @@ public class FtcI2cAdaFruitColorSensor extends FtcI2cDevice
      *
      * @return blue value.
      */
-    public TrcSensor.SensorData<Integer> getBlueValue()
+    public synchronized TrcSensor.SensorData<Integer> getBlueValue()
     {
         final String funcName = "getBlueValue";
         getStatus();

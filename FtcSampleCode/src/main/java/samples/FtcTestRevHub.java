@@ -89,14 +89,14 @@ public class FtcTestRevHub extends FtcOpMode
     }   //initRobot
 
     @Override
-    public void startMode(TrcRobot.RunMode runMode)
+    public void startMode(TrcRobot.RunMode prevMode, TrcRobot.RunMode nextMode)
     {
         imu.gyro.resetZIntegrator();
         imu.gyro.setEnabled(true);
     }   //startMode
 
     @Override
-    public void stopMode(TrcRobot.RunMode runMode)
+    public void stopMode(TrcRobot.RunMode prevMode, TrcRobot.RunMode nextMode)
     {
         imu.gyro.setEnabled(false);
     }   //stopMode

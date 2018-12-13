@@ -315,7 +315,7 @@ public abstract class TrcGameController
      * @param taskType specifies the type of task being run.
      * @param runMode specifies the current robot run mode.
      */
-    public void buttonEventTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
+    private void buttonEventTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
         final String funcName = "buttonEventTask";
 

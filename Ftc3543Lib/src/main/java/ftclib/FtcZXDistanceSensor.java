@@ -22,7 +22,9 @@
 
 package ftclib;
 
+import com.qualcomm.robotcore.hardware.HardwareDevice;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.I2cDeviceSynch;
 
 import trclib.TrcDbgTrace;
 import trclib.TrcSensor;
@@ -68,6 +70,7 @@ public class FtcZXDistanceSensor extends FtcI2cDevice implements TrcSensor.DataS
     private static final int REG_RRNG               = 0x0e;     //Right Emitter Ranging Data
     private static final int REG_REGVER             = 0xfe;     //Register Map Version
     private static final int REG_MODEL              = 0xff;     //Sensor Model ID
+    private static final int READ_LENGTH            = 0x10;     //number of registers in the read window
 
     //
     // Register 0x00 - STATUS:
@@ -265,23 +268,14 @@ public class FtcZXDistanceSensor extends FtcI2cDevice implements TrcSensor.DataS
     //
     public static final int MODEL_VERSION           = 0x01;
 
-    private int statusReaderId = -1;
-    private int gestureReaderId = -1;
-    private int gspeedReaderId = -1;
-    private int xposReaderId = -1;
-    private int zposReaderId = -1;
-    private int lrngReaderId = -1;
-    private int rrngReaderId = -1;
     private int regMapVersion = 0;
     private int modelVersion = 0;
-    private int deviceStatus = 0;
     private TrcSensor.SensorData<Gesture> gesture = new TrcSensor.SensorData<>(0.0, null);
     private TrcSensor.SensorData<Double> gestureSpeed = new TrcSensor.SensorData<>(0.0, null);
     private TrcSensor.SensorData<Double> xPos = new TrcSensor.SensorData<>(0.0, null);
     private TrcSensor.SensorData<Double> zPos = new TrcSensor.SensorData<>(0.0, null);
     private TrcSensor.SensorData<Double> leftRangingData = new TrcSensor.SensorData<>(0.0, null);
     private TrcSensor.SensorData<Double> rightRangingData = new TrcSensor.SensorData<>(0.0, null);
-    private long dataTagId = -1;
 
     /**
      * Constructor: Creates an instance of the object.
@@ -300,6 +294,9 @@ public class FtcZXDistanceSensor extends FtcI2cDevice implements TrcSensor.DataS
             dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
+        deviceSynch.setDeviceInfo(HardwareDevice.Manufacturer.Other, "ZX Distance Sensor");
+        deviceSynch.setBufferedReadWindow(REG_STATUS, READ_LENGTH, I2cDeviceSynch.ReadMode.REPEAT, READ_LENGTH);
+
         byte[] data;
 
         data = syncRead(REG_REGVER, 1);
@@ -307,14 +304,6 @@ public class FtcZXDistanceSensor extends FtcI2cDevice implements TrcSensor.DataS
 
         data = syncRead(REG_MODEL, 1);
         modelVersion = TrcUtil.bytesToInt(data[0]);
-
-        statusReaderId = addReader(instanceName + "_status", REG_STATUS, 1);
-        gestureReaderId = addReader(instanceName + "_gesture", REG_STATUS, 1);
-        gspeedReaderId = addReader(instanceName + "_gspeed", REG_GSPEED, 1);
-        xposReaderId = addReader(instanceName + "_xpos", REG_XPOS, 1);
-        zposReaderId = addReader(instanceName + "_zpos", REG_ZPOS, 1);
-        lrngReaderId = addReader(instanceName + "_lrng", REG_LRNG, 1);
-        rrngReaderId = addReader(instanceName + "_rrng", REG_RRNG, 1);
     }   //FtcZXDistanceSensor
 
     /**
@@ -347,50 +336,44 @@ public class FtcZXDistanceSensor extends FtcI2cDevice implements TrcSensor.DataS
     public int getStatus()
     {
         final String funcName = "getStatus";
-        long currTagId = FtcOpMode.getLoopCounter();
+        byte[] data = readData(REG_STATUS, 1);
+        int deviceStatus = TrcUtil.bytesToInt(data[0]);
+        double timestamp = TrcUtil.getCurrentTime();
 
-        if (currTagId != dataTagId)
+        if ((deviceStatus & STATUS_GESTURES) != 0)
         {
-            byte[] data;
+            data = readData(REG_GESTURE, 1);
+            gesture.timestamp = timestamp;
+            gesture.value = Gesture.getGesture(TrcUtil.bytesToInt(data[0]));
 
-            deviceStatus = TrcUtil.bytesToInt(getData(statusReaderId)[0]);
-            if ((deviceStatus & STATUS_GESTURES) != 0)
-            {
-                data = getData(gestureReaderId);
-                gesture.timestamp = getDataTimestamp(gestureReaderId);
-                gesture.value = Gesture.getGesture(TrcUtil.bytesToInt(data[0]));
+            data = readData(REG_GSPEED, 1);
+            gestureSpeed.timestamp = timestamp;
+            gestureSpeed.value = (double)TrcUtil.bytesToInt(data[0]);
+        }
 
-                data = getData(gspeedReaderId);
-                gestureSpeed.timestamp = getDataTimestamp(gspeedReaderId);
-                gestureSpeed.value = (double)TrcUtil.bytesToInt(data[0]);
-            }
+        if ((deviceStatus & STATUS_DAV) != 0)
+        {
+            data = readData(REG_XPOS, 1);
+            xPos.timestamp = timestamp;
+            xPos.value = (double)TrcUtil.bytesToInt(data[0]);
 
-            if ((deviceStatus & STATUS_DAV) != 0)
-            {
-                data = getData(xposReaderId);
-                xPos.timestamp = getDataTimestamp(xposReaderId);
-                xPos.value = (double)TrcUtil.bytesToInt(data[0]);
+            data = readData(REG_ZPOS, 1);
+            zPos.timestamp = timestamp;
+            zPos.value = (double)TrcUtil.bytesToInt(data[0]);
 
-                data = getData(zposReaderId);
-                zPos.timestamp = getDataTimestamp(zposReaderId);
-                zPos.value = (double)TrcUtil.bytesToInt(data[0]);
+            data = readData(REG_LRNG, 1);
+            leftRangingData.timestamp = timestamp;
+            leftRangingData.value = (double)TrcUtil.bytesToInt(data[0]);
 
-                data = getData(lrngReaderId);
-                leftRangingData.timestamp = getDataTimestamp(lrngReaderId);
-                leftRangingData.value = (double)TrcUtil.bytesToInt(data[0]);
+            data = readData(REG_RRNG, 1);
+            rightRangingData.timestamp = timestamp;
+            rightRangingData.value = (double)TrcUtil.bytesToInt(data[0]);
+        }
 
-                data = getData(rrngReaderId);
-                rightRangingData.timestamp = getDataTimestamp(rrngReaderId);
-                rightRangingData.value = (double)TrcUtil.bytesToInt(data[0]);
-            }
-
-            if (debugEnabled)
-            {
-                dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-                dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%x", deviceStatus);
-            }
-
-            dataTagId = currTagId;
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%x", deviceStatus);
         }
 
         return deviceStatus;

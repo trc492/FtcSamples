@@ -71,16 +71,18 @@ public class TrcRobot
          * sampling.
          *
          * @param prevMode specifies the previous RunMode it is coming from.
+         * @param nextMode specifies the next RunMode it is going into.
          */
-        void startMode(RunMode prevMode);
+        void startMode(RunMode prevMode, RunMode nextMode);
 
         /**
          * This method is called when competition mode is about to end. Typically, you put code that will do clean
          * up here such as disabling the sampling of some sensors.
          *
+         * @param prevMode specifies the previous RunMode it is coming from.
          * @param nextMode specifies the next RunMode it is going into.
          */
-        void stopMode(RunMode nextMode);
+        void stopMode(RunMode prevMode, RunMode nextMode);
 
         /**
          * This method is called periodically about 50 times a second. Typically, you put code that doesn't require

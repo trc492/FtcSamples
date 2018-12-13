@@ -125,28 +125,28 @@ public class TrcMecanumDriveBase extends TrcSimpleDriveBase
         wheelPower = wheelPowers[MotorType.LEFT_FRONT.value];
         if (motorPowerMapper != null)
         {
-            wheelPower = motorPowerMapper.translateMotorPower(wheelPower, leftFrontMotor.getSpeed());
+            wheelPower = motorPowerMapper.translateMotorPower(wheelPower, leftFrontMotor.getVelocity());
         }
         leftFrontMotor.set(wheelPower);
 
         wheelPower = wheelPowers[MotorType.RIGHT_FRONT.value];
         if (motorPowerMapper != null)
         {
-            wheelPower = motorPowerMapper.translateMotorPower(wheelPower, rightFrontMotor.getSpeed());
+            wheelPower = motorPowerMapper.translateMotorPower(wheelPower, rightFrontMotor.getVelocity());
         }
         rightFrontMotor.set(wheelPower);
 
         wheelPower = wheelPowers[MotorType.LEFT_REAR.value];
         if (motorPowerMapper != null)
         {
-            wheelPower = motorPowerMapper.translateMotorPower(wheelPower, leftRearMotor.getSpeed());
+            wheelPower = motorPowerMapper.translateMotorPower(wheelPower, leftRearMotor.getVelocity());
         }
         leftRearMotor.set(wheelPower);
 
         wheelPower = wheelPowers[MotorType.RIGHT_REAR.value];
         if (motorPowerMapper != null)
         {
-            wheelPower = motorPowerMapper.translateMotorPower(wheelPower, rightRearMotor.getSpeed());
+            wheelPower = motorPowerMapper.translateMotorPower(wheelPower, rightRearMotor.getVelocity());
         }
         rightRearMotor.set(wheelPower);
 
@@ -157,15 +157,18 @@ public class TrcMecanumDriveBase extends TrcSimpleDriveBase
     }   //holonomicDrive
 
     /**
-     * This method is called periodically to monitor the encoders to update the odometry data.
+     * This method is called periodically to monitor the position sensors to update the odometry data. It assumes the
+     * caller has the odometry lock.
+     *
+     * @param odometry specifies the odometry object to be updated.
      */
     @Override
-    protected void updateOdometry()
+    protected void updateOdometry(Odometry odometry)
     {
         //
         // Call super class to update Y and rotation odometry.
         //
-        super.updateOdometry();
+        super.updateOdometry(odometry);
         //
         // According to RobotDrive.mecanumDrive_Cartesian in WPILib:
         //
@@ -183,8 +186,16 @@ public class TrcMecanumDriveBase extends TrcSimpleDriveBase
         // => (LF + LR) - (RF + RR) = 4rot
         // => rot = ((LF + LR) - (RF + RR))/4
         //
-        updateXOdometry(
-            TrcUtil.average(lfEnc, rrEnc, -rfEnc, -lrEnc), TrcUtil.average(lfSpeed, rrSpeed, -rfSpeed, -lrSpeed));
+        odometry.xRawPos = TrcUtil.average(
+                odometry.currPositions[MotorType.LEFT_FRONT.value],
+                odometry.currPositions[MotorType.RIGHT_REAR.value],
+                -odometry.currPositions[MotorType.RIGHT_FRONT.value],
+                -odometry.currPositions[MotorType.LEFT_REAR.value]);
+        odometry.xRawVel = TrcUtil.average(
+                odometry.currVelocities[MotorType.LEFT_FRONT.value],
+                odometry.currVelocities[MotorType.RIGHT_REAR.value],
+                -odometry.currVelocities[MotorType.RIGHT_FRONT.value],
+                -odometry.currVelocities[MotorType.LEFT_REAR.value]);
     }   //updateOdometry
 
 }   //class TrcMecanumDriveBase

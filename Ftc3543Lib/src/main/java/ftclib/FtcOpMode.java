@@ -24,12 +24,16 @@ package ftclib;
 
 import android.speech.tts.TextToSpeech;
 
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
+import java.lang.annotation.Annotation;
 import java.util.Locale;
 
 import hallib.HalDashboard;
 import trclib.TrcDbgTrace;
+import trclib.TrcMotor;
 import trclib.TrcRobot;
 import trclib.TrcTaskMgr;
 import trclib.TrcUtil;
@@ -61,7 +65,7 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
     private final static String OPMODE_TEST     = "FtcTest";
 
     protected final static int NUM_DASHBOARD_LINES = 16;
-    private final static long LOOP_PERIOD_NANO = 20000000;
+    private final static long LOOP_PERIOD_NANO = 50000000;
     private static FtcOpMode instance = null;
     private static long opModeStartNanoTime = 0;
     private static double opModeElapsedTime = 0.0;
@@ -89,10 +93,6 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
         }
 
         instance = this;
-        //
-        // Create task manager. There is only one global instance of task manager.
-        //
-        taskMgr = new TrcTaskMgr();
     }   //FtcOpMode
 
     /**
@@ -223,6 +223,69 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
         return getTextToSpeech(Locale.US);
     }   //getTextToSpeech
 
+    /**
+     * This method returns the annotation object of the specifies opmode type if it is present.
+     *
+     * @param opmodeType specifies the opmode type.
+     * @return annotation object of the specified opmode type if present, null if not.
+     */
+    public Annotation getOpmodeAnnotation(Class opmodeType)
+    {
+        return getClass().getAnnotation(opmodeType);
+    }   //getOpmodeAnnotation
+
+    /**
+     * This method returns the opmode type name.
+     *
+     * @param opmodeType specifies Autonomous.class for autonomous opmode and TeleOp.class for TeleOp opmode.
+     * @return opmode type name.
+     */
+    public String getOpmodeTypeName(Class opmodeType)
+    {
+        String opmodeTypeName = null;
+
+        Annotation annotation = getOpmodeAnnotation(opmodeType);
+        if (annotation != null)
+        {
+            if (opmodeType == Autonomous.class)
+            {
+                opmodeTypeName = ((Autonomous)annotation).name();
+            }
+            else if (opmodeType == TeleOp.class)
+            {
+                opmodeTypeName = ((TeleOp)annotation).name();
+            }
+        }
+
+        return opmodeTypeName;
+    }   //getOpmodeTypeName
+
+    /**
+     * This method returns the opmode type group.
+     *
+     * @param opmodeType specifies Autonomous.class for autonomous opmode and TeleOp.class for TeleOp opmode.
+     * @return opmode type group.
+     */
+    public String getOpmodeTypeGroup(Class opmodeType)
+    {
+        String opmodeTypeGroup = null;
+
+        Annotation annotation = getOpmodeAnnotation(opmodeType);
+        if (annotation != null)
+        {
+            if (opmodeType == Autonomous.class)
+            {
+                opmodeTypeGroup = ((Autonomous)annotation).group();
+            }
+            else if (opmodeType == TeleOp.class)
+            {
+                opmodeTypeGroup = ((TeleOp)annotation).group();
+            }
+        }
+
+        return opmodeTypeGroup;
+    }   //getOpmodeTypeGroup
+
     //
     // Implements LinearOpMode
     //
@@ -234,6 +297,10 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
     public void runOpMode()
     {
         final String funcName = "runOpMode";
+        //
+        // Create task manager if not already. There is only one global instance of task manager.
+        //
+        taskMgr = TrcTaskMgr.getInstance();
         //
         // Create dashboard here. If any earlier, telemetry may not exist yet.
         //
@@ -248,42 +315,45 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
                         moduleName, false, TrcDbgTrace.TraceLevel.API, TrcDbgTrace.MsgLevel.INFO);
             }
         }
-
         //
-        // Determine run mode. Note that it means the OpMode must have "FtcAuto", "FtcTeleOp" or "FtcTest" in its name.
+        // Determine run mode. Note that it means the OpMode must be annotated with group="FtcAuto", group="FtcTeleOp"
+        // or group="FtcTest".
         //
-        String opModeFullName = this.toString();
-        opModeName = "Invalid";
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceInfo(funcName, "opModeFullName=<%s>", opModeFullName);
-        }
-
-        if (opModeFullName.contains(OPMODE_AUTO))
+        opModeName = getOpmodeTypeName(Autonomous.class);
+        if (opModeName != null)
         {
             runMode = TrcRobot.RunMode.AUTO_MODE;
-            opModeName = "Auto";
-        }
-        else if (opModeFullName.contains(OPMODE_TELEOP))
-        {
-            runMode = TrcRobot.RunMode.TELEOP_MODE;
-            opModeName = "TeleOp";
-        }
-        else if (opModeFullName.contains(OPMODE_TEST))
-        {
-            runMode = TrcRobot.RunMode.TEST_MODE;
-            opModeName = "Test";
         }
         else
         {
-            throw new IllegalStateException(
-                    "Invalid OpMode, OpMode name must have prefix \"FtcAuto\", \"FtcTeleOp\" or \"FtcTest\".");
+            opModeName = getOpmodeTypeName(TeleOp.class);
+            if (opModeName != null)
+            {
+                if (getOpmodeTypeGroup(TeleOp.class).equals("FtcTest"))
+                {
+                    runMode = TrcRobot.RunMode.TEST_MODE;
+                }
+                else
+                {
+                    runMode = TrcRobot.RunMode.TELEOP_MODE;
+                }
+            }
+            else
+            {
+                throw new IllegalStateException(
+                        "Invalid OpMode annotation, OpMode must be annotated with either @Autonomous or @TeleOp.");
+            }
         }
+        TrcRobot.setRunMode(runMode);
 
-        if (debugEnabled)
+        if (TrcMotor.getNumOdometryMotors() > 0)
         {
-            dbgTrace.traceInfo(funcName, "runMode=%s", runMode.toString());
+            if (debugEnabled)
+            {
+                dbgTrace.traceInfo(funcName, "Odometry motors list is not empty (numMotors=%d)!",
+                        TrcMotor.getNumOdometryMotors());
+            }
+            TrcMotor.clearOdometryMotorsList();
         }
 
         //
@@ -291,7 +361,8 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
         //
         if (debugEnabled)
         {
-            dbgTrace.traceInfo(funcName, "Running robotInit ...");
+            dbgTrace.traceInfo(funcName, "Current RunMode: %s", runMode);
+            dbgTrace.traceInfo(funcName, "Running initRobot");
         }
         dashboard.displayPrintf(0, "initRobot starting...");
         initRobot();
@@ -302,7 +373,7 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
         //
         if (debugEnabled)
         {
-            dbgTrace.traceInfo(funcName, "Running initPeriodic ...");
+            dbgTrace.traceInfo(funcName, "Running initPeriodic");
         }
         loopCounter = 0;
         dashboard.displayPrintf(0, "initPeriodic starting...");
@@ -310,6 +381,11 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
         {
             loopCounter++;
             loopStartNanoTime = TrcUtil.getCurrentTimeNanos();
+            if (debugEnabled)
+            {
+                dbgTrace.traceInfo(funcName, "[%d:%.3f]: InitPeriodic loop",
+                        loopCounter, loopStartNanoTime/1000000000.0);
+            }
             initPeriodic();
         }
         dashboard.displayPrintf(0, "initPeriodic completed!");
@@ -320,15 +396,15 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
         //
         if (debugEnabled)
         {
-            dbgTrace.traceInfo(funcName, "Running Start Mode Tasks ...");
+            dbgTrace.traceInfo(funcName, "Running Start Mode Tasks");
         }
         taskMgr.executeTaskType(TrcTaskMgr.TaskType.START_TASK, runMode);
 
         if (debugEnabled)
         {
-            dbgTrace.traceInfo(funcName, "Running startMode ...");
+            dbgTrace.traceInfo(funcName, "Running startMode");
         }
-        startMode(null);
+        startMode(null, runMode);
 
         long nextPeriodNanoTime = TrcUtil.getCurrentTimeNanos();
         long startNanoTime = TrcUtil.getCurrentTimeNanos();
@@ -337,19 +413,21 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
         while (opModeIsActive())
         {
             loopStartNanoTime = TrcUtil.getCurrentTimeNanos();
-            sdkTotalNanoTime += loopStartNanoTime - startNanoTime;
             loopCounter++;
+            sdkTotalNanoTime += loopStartNanoTime - startNanoTime;
             opModeElapsedTime = (loopStartNanoTime - opModeStartNanoTime)/1000000000.0;
 
             if (debugEnabled)
             {
-                dbgTrace.traceInfo(funcName, "Running PreContinuous Tasks ...");
+                dbgTrace.traceInfo(funcName, "[%d:%.3f]: OpMode loop",
+                        loopCounter, loopStartNanoTime/1000000000.0);
+                dbgTrace.traceInfo(funcName, "Running PreContinuous Tasks");
             }
             taskMgr.executeTaskType(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK, runMode);
 
             if (debugEnabled)
             {
-                dbgTrace.traceInfo(funcName, "Running runContinuous ...");
+                dbgTrace.traceInfo(funcName, "Running runContinuous");
             }
             startNanoTime = TrcUtil.getCurrentTimeNanos();
             runContinuous(opModeElapsedTime);
@@ -358,7 +436,7 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
 
             if (debugEnabled)
             {
-                dbgTrace.traceInfo(funcName, "Running PostContinuous Tasks ...");
+                dbgTrace.traceInfo(funcName, "Running PostContinuous Tasks");
             }
             taskMgr.executeTaskType(TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK, runMode);
 
@@ -369,13 +447,13 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
 
                 if (debugEnabled)
                 {
-                    dbgTrace.traceInfo(funcName, "Running PrePeriodic Tasks ...");
+                    dbgTrace.traceInfo(funcName, "Running PrePeriodic Tasks");
                 }
                 taskMgr.executeTaskType(TrcTaskMgr.TaskType.PREPERIODIC_TASK, runMode);
 
                 if (debugEnabled)
                 {
-                    dbgTrace.traceInfo(funcName, "Running runPeriodic ...");
+                    dbgTrace.traceInfo(funcName, "Running runPeriodic");
                 }
                 startNanoTime = TrcUtil.getCurrentTimeNanos();
                 runPeriodic(opModeElapsedTime);
@@ -384,7 +462,7 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
 
                 if (debugEnabled)
                 {
-                    dbgTrace.traceInfo(funcName, "Running PostPeriodic Tasks ...");
+                    dbgTrace.traceInfo(funcName, "Running PostPeriodic Tasks");
                 }
 
                 taskMgr.executeTaskType(TrcTaskMgr.TaskType.POSTPERIODIC_TASK, runMode);
@@ -392,18 +470,27 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
 
             startNanoTime = TrcUtil.getCurrentTimeNanos();
         }
+        TrcMotor.clearOdometryMotorsList();
+
+        //
+        // runOpMode could be "interrupted" soon, so the taskmgr.shutdown() call below may not run.
+        // Explicitly terminating all taskmgr threads while we still can.
+        //
+        taskMgr.terminateAllThreads();
 
         if (debugEnabled)
         {
-            dbgTrace.traceInfo(funcName, "Running stopMode ...");
+            dbgTrace.traceInfo(funcName, "Running stopMode");
         }
-        stopMode(null);
+        stopMode(runMode, null);
 
         if (debugEnabled)
         {
-            dbgTrace.traceInfo(funcName, "Running Stop Mode Tasks ...");
+            dbgTrace.traceInfo(funcName, "Running Stop Mode Tasks");
         }
         taskMgr.executeTaskType(TrcTaskMgr.TaskType.STOP_TASK, runMode);
+
+        taskMgr.shutdown();
     }   //runOpMode
 
     /**
@@ -447,11 +534,11 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
      * start of competition here such as resetting the encoders/sensors and enabling some sensors to start
      * sampling.
      *
-     * @param prevMode specifies the previous RunMode it is coming from. This is not applicable for FTC and is set to
-     *                 null.
+     * @param prevMode specifies the previous RunMode it is coming from (always null for FTC).
+     * @param nextMode specifies the next RunMode it is going into.
      */
     @Override
-    public void startMode(TrcRobot.RunMode prevMode)
+    public void startMode(TrcRobot.RunMode prevMode, TrcRobot.RunMode nextMode)
     {
     }   //startMode
 
@@ -459,10 +546,11 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
      * This method is called when competition mode is about to end. Typically, you put code that will do clean
      * up here such as disabling the sampling of some sensors.
      *
-     * @param nextMode specifies the next RunMode it is going into. This is not applicable for FTC and is set to null.
+     * @param prevMode specifies the previous RunMode it is coming from.
+     * @param nextMode specifies the next RunMode it is going into (always null for FTC).
      */
     @Override
-    public void stopMode(TrcRobot.RunMode nextMode)
+    public void stopMode(TrcRobot.RunMode prevMode, TrcRobot.RunMode nextMode)
     {
     }   //stopMode
 

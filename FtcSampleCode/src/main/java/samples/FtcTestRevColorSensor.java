@@ -60,7 +60,7 @@ public class FtcTestRevColorSensor extends FtcOpMode
     //
 
     @Override
-    public void startMode(TrcRobot.RunMode prevMode)
+    public void startMode(TrcRobot.RunMode prevMode, TrcRobot.RunMode nextMode)
     {
         dashboard.clearDisplay();
     }   //startMode

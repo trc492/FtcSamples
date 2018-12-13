@@ -52,8 +52,6 @@ public class TrcSimpleDriveBase extends TrcDriveBase
     protected final TrcMotorController rightRearMotor;
     protected final TrcMotorController leftMidMotor;
     protected final TrcMotorController rightMidMotor;
-    protected double lfEnc = 0.0, rfEnc = 0.0, lrEnc = 0.0, rrEnc = 0.0;
-    protected double lfSpeed = 0.0, rfSpeed = 0.0, lrSpeed = 0.0, rrSpeed = 0.0;
 
     /**
      * Constructor: Create an instance of a 6-wheel drive base.
@@ -262,7 +260,7 @@ public class TrcSimpleDriveBase extends TrcDriveBase
             wheelPower = leftPower;
             if (motorPowerMapper != null)
             {
-                wheelPower = motorPowerMapper.translateMotorPower(wheelPower, leftFrontMotor.getSpeed());
+                wheelPower = motorPowerMapper.translateMotorPower(wheelPower, leftFrontMotor.getVelocity());
             }
             leftFrontMotor.set(wheelPower);
         }
@@ -272,7 +270,7 @@ public class TrcSimpleDriveBase extends TrcDriveBase
             wheelPower = rightPower;
             if (motorPowerMapper != null)
             {
-                wheelPower = motorPowerMapper.translateMotorPower(wheelPower, rightFrontMotor.getSpeed());
+                wheelPower = motorPowerMapper.translateMotorPower(wheelPower, rightFrontMotor.getVelocity());
             }
             rightFrontMotor.set(wheelPower);
         }
@@ -282,7 +280,7 @@ public class TrcSimpleDriveBase extends TrcDriveBase
             wheelPower = leftPower;
             if (motorPowerMapper != null)
             {
-                wheelPower = motorPowerMapper.translateMotorPower(wheelPower, leftRearMotor.getSpeed());
+                wheelPower = motorPowerMapper.translateMotorPower(wheelPower, leftRearMotor.getVelocity());
             }
             leftRearMotor.set(wheelPower);
         }
@@ -292,7 +290,7 @@ public class TrcSimpleDriveBase extends TrcDriveBase
             wheelPower = rightPower;
             if (motorPowerMapper != null)
             {
-                wheelPower = motorPowerMapper.translateMotorPower(wheelPower, rightRearMotor.getSpeed());
+                wheelPower = motorPowerMapper.translateMotorPower(wheelPower, rightRearMotor.getVelocity());
             }
             rightRearMotor.set(wheelPower);
         }
@@ -302,7 +300,7 @@ public class TrcSimpleDriveBase extends TrcDriveBase
             wheelPower = leftPower;
             if (motorPowerMapper != null)
             {
-                wheelPower = motorPowerMapper.translateMotorPower(wheelPower, leftMidMotor.getSpeed());
+                wheelPower = motorPowerMapper.translateMotorPower(wheelPower, leftMidMotor.getVelocity());
             }
             leftMidMotor.set(wheelPower);
         }
@@ -312,7 +310,7 @@ public class TrcSimpleDriveBase extends TrcDriveBase
             wheelPower = rightPower;
             if (motorPowerMapper != null)
             {
-                wheelPower = motorPowerMapper.translateMotorPower(wheelPower, rightMidMotor.getSpeed());
+                wheelPower = motorPowerMapper.translateMotorPower(wheelPower, rightMidMotor.getVelocity());
             }
             rightMidMotor.set(wheelPower);
         }
@@ -324,10 +322,13 @@ public class TrcSimpleDriveBase extends TrcDriveBase
     }   //tankDrive
 
     /**
-     * This method is called periodically to monitor the encoders to update the odometry data.
+     * This method is called periodically to monitor the position sensors to update the odometry data. It assumes the
+     * caller has the odometry lock.
+     *
+     * @param odometry specifies the odometry object to be updated.
      */
     @Override
-    protected void updateOdometry()
+    protected void updateOdometry(Odometry odometry)
     {
         final String funcName = "updateOdometry";
 
@@ -336,57 +337,17 @@ public class TrcSimpleDriveBase extends TrcDriveBase
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK);
         }
 
-        if (leftFrontMotor != null)
-        {
-            try
-            {
-                lfEnc = leftFrontMotor.getPosition();
-                lfSpeed = leftFrontMotor.getSpeed();
-            }
-            catch (UnsupportedOperationException e)
-            {
-            }
-        }
-
-        if (rightFrontMotor != null)
-        {
-            try
-            {
-                rfEnc = rightFrontMotor.getPosition();
-                rfSpeed = rightFrontMotor.getSpeed();
-            }
-            catch (UnsupportedOperationException e)
-            {
-            }
-        }
-
-        if (leftRearMotor != null)
-        {
-            try
-            {
-                lrEnc = leftRearMotor.getPosition();
-                lrSpeed = leftRearMotor.getSpeed();
-            }
-            catch (UnsupportedOperationException e)
-            {
-            }
-        }
-
-        if (rightRearMotor != null)
-        {
-            try
-            {
-                rrEnc = rightRearMotor.getPosition();
-                rrSpeed = rightRearMotor.getSpeed();
-            }
-            catch (UnsupportedOperationException e)
-            {
-            }
-        }
-
-        updateYOdometry(
-            TrcUtil.average(lfEnc, lrEnc, rfEnc, rrEnc), TrcUtil.average(lfSpeed, lrSpeed, rfSpeed, rrSpeed));
-        updateRotationOdometry(TrcUtil.average(lfEnc, lrEnc, -rfEnc, -rrEnc));
+        odometry.yRawPos = TrcUtil.average(
+                odometry.currPositions[MotorType.LEFT_FRONT.value], odometry.currPositions[MotorType.RIGHT_FRONT.value],
+                odometry.currPositions[MotorType.LEFT_REAR.value], odometry.currPositions[MotorType.RIGHT_REAR.value]);
+        odometry.yRawVel = TrcUtil.average(
+                odometry.currVelocities[MotorType.LEFT_FRONT.value], odometry.currVelocities[MotorType.RIGHT_FRONT.value],
+                odometry.currVelocities[MotorType.LEFT_REAR.value], odometry.currVelocities[MotorType.RIGHT_REAR.value]);
+        odometry.rotRawPos = TrcUtil.average(
+                odometry.currPositions[MotorType.LEFT_FRONT.value],
+                odometry.currPositions[MotorType.LEFT_REAR.value],
+                -odometry.currPositions[MotorType.RIGHT_FRONT.value],
+                -odometry.currPositions[MotorType.RIGHT_REAR.value]);
 
         if (debugEnabled)
         {

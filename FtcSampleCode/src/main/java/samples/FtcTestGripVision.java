@@ -83,14 +83,14 @@ public class FtcTestGripVision extends FtcOpMode
     //
 
     @Override
-    public void startMode(TrcRobot.RunMode prevMode)
+    public void startMode(TrcRobot.RunMode prevMode, TrcRobot.RunMode nextMode)
     {
         dashboard.clearDisplay();
 //        gripVision.setEnabled(true);
     }   //startMode
 
     @Override
-    public void stopMode(TrcRobot.RunMode nextMode)
+    public void stopMode(TrcRobot.RunMode prevMode, TrcRobot.RunMode nextMode)
     {
 //        gripVision.setEnabled(false);
     }   //stopMode

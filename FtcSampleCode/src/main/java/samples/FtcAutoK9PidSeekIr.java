@@ -70,7 +70,7 @@ public class FtcAutoK9PidSeekIr extends FtcOpMode
     //
 
     @Override
-    public void startMode(TrcRobot.RunMode prevMode)
+    public void startMode(TrcRobot.RunMode prevMode, TrcRobot.RunMode nextMode)
     {
         robot.startMode(TrcRobot.RunMode.AUTO_MODE);
         //
@@ -80,7 +80,7 @@ public class FtcAutoK9PidSeekIr extends FtcOpMode
     }   //startMode
 
     @Override
-    public void stopMode(TrcRobot.RunMode nextMode)
+    public void stopMode(TrcRobot.RunMode prevMode, TrcRobot.RunMode nextMode)
     {
         robot.stopMode(TrcRobot.RunMode.AUTO_MODE);
     }   //stopMode

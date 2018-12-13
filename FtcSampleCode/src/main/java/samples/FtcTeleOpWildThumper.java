@@ -215,14 +215,14 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements TrcGameController
     //
 
     @Override
-    public void startMode(TrcRobot.RunMode prevMode)
+    public void startMode(TrcRobot.RunMode prevMode, TrcRobot.RunMode nextMode)
     {
         dashboard.clearDisplay();
         driveBase.resetOdometry();
     }   //startMode
 
     @Override
-    public void stopMode(TrcRobot.RunMode nextMode)
+    public void stopMode(TrcRobot.RunMode prevMode, TrcRobot.RunMode nextMode)
     {
         //
         // If there is a SongPlayer, stop it.

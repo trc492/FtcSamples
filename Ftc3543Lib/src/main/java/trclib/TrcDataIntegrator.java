@@ -76,7 +76,8 @@ public class TrcDataIntegrator<D>
         this.sensor = sensor;
         this.dataType = dataType;
         numAxes = sensor.getNumAxes();
-        integratorTaskObj = TrcTaskMgr.getInstance().createTask(instanceName + ".integratorTask", this::integratorTask);
+        integratorTaskObj = TrcTaskMgr.getInstance().createTask(
+                instanceName + ".integratorTask", this::integratorTask);
 
         inputData = new TrcSensor.SensorData[numAxes];
         integratedData = new TrcSensor.SensorData[numAxes];
@@ -122,9 +123,9 @@ public class TrcDataIntegrator<D>
      *
      * @param enabled specifies true for enabling the data processor, disabling it otherwise.
      */
-    public void setTaskEnabled(boolean enabled)
+    public synchronized void setEnabled(boolean enabled)
     {
-        final String funcName = "setTaskEnabled";
+        final String funcName = "setEnabled";
 
         if (debugEnabled)
         {
@@ -134,25 +135,25 @@ public class TrcDataIntegrator<D>
         if (enabled)
         {
             reset();
-            integratorTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            integratorTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);//INPUT_TASK);
         }
         else
         {
-            integratorTaskObj.unregisterTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            integratorTaskObj.unregisterTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);//INPUT_TASK);
         }
 
         if (debugEnabled)
         {
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
-    }   //setTaskEnabled
+    }   //setEnabled
 
     /**
      * This method resets the indexed integratedData and doubleIntegratedData.
      *
      * @param index specifies the index.
      */
-    public void reset(int index)
+    public synchronized void reset(int index)
     {
         final String funcName = "reset";
 
@@ -173,7 +174,7 @@ public class TrcDataIntegrator<D>
     /**
      * This method resets all integratorData and doubleIntegratedData.
      */
-    public void reset()
+    public synchronized void reset()
     {
         final String funcName = "reset";
 
@@ -195,7 +196,7 @@ public class TrcDataIntegrator<D>
      * @param index specifies the index.
      * @return the last indexed input data.
      */
-    public TrcSensor.SensorData<Double> getInputData(int index)
+    public synchronized TrcSensor.SensorData<Double> getInputData(int index)
     {
         final String funcName = "getInputData";
         TrcSensor.SensorData<Double> data = new TrcSensor.SensorData<>(
@@ -218,7 +219,7 @@ public class TrcDataIntegrator<D>
      * @param index specifies the index.
      * @return last indexed integrated data.
      */
-    public TrcSensor.SensorData<Double> getIntegratedData(int index)
+    public synchronized TrcSensor.SensorData<Double> getIntegratedData(int index)
     {
         final String funcName = "getIntegratedData";
         TrcSensor.SensorData<Double> data = new TrcSensor.SensorData<>(
@@ -241,7 +242,7 @@ public class TrcDataIntegrator<D>
      * @param index specifies the index.
      * @return last indexed double integrated data.
      */
-    public TrcSensor.SensorData<Double> getDoubleIntegratedData(int index)
+    public synchronized TrcSensor.SensorData<Double> getDoubleIntegratedData(int index)
     {
         final String funcName = "getDoubleIntegratedData";
         TrcSensor.SensorData<Double> data = new TrcSensor.SensorData<>(
@@ -264,7 +265,7 @@ public class TrcDataIntegrator<D>
      * @param taskType specifies the type of task being run.
      * @param runMode specifies the competition mode that is running.
      */
-    public void integratorTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
+    private synchronized void integratorTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
         final String funcName = "integratorTask";
 

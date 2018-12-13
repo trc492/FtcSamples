@@ -56,13 +56,12 @@ public class FtcServo extends TrcServo
 
     private static final double CONTROLLER_ONOFF_DELAY = 0.1;
 
-    private String instanceName;
     private Servo servo;
     private ServoController controller;
     private TrcTimer timer;
     private TrcEvent event;
-    private TrcStateMachine sm;
-    private TrcTaskMgr.TaskObject postContinuousTaskObj;
+    private TrcStateMachine<State> sm;
+    private TrcTaskMgr.TaskObject servoTaskObj;
     private double servoPos = 0.0;
     private double servoOnTime = 0.0;
     private double prevLogicalPos = 0.0;
@@ -82,15 +81,13 @@ public class FtcServo extends TrcServo
             dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
-        this.instanceName = instanceName;
         servo = hardwareMap.servo.get(instanceName);
         prevLogicalPos = servo.getPosition();
         controller = servo.getController();
         timer = new TrcTimer(instanceName);
         event = new TrcEvent(instanceName);
-        sm = new TrcStateMachine(instanceName);
-        postContinuousTaskObj = TrcTaskMgr.getInstance().createTask(
-                moduleName + ".postContinuous", this::postContinuousTask);
+        sm = new TrcStateMachine<>(instanceName);
+        servoTaskObj = TrcTaskMgr.getInstance().createTask(instanceName + ".servoTask", this::servoTask);
     }   //FtcServo
 
     /**
@@ -151,11 +148,11 @@ public class FtcServo extends TrcServo
     {
         if (enabled)
         {
-            postContinuousTaskObj.registerTask(TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
+            servoTaskObj.registerTask(TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK); //TODO: should use OUTPUT_TASK
         }
         else
         {
-            postContinuousTaskObj.unregisterTask(TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
+            servoTaskObj.unregisterTask(TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
         }
     }   //setTaskEnabled
 
@@ -294,10 +291,6 @@ public class FtcServo extends TrcServo
         return position;
     }   //getPosition
 
-    //
-    // Implements TrcTaskMgr.Task
-    //
-
     /**
      * This method is called periodically to run a state machine that will enable the servo controller, set the servo
      * position, wait for the specified hold time, and finally disable the servo controller.
@@ -305,7 +298,7 @@ public class FtcServo extends TrcServo
      * @param taskType specifies the type of task being run.
      * @param runMode specifies the competition mode that is running.
      */
-    public void postContinuousTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
+    private void servoTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
         if (sm.isReady())
         {
@@ -332,6 +325,6 @@ public class FtcServo extends TrcServo
                     setTaskEnabled(false);
             }
         }
-    }   //postContinuousTask
+    }   //servoTask
 
 }   //class FtcServo

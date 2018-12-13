@@ -23,16 +23,16 @@
 package trclib;
 
 import java.io.UnsupportedEncodingException;
-import java.util.Arrays;
 
 /**
  * This class implements a platform independent Emic2 text to speech device that is connected to a Serial Port.
  * This class should be extended by a platform dependent Emic2 device class that provides the asynchronous access
  * to the serial port the device is connected to.
  */
-public abstract class TrcEmic2TextToSpeech implements TrcSerialBusDevice.CompletionHandler
+public abstract class TrcEmic2TextToSpeech implements TrcNotifier.Receiver
 {
     protected static final String moduleName = "TrcEmic2TextToSpeech";
+    protected static final TrcDbgTrace globalTracer = TrcDbgTrace.getGlobalTracer();
     protected static final boolean debugEnabled = false;
     protected static final boolean tracingEnabled = false;
     protected static final boolean useGlobalTracer = false;
@@ -144,9 +144,8 @@ public abstract class TrcEmic2TextToSpeech implements TrcSerialBusDevice.Complet
     {
         if (debugEnabled)
         {
-            dbgTrace = useGlobalTracer?
-                TrcDbgTrace.getGlobalTracer():
-                new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
+            dbgTrace = useGlobalTracer? globalTracer:
+                    new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
         this.instanceName = instanceName;
@@ -458,36 +457,31 @@ public abstract class TrcEmic2TextToSpeech implements TrcSerialBusDevice.Complet
     }   //getHelpMessage
 
     //
-    // Implements TrcSerialBusDevice.CompletionHandler interface.
+    // Implements TrcNotifier.Receiver interface.
     //
 
     /**
-     * This method is called when the read operation has been completed.
+     * This method is called when the read request is completed.
      *
-     * @param requestTag specifies the tag to identify the request. Can be null if none was provided.
-     * @param address specifies the data address read from if any, can be -1 if none specified.
-     * @param data specifies the byte array containing data read.
-     * @param error specifies true if the request failed, false otherwise. When true, data is invalid.
-     * @return true if retry the read request, false otherwise (always no retry).
+     * @param context specifies the read request.
      */
     @Override
-    public boolean readCompletion(Object requestTag, int address, byte[] data, boolean error)
+    public void notify(Object context)
     {
-        final String funcName = "readCompletion";
-        boolean retry = false;
+        final String funcName = "notify";
+        TrcSerialBusDevice.Request request = (TrcSerialBusDevice.Request) context;
         String reply = null;
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.CALLBK, "tag=%s,addr=0x%x,data=%s,error=%s",
-                requestTag, address, data != null? Arrays.toString(data): "null", Boolean.toString(error));
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.CALLBK, "request=%s", request);
         }
 
-        if (!error && data != null)
+        if (request.readRequest && !request.error && !request.canceled && request.buffer != null)
         {
             try
             {
-                reply = new String(data, "US-ASCII");
+                reply = new String(request.buffer, "US-ASCII");
                 if (debugEnabled)
                 {
                     dbgTrace.traceInfo(funcName, "reply=<%s>", reply);
@@ -495,25 +489,22 @@ public abstract class TrcEmic2TextToSpeech implements TrcSerialBusDevice.Complet
             }
             catch (UnsupportedEncodingException e)
             {
-                if (debugEnabled)
-                {
-                    TrcDbgTrace.getGlobalTracer().traceErr(funcName, "Unsupported Encoding: %s", e.getMessage());
-                }
+                globalTracer.traceErr(funcName, "Unsupported Encoding: %s", e.getMessage());
                 e.printStackTrace();
             }
         }
 
         if (reply != null)
         {
-            switch ((RequestTag)requestTag)
+            switch ((RequestTag)request.requestCtxt)
             {
                 case PROMPT:
                     if (reply.equals("."))
                     {
                         //
-                        // There was a pause/unpause command, retry the request waiting for the prompt.
+                        // There was a pause/unpause command, retry the prompt request.
                         //
-                        retry = true;
+                        asyncReadString(RequestTag.PROMPT);
                     }
                     break;
 
@@ -533,24 +524,8 @@ public abstract class TrcEmic2TextToSpeech implements TrcSerialBusDevice.Complet
 
         if (debugEnabled)
         {
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.CALLBK, "=%s", Boolean.toString(retry));
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.CALLBK);
         }
-
-        return retry;
-    }   //readCompletion
-
-    /**
-     * This method is called when the write operation has been completed.
-     *
-     * @param requestTag specifies the tag to identify the request. Can be null if none was provided.
-     * @param address specifies the data address wrote to if any, can be -1 if none specified.
-     * @param length specifies the number of bytes written.
-     * @param error specifies true if the request failed to write the specified length, false otherwise.
-     *              When true, length is invalid.
-     */
-    @Override
-    public void writeCompletion(Object requestTag, int address, int length, boolean error)
-    {
-    }   //writeCompletion
+    }   //notify
 
 }   //class FrcEmic2TextToSpeech

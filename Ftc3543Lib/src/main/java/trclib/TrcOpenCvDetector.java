@@ -43,6 +43,7 @@ public abstract class TrcOpenCvDetector<O> implements TrcVisionTask.VisionProces
     protected static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
     protected static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     protected TrcDbgTrace dbgTrace = null;
+
     protected static final boolean USE_VISIONTASK = false;
 
     private final String instanceName;
@@ -94,27 +95,6 @@ public abstract class TrcOpenCvDetector<O> implements TrcVisionTask.VisionProces
     {
         return instanceName;
     }   //toString
-
-    /**
-     * This method is called to terminate the vision task.
-     */
-    public void terminateTask()
-    {
-        if (visionTask != null)
-        {
-            visionTask.terminateTask();
-        }
-    }   //terminateTask
-
-    /**
-     * This method checks if the vision task has been terminated.
-     *
-     * @return true if vision task is terminated, false otherwise.
-     */
-    public boolean isTaskTerminated()
-    {
-        return visionTask != null? visionTask.isTaskTerminated(): true;
-    }   //isTaskTerminated
 
     /**
      * This method returns the state of the detector.

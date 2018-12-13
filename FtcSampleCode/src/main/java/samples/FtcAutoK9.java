@@ -126,7 +126,7 @@ public class FtcAutoK9 extends FtcOpMode implements FtcMenu.MenuButtons
     //
 
     @Override
-    public void startMode(TrcRobot.RunMode prevMode)
+    public void startMode(TrcRobot.RunMode prevMode, TrcRobot.RunMode nextMode)
     {
         robot.startMode(TrcRobot.RunMode.AUTO_MODE);
         //
@@ -153,7 +153,7 @@ public class FtcAutoK9 extends FtcOpMode implements FtcMenu.MenuButtons
     }   //startMode
 
     @Override
-    public void stopMode(TrcRobot.RunMode nextMode)
+    public void stopMode(TrcRobot.RunMode prevMode, TrcRobot.RunMode nextMode)
     {
         robot.startMode(TrcRobot.RunMode.AUTO_MODE);
     }   //stopMode
@@ -313,7 +313,7 @@ public class FtcAutoK9 extends FtcOpMode implements FtcMenu.MenuButtons
                     // Go forward slowly for 3 ft to find the line.
                     // If line is detected, PID drive will be interrupted.
                     //
-                    robot.colorTrigger.setTaskEnabled(true);
+                    robot.colorTrigger.setEnabled(true);
                     robot.drivePidCtrl.setOutputRange(-0.5, 0.5);
                     robot.pidDrive.setTarget(36.0, 0.0, false, event);
                     sm.addEvent(event);
@@ -339,7 +339,7 @@ public class FtcAutoK9 extends FtcOpMode implements FtcMenu.MenuButtons
                     //
                     // Follow the line for 5 ft.
                     //
-                    robot.colorTrigger.setTaskEnabled(false);
+                    robot.colorTrigger.setEnabled(false);
                     robot.drivePidCtrl.setOutputRange(-0.3, 0.3);
                     robot.colorPidCtrl.setOutputRange(-0.3, 0.3);
                     //
@@ -441,7 +441,7 @@ public class FtcAutoK9 extends FtcOpMode implements FtcMenu.MenuButtons
         // Walk the menu tree starting with the delay menu as the root
         // menu and get user choices.
         //
-        FtcMenu.walkMenuTree(delayMenu, this);
+        FtcMenu.walkMenuTree(delayMenu);
         //
         // Set choices variables.
         //
@@ -472,9 +472,21 @@ public class FtcAutoK9 extends FtcOpMode implements FtcMenu.MenuButtons
     }   //isMenuDownButton
 
     @Override
+    public boolean isMenuAltUpButton()
+    {
+        return gamepad1.left_bumper;
+    }   //isMenuAltUpButton
+
+    @Override
+    public boolean isMenuAltDownButton()
+    {
+        return gamepad1.right_bumper;
+    }   //isMenuAltDownButton
+
+    @Override
     public boolean isMenuEnterButton()
     {
-        return gamepad1.a;
+        return gamepad1.dpad_right;
     }   //isMenuEnterButton
 
     @Override

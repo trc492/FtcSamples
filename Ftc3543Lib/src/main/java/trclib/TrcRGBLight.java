@@ -112,7 +112,7 @@ public abstract class TrcRGBLight
          *
          * @param value specifies the ordinal value of the color.
          */
-        private RGBColor(int value)
+        RGBColor(int value)
         {
             this.value = value;
         }   //RGBColor
@@ -165,6 +165,7 @@ public abstract class TrcRGBLight
     private double onPeriod = 0.0;
     private double offPeriod = 0.0;
     private TrcEvent notifyEvent = null;
+    private TrcNotifier.Receiver notifyReceiver = null;
 
     /**
      * Constructor: Create an instance of the object.
@@ -213,7 +214,7 @@ public abstract class TrcRGBLight
 
         if (enabled)
         {
-            rgbLightTaskObj.registerTask(TaskType.POSTCONTINUOUS_TASK);
+            rgbLightTaskObj.registerTask(TaskType.POSTCONTINUOUS_TASK);     //TODO: should use OUTPUT_TASK
         }
         else
         {
@@ -297,9 +298,9 @@ public abstract class TrcRGBLight
      *
      * @param color specifies the color.
      */
-    public void setColor(RGBColor color)
+    public synchronized void setColor(RGBColor color)
     {
-        final String funcName = "setColorValue";
+        final String funcName = "setColor";
 
         if (debugEnabled)
         {
@@ -323,7 +324,7 @@ public abstract class TrcRGBLight
      * @param onPeriod specifies the period for the light to stay ON.
      * @param offPeriod specifies the period for the light to stay OFF.
      */
-    public void setColor(RGBColor color, double onPeriod, double offPeriod)
+    public synchronized void setColor(RGBColor color, double onPeriod, double offPeriod)
     {
         final String funcName = "setColor";
 
@@ -352,11 +353,43 @@ public abstract class TrcRGBLight
      * @param color specifies the color.
      * @param onPeriod specifies the period for the light to stay ON.
      * @param event specifies the event to signal when done.
+     * @param receiver specifies the notification receiver to call when done.
+     */
+    public void setColor(RGBColor color, double onPeriod, TrcEvent event, TrcNotifier.Receiver receiver)
+    {
+        setColor(color, onPeriod, 0.0);
+        this.notifyEvent = event;
+        this.notifyReceiver = receiver;
+    }   //setColor
+
+    /**
+     * This method sets the RGB light ON with the specified color for the specified amount of time. When the amount
+     * of time expired, the specified event is signaled.
+     *
+     * @param color specifies the color.
+     * @param onPeriod specifies the period for the light to stay ON.
+     * @param event specifies the event to signal when done.
      */
     public void setColor(RGBColor color, double onPeriod, TrcEvent event)
     {
         setColor(color, onPeriod, 0.0);
         this.notifyEvent = event;
+        this.notifyReceiver = null;
+    }   //setColor
+
+    /**
+     * This method sets the RGB light ON with the specified color for the specified amount of time. When the amount
+     * of time expired, the specified event is signaled.
+     *
+     * @param color specifies the color.
+     * @param onPeriod specifies the period for the light to stay ON.
+     * @param receiver specifies the notification receiver to call when done.
+     */
+    public void setColor(RGBColor color, double onPeriod, TrcNotifier.Receiver receiver)
+    {
+        setColor(color, onPeriod, 0.0);
+        this.notifyEvent = null;
+        this.notifyReceiver = receiver;
     }   //setColor
 
     /**
@@ -376,7 +409,7 @@ public abstract class TrcRGBLight
      * @param taskType specifies the type of task being run.
      * @param runMode specifies the competition mode that is running. (e.g. Autonomous, TeleOp, Test).
      */
-    public void rgbLightTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
+    private synchronized void rgbLightTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
         final String funcName = "rgbLightTask";
 
@@ -421,6 +454,10 @@ public abstract class TrcRGBLight
                     if (notifyEvent != null)
                     {
                         notifyEvent.set(true);
+                    }
+                    if (notifyReceiver != null)
+                    {
+                        notifyReceiver.notify(this);
                     }
                     sm.stop();
                     setTaskEnabled(false);

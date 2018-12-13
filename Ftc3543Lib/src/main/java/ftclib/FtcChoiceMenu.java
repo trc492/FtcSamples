@@ -210,6 +210,7 @@ public class FtcChoiceMenu<T> extends FtcMenu
      * This method moves the current selection to the previous choice in the menu. If it is already the first choice,
      * it will wraparound back to the last choice.
      */
+    @Override
     public void menuUp()
     {
         final String funcName = "menuUp";
@@ -250,6 +251,7 @@ public class FtcChoiceMenu<T> extends FtcMenu
      * This method moves the current selection to the next choice in the menu. If it is already the last choice,
      * it will wraparound back to the first choice.
      */
+    @Override
     public void menuDown()
     {
         final String funcName = "menuDown";
@@ -286,6 +288,22 @@ public class FtcChoiceMenu<T> extends FtcMenu
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "! (choice=%d)", currChoice);
         }
     }   //menuDown
+
+    /**
+     * This method does nothing in Choice Menu.
+     */
+    @Override
+    public void menuAltUp()
+    {
+    }   //menuAltUp
+
+    /**
+     * This method does nothing in Choice Menu.
+     */
+    @Override
+    public void menuAltDown()
+    {
+    }   //menuAltDown
 
     /**
      * This method returns the child menu of the current choice.

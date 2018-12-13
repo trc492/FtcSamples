@@ -118,7 +118,7 @@ public class TrcAnalogTrigger<D>
      *
      * @param triggerPoints specifies the array of trigger points.
      */
-    public void setTriggerPoints(double[] triggerPoints)
+    public synchronized void setTriggerPoints(double[] triggerPoints)
     {
         final String funcName = "setTriggerPoints";
 
@@ -154,9 +154,9 @@ public class TrcAnalogTrigger<D>
      *
      * @param enabled specifies true to enable, false to disable.
      */
-    public void setTaskEnabled(boolean enabled)
+    public synchronized void setEnabled(boolean enabled)
     {
-        final String funcName = "setTaskEnabled";
+        final String funcName = "setEnabled";
 
         if (debugEnabled)
         {
@@ -169,7 +169,7 @@ public class TrcAnalogTrigger<D>
         {
             zone = -1;
             value = 0.0;
-            triggerTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            triggerTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);    //TODO: should use INPUT_TASK
         }
         else
         {
@@ -180,24 +180,24 @@ public class TrcAnalogTrigger<D>
         {
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC);
         }
-    }   //setTaskEnabled
+    }   //setEnabled
 
     /**
      * This method checks if the task is enabled.
      *
      * @return true if enabled, false otherwise.
      */
-    public boolean isTaskEnabled()
+    public synchronized boolean isEnabled()
     {
         return enabled;
-    }   //isTaskEnabled
+    }   //isActive
 
     /**
      * This method returns the current zone it is in.
      *
      * @return current zone index.
      */
-    public int getZone()
+    public synchronized int getZone()
     {
         return zone;
     }   //getZone
@@ -207,7 +207,7 @@ public class TrcAnalogTrigger<D>
      *
      * @return last sensor value.
      */
-    public double getValue()
+    public synchronized double getValue()
     {
         return value;
     }   //getValue
@@ -219,7 +219,7 @@ public class TrcAnalogTrigger<D>
      * @param taskType specifies the type of task being run.
      * @param runMode specifies the competition mode that is running. (e.g. Autonomous, TeleOp, Test).
      */
-    public void triggerTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
+    private synchronized void triggerTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
         final String funcName = "triggerTask";
         TrcSensor.SensorData<Double> data = sensor.getProcessedData(index, dataType);

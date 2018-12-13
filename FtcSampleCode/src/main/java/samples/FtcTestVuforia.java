@@ -231,14 +231,14 @@ public class FtcTestVuforia extends FtcOpMode
     //
 
     @Override
-    public void startMode(TrcRobot.RunMode prevMode)
+    public void startMode(TrcRobot.RunMode prevMode, TrcRobot.RunMode nextMode)
     {
         dashboard.clearDisplay();
         vuforia.setTrackingEnabled(true);
     }   //startMode
 
     @Override
-    public void stopMode(TrcRobot.RunMode nextMode)
+    public void stopMode(TrcRobot.RunMode prevMode, TrcRobot.RunMode nextMode)
     {
         vuforia.setTrackingEnabled(false);
         if (textToSpeech != null)

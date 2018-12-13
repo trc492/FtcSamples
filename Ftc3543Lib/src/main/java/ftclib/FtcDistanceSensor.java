@@ -53,14 +53,6 @@ public class FtcDistanceSensor extends TrcSensor<FtcDistanceSensor.DataType>
     }   //enum DataType
 
     public DistanceSensor sensor;
-    private double distanceMmData = 0;
-    private long distanceMmTagId = -1;
-    private double distanceCmData = 0;
-    private long distanceCmTagId = -1;
-    private double distanceMeterData = 0;
-    private long distanceMeterTagId = -1;
-    private double distanceInchData = 0;
-    private long distanceInchTagId = -1;
 
     /**
      * Constructor: Creates an instance of the object.
@@ -102,48 +94,27 @@ public class FtcDistanceSensor extends TrcSensor<FtcDistanceSensor.DataType>
      * @return raw sensor data of the specified index and type.
      */
     @Override
-    public SensorData<Double> getRawData(int index, DataType dataType)
+    public synchronized SensorData<Double> getRawData(int index, DataType dataType)
     {
         final String funcName = "getRawData";
         SensorData<Double> data = null;
-        long currTagId = FtcOpMode.getLoopCounter();
 
         switch (dataType)
         {
             case DISTANCE_MM:
-                if (currTagId != distanceMmTagId)
-                {
-                    distanceMmData = sensor.getDistance(DistanceUnit.MM);
-                    distanceMmTagId = currTagId;
-                }
-                data = new SensorData<>(TrcUtil.getCurrentTime(), distanceMmData);
+                data = new SensorData<>(TrcUtil.getCurrentTime(), sensor.getDistance(DistanceUnit.MM));
                 break;
 
             case DISTANCE_CM:
-                if (currTagId != distanceCmTagId)
-                {
-                    distanceCmData = sensor.getDistance(DistanceUnit.CM);
-                    distanceCmTagId = currTagId;
-                }
-                data = new SensorData<>(TrcUtil.getCurrentTime(), distanceCmData);
+                data = new SensorData<>(TrcUtil.getCurrentTime(), sensor.getDistance(DistanceUnit.CM));
                 break;
 
             case DISTANCE_METER:
-                if (currTagId != distanceMeterTagId)
-                {
-                    distanceMeterData = sensor.getDistance(DistanceUnit.METER);
-                    distanceMeterTagId = currTagId;
-                }
-                data = new SensorData<>(TrcUtil.getCurrentTime(), distanceMeterData);
+                data = new SensorData<>(TrcUtil.getCurrentTime(), sensor.getDistance(DistanceUnit.METER));
                 break;
 
             case DISTANCE_INCH:
-                if (currTagId != distanceInchTagId)
-                {
-                    distanceInchData = sensor.getDistance(DistanceUnit.INCH);
-                    distanceInchTagId = currTagId;
-                }
-                data = new SensorData<>(TrcUtil.getCurrentTime(), distanceInchData);
+                data = new SensorData<>(TrcUtil.getCurrentTime(), sensor.getDistance(DistanceUnit.INCH));
                 break;
         }
 

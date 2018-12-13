@@ -54,8 +54,9 @@ public class TrcEnhancedServo
     private final TrcServo servo2;
     private final TrcDigitalInput lowerLimitSwitch;
     private final TrcDigitalInput upperLimitSwitch;
-    private TrcTaskMgr.TaskObject enhancedServoTaskObj;
-    private boolean taskActive = false;
+    private TrcTaskMgr.TaskObject steppingServoTaskObj;
+    private TrcTaskMgr.TaskObject stopServoTaskObj;
+    private boolean taskEnabled = false;
     private boolean calibrating = false;
     private double physicalRangeMax = 1.0;
     private double logicalRangeLow = -1.0;
@@ -98,8 +99,9 @@ public class TrcEnhancedServo
         this.lowerLimitSwitch = lowerLimitSwitch;
         this.upperLimitSwitch = upperLimitSwitch;
 
-        enhancedServoTaskObj = TrcTaskMgr.getInstance().createTask(
-            instanceName + ".enhancedServoTask", this::enhancedServoTask);
+        TrcTaskMgr taskMgr = TrcTaskMgr.getInstance();
+        steppingServoTaskObj = taskMgr.createTask(instanceName + ".enhancedServoTask", this::steppingServoTask);
+        stopServoTaskObj = taskMgr.createTask(instanceName + ".stopServoTask", this::stopServoTask);
     }   //TrcEnhancedServo
 
     /**
@@ -237,7 +239,7 @@ public class TrcEnhancedServo
      *
      * @param enabled specifies true to enable task, false to disable.
      */
-    private void setTaskEnabled(boolean enabled)
+    private synchronized void setTaskEnabled(boolean enabled)
     {
         final String funcName = "setTaskEnabled";
 
@@ -248,16 +250,16 @@ public class TrcEnhancedServo
 
         if (enabled)
         {
-            enhancedServoTaskObj.registerTask(TrcTaskMgr.TaskType.STOP_TASK);
-            enhancedServoTaskObj.registerTask(TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
+            steppingServoTaskObj.registerTask(TaskType.POSTCONTINUOUS_TASK);    //TODO: should use OUTPUT_TASK
+            stopServoTaskObj.registerTask(TrcTaskMgr.TaskType.STOP_TASK);
         }
         else
         {
-            enhancedServoTaskObj.unregisterTask(TrcTaskMgr.TaskType.STOP_TASK);
-            enhancedServoTaskObj.unregisterTask(TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
+            steppingServoTaskObj.unregisterTask(TaskType.POSTCONTINUOUS_TASK);
+            stopServoTaskObj.unregisterTask(TrcTaskMgr.TaskType.STOP_TASK);
             calibrating = false;
         }
-        taskActive = enabled;
+        taskEnabled = enabled;
 
         if (debugEnabled)
         {
@@ -266,22 +268,22 @@ public class TrcEnhancedServo
     }   //setTaskEnabled
 
     /**
-     * This method checks if the task is active.
+     * This method checks if the task is enabled.
      *
-     * @return true if task is active, false otherwise.
+     * @return true if task is enabled, false otherwise.
      */
-    private boolean isTaskActive()
+    private synchronized boolean isTaskEnabled()
     {
-        final String funcName = "isTaskActive";
+        final String funcName = "isTaskEnabled";
 
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC, "=%s", taskActive);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC, "=%s", taskEnabled);
         }
 
-        return taskActive;
-    }   //isTaskActive
+        return taskEnabled;
+    }   //isTaskEnabled
 
     /**
      * This method performs range calibration on a regular servo.
@@ -408,7 +410,7 @@ public class TrcEnhancedServo
      * @param position specifies the target position.
      * @param stepRate specifies the stepping rate to get there (degrees/sec).
      */
-    public void setPosition(double position, double stepRate)
+    public synchronized void setPosition(double position, double stepRate)
     {
         final String funcName = "setPosition";
 
@@ -439,7 +441,7 @@ public class TrcEnhancedServo
      * @param minPos specifies the minimum position.
      * @param maxPos specifies the maximum position.
      */
-    public void setStepMode(double maxStepRate, double minPos, double maxPos)
+    public synchronized void setStepMode(double maxStepRate, double minPos, double maxPos)
     {
         final String funcName = "setStepMode";
 
@@ -495,7 +497,7 @@ public class TrcEnhancedServo
                 servo1.setPosition(power);
             }
         }
-        else if (!isTaskActive() || calibrating)
+        else if (!isTaskEnabled() || calibrating)
         {
             //
             // Not in stepping mode, so start stepping mode.
@@ -547,15 +549,14 @@ public class TrcEnhancedServo
 
     /**
      * This method is called periodically to check whether the servo has reached target. If not, it will calculate
-     * the next position to set the servo to according to its step rate or when the competition mode is about to
-     * end so it will stop the servo if necessary.
+     * the next position to set the servo to according to its step rate.
      *
      * @param taskType specifies the type of task being run.
      * @param runMode specifies the competition mode that is running. (e.g. Autonomous, TeleOp, Test).
      */
-    public void enhancedServoTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
+    private synchronized void steppingServoTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
-        final String funcName = "enhancedServoTask";
+        final String funcName = "steppingServoTask";
 
         if (debugEnabled)
         {
@@ -564,86 +565,76 @@ public class TrcEnhancedServo
 
         if (runMode != RunMode.DISABLED_MODE)
         {
-            if (taskType == TaskType.POSTCONTINUOUS_TASK)
+            if (calibrating)
             {
-                if (calibrating)
-                {
-                    if (logicalRangeLow == -1.0 && lowerLimitSwitch.isActive())
-                    {
-                        //
-                        // We finished calibrating the low range, now start calibrating the high range.
-                        //
-                        logicalRangeLow = servo1.toLogicalPosition(currPosition);
-                        setPosition(physicalRangeMax, currStepRate);
-                    }
-                    else if (logicalRangeHigh == -1.0 && upperLimitSwitch.isActive())
-                    {
-                        //
-                        // We finished calibrating the high range, we are done calibrating.
-                        // Note: stop() will set calibrating to false.
-                        //
-                        logicalRangeHigh = servo1.toLogicalPosition(currPosition);
-                        servo1.setLogicalRange(logicalRangeLow, logicalRangeHigh);
-                        if (servo2 != null)
-                        {
-                            servo2.setLogicalRange(logicalRangeLow, logicalRangeHigh);
-                        }
-                        stop();
-                    }
-                    else if (currPosition == targetPosition)
-                    {
-                        //
-                        // Somehow, we reached the end and did not trigger a limit switch. Let's abort.
-                        // Note: stop() will set calibrating to false.
-                        //
-                        stop();
-                    }
-                }
-
-                double currTime = TrcUtil.getCurrentTime();
-                double deltaPos = currStepRate * (currTime - prevTime);
-
-                if (currPosition < targetPosition)
-                {
-                    currPosition += deltaPos;
-                    if (currPosition > targetPosition)
-                    {
-                        currPosition = targetPosition;
-                    }
-                }
-                else if (currPosition > targetPosition)
-                {
-                    currPosition -= deltaPos;
-                    if (currPosition < targetPosition)
-                    {
-                        currPosition = targetPosition;
-                    }
-                }
-                else if (!calibrating)
+                if (logicalRangeLow == -1.0 && lowerLimitSwitch.isActive())
                 {
                     //
-                    // We have reached target and we are not calibrating, so we are done.
+                    // We finished calibrating the low range, now start calibrating the high range.
+                    //
+                    logicalRangeLow = servo1.toLogicalPosition(currPosition);
+                    setPosition(physicalRangeMax, currStepRate);
+                }
+                else if (logicalRangeHigh == -1.0 && upperLimitSwitch.isActive())
+                {
+                    //
+                    // We finished calibrating the high range, we are done calibrating.
+                    // Note: stop() will set calibrating to false.
+                    //
+                    logicalRangeHigh = servo1.toLogicalPosition(currPosition);
+                    servo1.setLogicalRange(logicalRangeLow, logicalRangeHigh);
+                    if (servo2 != null)
+                    {
+                        servo2.setLogicalRange(logicalRangeLow, logicalRangeHigh);
+                    }
+                    stop();
+                }
+                else if (currPosition == targetPosition)
+                {
+                    //
+                    // Somehow, we reached the end and did not trigger a limit switch. Let's abort.
+                    // Note: stop() will set calibrating to false.
                     //
                     stop();
                 }
-                prevTime = currTime;
+            }
 
-                if (servo1 != null)
-                {
-                    servo1.setPosition(currPosition);
-                }
+            double currTime = TrcUtil.getCurrentTime();
+            double deltaPos = currStepRate * (currTime - prevTime);
 
-                if (servo2 != null)
+            if (currPosition < targetPosition)
+            {
+                currPosition += deltaPos;
+                if (currPosition > targetPosition)
                 {
-                    servo2.setPosition(currPosition);
+                    currPosition = targetPosition;
                 }
             }
-            else if (taskType == TaskType.STOP_TASK)
+            else if (currPosition > targetPosition)
+            {
+                currPosition -= deltaPos;
+                if (currPosition < targetPosition)
+                {
+                    currPosition = targetPosition;
+                }
+            }
+            else if (!calibrating)
             {
                 //
-                // Note: stop() will set calibrating to false.
+                // We have reached target and we are not calibrating, so we are done.
                 //
                 stop();
+            }
+            prevTime = currTime;
+
+            if (servo1 != null)
+            {
+                servo1.setPosition(currPosition);
+            }
+
+            if (servo2 != null)
+            {
+                servo2.setPosition(currPosition);
             }
         }
 
@@ -651,6 +642,31 @@ public class TrcEnhancedServo
         {
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
         }
-    }   //enhancedServoTask
+    }   //steppingServoTask
+
+    /**
+     * This method is called when the competition mode is about to end so it will stop the servo if necessary.
+     *
+     * @param taskType specifies the type of task being run.
+     * @param runMode specifies the competition mode that is running. (e.g. Autonomous, TeleOp, Test).
+     */
+    private void stopServoTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
+    {
+        final String funcName = "stopServoTask";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "taskType=%s,runMode=%s", taskType, runMode);
+        }
+        //
+        // Note: stop() will set calibrating to false.
+        //
+        stop();
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
+        }
+    }   //stopServoTask
 
 }   //class TrcEnhancedServo

@@ -45,8 +45,6 @@ public class FtcHiTechnicGyro extends TrcGyro
     private TrcDbgTrace dbgTrace = null;
 
     private GyroSensor gyro;
-    private double gyroZData = 0.0;
-    private long zDataTagId = -1;
 
     /**
      * Constructor: Creates an instance of the object.
@@ -95,7 +93,7 @@ public class FtcHiTechnicGyro extends TrcGyro
     /**
      * This method calibrates the sensor.
      */
-    public void calibrate()
+    public synchronized void calibrate()
     {
         calibrate(DataType.ROTATION_RATE);
     }   //calibrate
@@ -151,23 +149,21 @@ public class FtcHiTechnicGyro extends TrcGyro
      * @return raw data of the specified type for the z-axis.
      */
     @Override
-    public SensorData<Double> getRawZData(DataType dataType)
+    public synchronized SensorData<Double> getRawZData(DataType dataType)
     {
         final String funcName = "getRawZData";
-
+        SensorData<Double> data;
         //
         // HiTechnic gyro supports only rotation rate.
         //
         if (dataType == DataType.ROTATION_RATE)
         {
-            long currTagId = FtcOpMode.getLoopCounter();
-            if (currTagId != zDataTagId)
-            {
-                gyroZData = gyro.rawZ();
-                zDataTagId = currTagId;
-            }
+            data = new SensorData<>(TrcUtil.getCurrentTime(), (double)gyro.rawZ());
         }
-        SensorData<Double> data = new SensorData<>(TrcUtil.getCurrentTime(), gyroZData);
+        else
+        {
+            throw new UnsupportedOperationException("HiTechnic gyro only supports rotation rate.");
+        }
 
         if (debugEnabled)
         {

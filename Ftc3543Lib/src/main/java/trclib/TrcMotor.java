@@ -22,6 +22,8 @@
 
 package trclib;
 
+import java.util.ArrayList;
+
 import trclib.TrcTaskMgr.TaskType;
 
 /**
@@ -36,6 +38,7 @@ import trclib.TrcTaskMgr.TaskType;
 public abstract class TrcMotor implements TrcMotorController
 {
     protected static final String moduleName = "TrcMotor";
+    protected static final TrcDbgTrace globalTracer = TrcDbgTrace.getGlobalTracer();
     protected static final boolean debugEnabled = false;
     protected static final boolean tracingEnabled = false;
     protected static final boolean useGlobalTracer = false;
@@ -43,13 +46,42 @@ public abstract class TrcMotor implements TrcMotorController
     protected static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     protected TrcDbgTrace dbgTrace = null;
 
+    /**
+     * This method returns the motor position by reading the position sensor. The position sensor can be an encoder
+     * or a potentiometer.
+     *
+     * @return current motor position.
+     */
+    public abstract double getMotorPosition();
+
+    /**
+     * This method sets the raw motor power. It is called by the Velocity Control task. If the subclass is
+     * implementing its own native velocity control, it does not really need to do anything for this method.
+     * But for completeness, it can just set the raw motor power in the motor controller.
+     *
+     * @param power specifies the percentage power (range -1.0 to 1.0) to be set.
+     */
+    public abstract void setMotorPower(double power);
+
+    private class Odometry
+    {
+        double prevTimestamp;
+        double currTimestamp;
+        double prevPos;
+        double currPos;
+        double velocity;
+    }   //class Odometry
+
+    private static final ArrayList<TrcMotor> odometryMotors = new ArrayList<>();
+    private static TrcTaskMgr.TaskObject odometryTaskObj = null;
+    private final Odometry odometry = new Odometry();
+
     private final String instanceName;
-    private final TrcTaskMgr.TaskObject motorTaskObj;
+    private final TrcTaskMgr.TaskObject velocityCtrlTaskObj;
     private TrcDigitalTrigger digitalTrigger = null;
-    private boolean speedTaskEnabled = false;
-    private double speed = 0.0;
-    private double prevTime = 0.0;
-    private double prevPos = 0.0;
+    private boolean odometryEnabled = false;
+    private double maxMotorVelocity = 0.0;
+    private TrcPidController velocityPidCtrl = null;
 
     /**
      * Constructor: Create an instance of the object.
@@ -66,8 +98,19 @@ public abstract class TrcMotor implements TrcMotorController
         }
 
         this.instanceName = instanceName;
+
         TrcTaskMgr taskMgr = TrcTaskMgr.getInstance();
-        motorTaskObj = taskMgr.createTask(instanceName + ".motorTask", this::motorTask);
+        if (odometryTaskObj == null)
+        {
+            //
+            // Odometry task is global. There is only one instance that manages odometry of all motors.
+            // This allows us to move this task to a STANDALONE_TASK if it turns out degrading the INPUT_TASK too
+            // much. If we create individual task for each motor, moving them to STANDALONE_TASK will create too
+            // many threads.
+            //
+            odometryTaskObj = taskMgr.createTask(moduleName + ".odometryTask", TrcMotor::odometryTask);
+        }
+        velocityCtrlTaskObj = taskMgr.createTask(instanceName + ".velCtrlTask", this::velocityCtrlTask);
     }   //TrcMotor
 
     /**
@@ -79,6 +122,331 @@ public abstract class TrcMotor implements TrcMotorController
     {
         return instanceName;
     }   //toString
+
+    /**
+     * This method returns the number of motors in the list registered for odometry monitoring.
+     *
+     * @return number of motors in the list.
+     */
+    public static int getNumOdometryMotors()
+    {
+        int numMotors;
+
+        synchronized (odometryMotors)
+        {
+            numMotors = odometryMotors.size();
+        }
+
+        return numMotors;
+    }   //getNumOdometryMotors
+
+    /**
+     * This method clears the list of motors that register for odometry monitoring. This method should only be called
+     * by the task scheduler.
+     */
+    public static void clearOdometryMotorsList()
+    {
+        synchronized (odometryMotors)
+        {
+            if (odometryMotors.size() > 0)
+            {
+                odometryMotors.clear();
+                odometryTaskObj.unregisterTask(TaskType.INPUT_TASK);
+            }
+        }
+    }   //clearOdometryMotorsList
+
+    /**
+     * This method resets the odometry data for the motor.
+     */
+    private void resetOdometry()
+    {
+        synchronized (odometry)
+        {
+            odometry.prevTimestamp = odometry.currTimestamp = TrcUtil.getCurrentTime();
+            odometry.prevPos = odometry.currPos = getMotorPosition();
+            odometry.velocity = 0.0;
+        }
+    }   //resetOdometry
+
+    /**
+     * This method enables/disables the task that monitors the motor odometry. Since odometry task takes up CPU cycle,
+     * it should not be enabled if the user doesn't need motor odometry info.
+     *
+     * @param enabled specifies true to enable odometry task, disable otherwise.
+     */
+    public void setOdometryEnabled(boolean enabled)
+    {
+        final String funcName = "setOdometryEnabled";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "enabled=%s", enabled);
+        }
+
+        if (enabled)
+        {
+            resetOdometry();
+            synchronized (odometryMotors)
+            {
+                odometryMotors.add(this);
+                if (odometryMotors.size() == 1)
+                {
+                    //
+                    // We are the first one on the list, start the task.
+                    //
+                    odometryTaskObj.registerTask(TaskType.INPUT_TASK);
+                }
+            }
+        }
+        else
+        {
+            synchronized (odometryMotors)
+            {
+                odometryMotors.remove(this);
+                if (odometryMotors.isEmpty())
+                {
+                    //
+                    // We were the only one on the list, stop the task.
+                    //
+                    odometryTaskObj.unregisterTask(TaskType.INPUT_TASK);
+                }
+            }
+        }
+        odometryEnabled = enabled;
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+    }   //setOdometryEnabled
+
+    /**
+     * This method checks if the odometry of this motor is enabled.
+     *
+     * @return true if odometry of this motor is enabled, false if disabled.
+     */
+    public boolean isOdometryEnabled()
+    {
+        return odometryEnabled;
+    }   //isOdometryEnabled
+
+    /**
+     * This method is called periodically to update motor odometry data. Odometry data includes position and velocity
+     * data. By using this task to update odometry at a periodic rate, it allows robot code to obtain odometry data
+     * from the cached data maintained by this task instead of repeatedly reading it directly from the motor
+     * controller which may impact performance because it may involve initiating USB/CAN/I2C bus cycles. So even
+     * though some motor controller hardware may keep track of its own velocity, it may be beneficial to just let the
+     * odometry task to calculate it.
+     *
+     * @param taskType specifies the type of task being run.
+     * @param runMode specifies the competition mode that is running.
+     */
+    public static void odometryTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
+    {
+        final String funcName = "odometryTask";
+
+        if (debugEnabled)
+        {
+            globalTracer.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK,
+                    "taskType=%s,runMode=%s", taskType, runMode);
+        }
+
+        synchronized (odometryMotors)
+        {
+            for (TrcMotor motor: odometryMotors)
+            {
+                synchronized (motor.odometry)
+                {
+                    motor.odometry.prevTimestamp = motor.odometry.currTimestamp;
+                    motor.odometry.prevPos = motor.odometry.currPos;
+                    motor.odometry.currTimestamp = TrcUtil.getCurrentTime();
+                    motor.odometry.currPos = motor.getMotorPosition();
+
+                    double deltaTime = motor.odometry.currTimestamp - motor.odometry.prevTimestamp;
+                    if (deltaTime > 0.0)
+                    {
+                        motor.odometry.velocity = (motor.odometry.currPos - motor.odometry.prevPos)/deltaTime;
+                    }
+
+                    if (debugEnabled)
+                    {
+                        globalTracer.traceInfo(funcName, "[%.3f]: %s encPos=%.0f",
+                                motor.odometry.currTimestamp, motor, motor.odometry.currPos);
+                    }
+                }
+            }
+        }
+
+        if (debugEnabled)
+        {
+            globalTracer.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
+        }
+    }   //odometryTask
+
+    /**
+     * This method sets the motor controller to velocity mode with the specified maximum velocity.
+     *
+     * @param maxVelocity specifies the maximum velocity the motor can run, in sensor units per second.
+     * @param pidCoefficients specifies the PID coefficients to use to compute a desired torque value for the motor.
+     *                        E.g. these coefficients go from velocity error percent to desired stall torque percent.
+     */
+    public synchronized void enableVelocityMode(double maxVelocity, TrcPidController.PidCoefficients pidCoefficients)
+    {
+        final String funcName = "enableVelocityMode";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "maxVel=%f,pidCoef=%s",
+                    maxVelocity, pidCoefficients.toString());
+        }
+
+        if (pidCoefficients == null)
+        {
+            throw new IllegalArgumentException("PidCoefficient must not be null.");
+        }
+
+        if (!isOdometryEnabled())
+        {
+            throw new IllegalStateException("Odometry must be enabled to use velocity mode.");
+        }
+
+        this.maxMotorVelocity = maxVelocity;
+        velocityPidCtrl = new TrcPidController(
+                instanceName + ".velocityCtrl", pidCoefficients, 1.0, this::getNormalizedVelocity);
+        velocityPidCtrl.setAbsoluteSetPoint(true);
+
+        velocityCtrlTaskObj.registerTask(TaskType.OUTPUT_TASK);
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+    }   //enableVelocityMode
+
+    /**
+     * This method disables velocity mode returning it to power mode.
+     */
+    public synchronized void disableVelocityMode()
+    {
+        final String funcName = "disableVelocityMode";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+
+        if (velocityPidCtrl != null)
+        {
+            velocityCtrlTaskObj.unregisterTask(TaskType.OUTPUT_TASK);
+            velocityPidCtrl = null;
+        }
+    }   //disableVelocityMode
+
+    /**
+     * This method returns the motor velocity normalized to the range of -1.0 to 1.0, essentially a percentage of the
+     * maximum motor velocity.
+     *
+     * @return normalized motor velocity.
+     */
+    private double getNormalizedVelocity()
+    {
+        final String funcName = "getNormalizedVelocity";
+        double normalizedVel = getVelocity()/maxMotorVelocity;
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", normalizedVel);
+        }
+
+        return normalizedVel;
+    }   //getNormalizedVelocity
+
+    /**
+     * This method overrides the motorSpeedTask in TrcMotor which is called periodically to calculate he speed of
+     * the motor. In addition to calculate the motor speed, it also calculates and sets the motor power required
+     * to maintain the set speed if speed control mode is enabled.
+     *
+     * @param taskType specifies the type of task being run.
+     * @param runMode specifies the competition mode that is running.
+     */
+    public synchronized void velocityCtrlTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
+    {
+        final String funcName = "velocityCtrlTask";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "taskType=%s,runMode=%s", taskType, runMode);
+        }
+
+        if (velocityPidCtrl != null)
+        {
+            double desiredStallTorquePercentage = velocityPidCtrl.getOutput();
+            double motorPower = transformTorqueToMotorPower(desiredStallTorquePercentage);
+
+            setMotorPower(motorPower);
+            if (debugEnabled)
+            {
+                dbgTrace.traceInfo(instanceName,
+                        "targetSpeed=%.2f, currSpeed=%.2f, desiredStallTorque=%.2f, motorPower=%.2f",
+                        velocityPidCtrl.getTarget(), getVelocity(), desiredStallTorquePercentage, motorPower);
+            }
+        }
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
+        }
+    }   //velocityCtrlTask
+
+    /**
+     * Transforms the desired percentage of motor stall torque to the motor duty cycle (aka power)
+     * that would give us that amount of torque at the current motor speed.
+     *
+     * @param desiredStallTorquePercentage specifies the desired percentage of motor torque to receive in percent of
+     *                                     motor stall torque.
+     * @return power percentage to apply to the motor to generate the desired torque (to the best ability of the motor).
+     */
+    private double transformTorqueToMotorPower(double desiredStallTorquePercentage)
+    {
+        final String funcName = "transformTorqueToMotorPower";
+        double power;
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC, "torque=%f", desiredStallTorquePercentage);
+        }
+        //
+        // Leverage motor curve information to linearize torque output across varying RPM
+        // as best we can. We know that max torque is available at 0 RPM and zero torque is
+        // available at max RPM - use that relationship to proportionately boost voltage output
+        // as motor speed increases.
+        //
+        final double currSpeedSensorUnitPerSec = Math.abs(getVelocity());
+        final double currNormalizedSpeed = currSpeedSensorUnitPerSec/maxMotorVelocity;
+
+        // Max torque percentage declines proportionally to motor speed.
+        final double percentMaxTorqueAvailable = 1 - currNormalizedSpeed;
+
+        if (percentMaxTorqueAvailable > 0)
+        {
+            power = desiredStallTorquePercentage/percentMaxTorqueAvailable;
+        }
+        else
+        {
+            // When we exceed max motor speed (and the correction factor is undefined), apply 100% voltage.
+            power = Math.signum(desiredStallTorquePercentage);
+        }
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC, "=%f", power);
+        }
+
+        return power;
+    }   //transformTorqueToMotorPower
 
     /**
      * This method creates a digital trigger on the given digital input sensor. It resets the position sensor
@@ -97,109 +465,115 @@ public abstract class TrcMotor implements TrcMotorController
         }
 
         digitalTrigger = new TrcDigitalTrigger(instanceName, digitalInput, this::triggerEvent);
-        digitalTrigger.setTaskEnabled(true);
+        digitalTrigger.setEnabled(true);
     }   //resetPositionOnDigitalInput
 
     /**
-     * This method enables/disables the task that monitors the motor speed. To determine the motor speed, the task
-     * runs periodically and determines the delta encoder reading over delta time to calculate the speed. Since the
-     * task takes up CPU cycle, it should not be enabled if the user doesn't need motor speed info.
-     *
-     * @param enabled specifies true to enable speed monitor task, disable otherwise.
+     * This method resets the motor position sensor, typically an encoder.
      */
-    public void setSpeedTaskEnabled(boolean enabled)
+    public void resetPosition()
     {
-        final String funcName = "setSpeedTaskEnabled";
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "enabled=%s", Boolean.toString(enabled));
-        }
-
-        speedTaskEnabled = enabled;
-        if (enabled)
-        {
-            prevTime = TrcUtil.getCurrentTime();
-            prevPos = getPosition();
-            motorTaskObj.registerTask(TrcTaskMgr.TaskType.STOP_TASK);
-            motorTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
-        }
-        else
-        {
-            motorTaskObj.unregisterTask(TrcTaskMgr.TaskType.STOP_TASK);
-            motorTaskObj.unregisterTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
-        }
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
-        }
-    }   //setSpeedTaskEnabled
-
-    /**
-     * This method is called periodically to calculate he speed of the motor or when the competition mode is about
-     * to end to stop the task.
-     *
-     * @param taskType specifies the type of task being run.
-     * @param runMode specifies the competition mode that is running.
-     */
-    public void motorTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
-    {
-        final String funcName = "motorTask";
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "taskType=%s,runMode=%s", taskType, runMode);
-        }
-
-        if (taskType == TaskType.PRECONTINUOUS_TASK)
-        {
-            double currTime = TrcUtil.getCurrentTime();
-            double currPos = getPosition();
-            speed = (currPos - prevPos)/(currTime - prevTime);
-            prevTime = currTime;
-            prevPos = currPos;
-        }
-        else if (taskType == TaskType.STOP_TASK)
-        {
-            setSpeedTaskEnabled(false);
-        }
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
-        }
-    }   //motorTask
+        resetPosition(false);
+    }   //resetPosition
 
     //
     // Implements the TrcMotorController interface.
     //
 
     /**
-     * This method returns the speed of the motor rotation. It keeps track of the rotation speed by using a periodic
-     * task to monitor the position sensor value. If the motor controller has hardware monitoring speed, it should
-     * override this method and access the hardware instead.
+     * This method returns the motor position by reading the position sensor. The position sensor can be an encoder
+     * or a potentiometer.
+     *
+     * @return current motor position.
      */
     @Override
-    public double getSpeed()
+    public double getPosition()
     {
-        final String funcName = "getSpeed";
+        final String funcName = "getPosition";
+        final double currPos;
+
+        synchronized (odometry)
+        {
+            currPos = odometry.currPos;
+        }
 
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%.3f", speed);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%d", currPos);
         }
 
-        if (speedTaskEnabled)
+        return currPos;
+    }   //getPosition
+
+    /**
+     * This method returns the velocity of the motor rotation. It keeps track of the rotation velocity by using a
+     * periodic task to monitor the position sensor value. If the motor controller has hardware monitoring velocity,
+     * it can override this method and access the hardware instead. However, accessing hardware may impact
+     * performance because it may involve initiating USB/CAN/I2C bus cycles. Therefore, it may be beneficial to
+     * just let the the periodic task calculate the velocity here.
+     *
+     * @return motor velocity in sensor units per second.
+     */
+    @Override
+    public double getVelocity()
+    {
+        final String funcName = "getVelocity";
+
+        if (debugEnabled)
         {
-            return speed;
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+
+        if (!odometryEnabled)
+        {
+            throw new UnsupportedOperationException("Odometry is not enabled.");
+        }
+
+        final double velocity;
+        synchronized (odometry)
+        {
+            velocity = odometry.velocity;
+        }
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%.3f", velocity);
+        }
+
+        return velocity;
+    }   //getVelocity
+
+    /**
+     * This method sets the motor output value. The value can be power or velocity percentage depending on whether
+     * the motor controller is in power mode or velocity mode.
+     *
+     * @param value specifies the percentage power or velocity (range -1.0 to 1.0) to be set.
+     */
+    @Override
+    public void set(double value)
+    {
+        final String funcName = "set";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "value=%f", value);
+        }
+
+        if (velocityPidCtrl != null)
+        {
+            velocityPidCtrl.setTarget(value);
         }
         else
         {
-            throw new UnsupportedOperationException("MotorTask is not enabled.");
+            setMotorPower(value);
         }
-    }   //getSpeed
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "! (value=%f)", value);
+        }
+    }   //set
 
     //
     // Implements TrcDigitalTrigger.TriggerHandler.
@@ -210,7 +584,7 @@ public abstract class TrcMotor implements TrcMotorController
      *
      * @param active specifies true if the digital device state is active, false otherwise.
      */
-    public void triggerEvent(boolean active)
+    private void triggerEvent(boolean active)
     {
         final String funcName = "triggerEvent";
 

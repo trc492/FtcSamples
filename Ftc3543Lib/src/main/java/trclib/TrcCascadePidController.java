@@ -89,7 +89,7 @@ public class TrcCascadePidController extends TrcPidController
      * controller.
      */
     @Override
-    public void reset()
+    public synchronized void reset()
     {
         final String funcName = "reset";
 
@@ -109,7 +109,7 @@ public class TrcCascadePidController extends TrcPidController
      * @return output of the Cascade PID controller.
      */
     @Override
-    public double getOutput()
+    public synchronized double getOutput()
     {
         final String funcName = "getOutput";
 

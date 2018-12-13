@@ -304,24 +304,24 @@ public class TrcSwerveModule implements TrcMotorController
     }   //getPower
 
     /**
-     * This method returns the speed of the motor rotation.
+     * This method returns the velocity of the motor rotation.
      *
-     * @return motor rotation speed.
+     * @return motor rotation velocity.
      */
     @Override
-    public double getSpeed()
+    public double getVelocity()
     {
-        final String funcName = "getSpeed";
-        double speed = driveMotor.getSpeed();
+        final String funcName = "getVelocity";
+        double velocity = driveMotor.getVelocity();
 
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", speed);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", velocity);
         }
 
-        return speed;
-    }   //getSpeed
+        return velocity;
+    }   //getVelocity
 
     /**
      * This method returns the state of the lower limit switch.

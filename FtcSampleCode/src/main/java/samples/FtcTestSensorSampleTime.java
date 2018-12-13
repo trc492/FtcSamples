@@ -94,7 +94,7 @@ public class FtcTestSensorSampleTime extends FtcOpMode
     }   //initRobot
 
     @Override
-    public void startMode(TrcRobot.RunMode prevMode)
+    public void startMode(TrcRobot.RunMode prevMode, TrcRobot.RunMode nextMode)
     {
         switch (sensorType)
         {
@@ -111,7 +111,7 @@ public class FtcTestSensorSampleTime extends FtcOpMode
     }   //startMode
 
     @Override
-    public void stopMode(TrcRobot.RunMode nextMode)
+    public void stopMode(TrcRobot.RunMode prevMode, TrcRobot.RunMode nextMode)
     {
         lfWheel.set(0.0);
         lrWheel.set(0.0);

@@ -173,7 +173,7 @@ public abstract class TrcGyro extends TrcSensor<TrcGyro.DataType>
     public static final int GYRO_INTEGRATE              = (1 << 3);
     public static final int GYRO_CONVERT_TO_CARTESIAN   = (1 << 4);
 
-    private final String instanceName;
+    protected final String instanceName;
     private TrcDataIntegrator<DataType> integrator = null;
     private TrcCardinalConverter<DataType> cardinalConverter = null;
     private int xIndex = -1;
@@ -315,7 +315,7 @@ public abstract class TrcGyro extends TrcSensor<TrcGyro.DataType>
         //
         if (integrator != null)
         {
-            integrator.setTaskEnabled(enabled);
+            integrator.setEnabled(enabled);
         }
 
         //
@@ -323,7 +323,7 @@ public abstract class TrcGyro extends TrcSensor<TrcGyro.DataType>
         //
         if (cardinalConverter != null)
         {
-            cardinalConverter.setTaskEnabled(enabled);
+            cardinalConverter.setEnabled(enabled);
         }
     }   //setEnabled
 

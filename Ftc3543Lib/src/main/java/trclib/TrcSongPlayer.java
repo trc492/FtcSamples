@@ -40,11 +40,13 @@ public class TrcSongPlayer
 
     private final String instanceName;
     private final TrcTone tone;
-    private final TrcTaskMgr.TaskObject songPlayerTaskObj;
+    private final TrcTaskMgr.TaskObject playerTaskObj;
+    private final TrcTaskMgr.TaskObject stopTaskObj;
     private TrcSong song = null;
     private double barDuration = 0.0;
     private boolean repeat = false;
     private TrcEvent event = null;
+    private TrcNotifier.Receiver receiver = null;
 
     /**
      * Constructor: Create and initialize an instance of the object.
@@ -64,7 +66,8 @@ public class TrcSongPlayer
         this.instanceName = instanceName;
         this.tone = tone;
         TrcTaskMgr taskMgr = TrcTaskMgr.getInstance();
-        songPlayerTaskObj = taskMgr.createTask(instanceName + ".songPlayerTask", this::songPlayerTask);
+        playerTaskObj = taskMgr.createTask(instanceName + ".playerTask", this::playerTask);
+        stopTaskObj = taskMgr.createTask(instanceName + ".stopTask", this::stopTask);
     }   //TrcSongPlayer
 
     /**
@@ -93,13 +96,13 @@ public class TrcSongPlayer
 
         if (enabled)
         {
-            songPlayerTaskObj.registerTask(TrcTaskMgr.TaskType.STOP_TASK);
-            songPlayerTaskObj.registerTask(TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
+            playerTaskObj.registerTask(TaskType.POSTCONTINUOUS_TASK);   //TODO: should use OUTPUT_TASK
+            stopTaskObj.registerTask(TrcTaskMgr.TaskType.STOP_TASK);
         }
         else
         {
-            songPlayerTaskObj.unregisterTask(TrcTaskMgr.TaskType.STOP_TASK);
-            songPlayerTaskObj.unregisterTask(TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
+            playerTaskObj.unregisterTask(TaskType.POSTCONTINUOUS_TASK);
+            stopTaskObj.unregisterTask(TrcTaskMgr.TaskType.STOP_TASK);
         }
 
         if (debugEnabled)
@@ -111,7 +114,7 @@ public class TrcSongPlayer
     /**
      * This method stops the sound and disables the player task.
      */
-    public void stop()
+    public synchronized void stop()
     {
         final String funcName = "stop";
 
@@ -132,7 +135,7 @@ public class TrcSongPlayer
     /**
      * This method is called to pause the player.
      */
-    public void pause()
+    public synchronized void pause()
     {
         stop();
     }   //pause
@@ -140,7 +143,7 @@ public class TrcSongPlayer
     /**
      * This method is called to resume the player.
      */
-    public void resume()
+    public synchronized void resume()
     {
         setTaskEnabled(true);
     }   //resume
@@ -148,7 +151,7 @@ public class TrcSongPlayer
     /**
      * This method rewinds the song back to the beginning.
      */
-    public void rewind()
+    public synchronized void rewind()
     {
         final String funcName = "rewind";
 
@@ -177,23 +180,27 @@ public class TrcSongPlayer
      * @param repeat specifies true to play the song repeatedly, false otherwise.
      * @param pause specifies true to pause the song, false to start it immediately.
      * @param event specifies the event to be notified on song completion.
+     * @param receiver specifies the notification receiver on song completion.
      */
-    private void playSongWorker(TrcSong song, double barDuration, boolean repeat, boolean pause, TrcEvent event)
+    private synchronized void playSongWorker(
+            TrcSong song, double barDuration, boolean repeat, boolean pause,
+            TrcEvent event, TrcNotifier.Receiver receiver)
     {
         final String funcName = "playSongWorker";
 
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
-                                "song=%s,barDur=%.2f,repeat=%s,pause=%s,event=%s",
+                                "song=%s,barDur=%.2f,repeat=%s,pause=%s,event=%s,receiver=%s",
                                 song.toString(), barDuration, Boolean.toString(repeat), Boolean.toString(pause),
-                                event == null? "null": event.toString());
+                                event == null? "null": event, receiver == null? "null": receiver);
         }
 
         this.song = song;
         this.barDuration = barDuration;
         this.repeat = repeat;
         this.event = repeat? null: event;
+        this.receiver = repeat? null: receiver;
         setTaskEnabled(!pause);
 
         if (debugEnabled)
@@ -212,7 +219,7 @@ public class TrcSongPlayer
      */
     public void playSong(TrcSong song, double barDuration, boolean repeat, boolean pause)
     {
-        playSongWorker(song, barDuration, repeat, pause, null);
+        playSongWorker(song, barDuration, repeat, pause, null, null);
     }   //playSong
 
     /**
@@ -225,7 +232,21 @@ public class TrcSongPlayer
      */
     public void playSong(TrcSong song, double barDuration, boolean pause, TrcEvent event)
     {
-        playSongWorker(song, barDuration, false, pause, event);
+        playSongWorker(song, barDuration, false, pause, event, null);
+    }   //playSong
+
+    /**
+     * This method plays the specified song.
+     *
+     * @param song specifies the song to be played.
+     * @param barDuration specifies the bar duration in seconds.
+     * @param pause specifies true to pause the song, false to start it immediately.
+     * @param receiver specifies the notification receiver on song completion.
+     */
+    public void playSong(
+            TrcSong song, double barDuration, boolean pause, TrcNotifier.Receiver receiver)
+    {
+        playSongWorker(song, barDuration, false, pause, null, receiver);
     }   //playSong
 
     /**
@@ -236,7 +257,7 @@ public class TrcSongPlayer
      */
     public void playSong(TrcSong song, double barDuration)
     {
-        playSongWorker(song, barDuration, false, false, null);
+        playSongWorker(song, barDuration, false, false, null, null);
     }   //playSong
 
     /**
@@ -537,80 +558,99 @@ public class TrcSongPlayer
     }   //performNotation
 
     /**
-     * This method is called periodically to check and play the next note in the song or when the competition mode
-     * is about to end. It stops the player if sound is playing.
+     * This method is called periodically to check and play the next note in the song.
      *
      * @param taskType specifies the type of task being run.
      * @param runMode specifies the competition mode that is running.
      */
-    public void songPlayerTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
+    private synchronized void playerTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
-        final String funcName = "songPlayerTask";
+        final String funcName = "playerTask";
 
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "taskType=%s,runMode=%s", taskType, runMode);
         }
 
-        if (taskType == TaskType.POSTCONTINUOUS_TASK)
+        //
+        // Move on to the next note only if the current note has finished playing.
+        //
+        if (!tone.isPlaying())
         {
-            //
-            // Move on to the next note only if the current note has finished playing.
-            //
-            if (!tone.isPlaying())
+            while (true)
             {
-                while (true)
+                String note = song.getNextNote();
+
+                if (note == null && repeat)
                 {
-                    String note = song.getNextNote();
+                    //
+                    // There is no more note in the song. If we are in repeat mode, rewind the song and play it again.
+                    //
+                    song.rewind();
+                    note = song.getNextNote();
+                }
 
-                    if (note == null && repeat)
+                if (note == null)
+                {
+                    //
+                    // The song has ended, let's signal it and quit.
+                    //
+                    setTaskEnabled(false);
+                    if (event != null)
                     {
-                        //
-                        // There is no more note in the song. If we are in repeat mode, rewind the song and play it again.
-                        //
-                        song.rewind();
-                        note = song.getNextNote();
+                        event.set(true);
                     }
-
-                    if (note == null)
+                    if (receiver != null)
                     {
-                        //
-                        // The song has ended, let's signal it and quit.
-                        //
-                        setTaskEnabled(false);
-                        if (event != null)
-                        {
-                            event.set(true);
-                        }
-                        break;
+                        receiver.notify(this);
                     }
-                    else if (note.charAt(0) == '#')
-                    {
-                        //
-                        // The note is a notation, perform the action and loop back to process the next one.
-                        //
-                        performNotation(note.substring(1));
-                    }
-                    else
-                    {
-                        //
-                        // This is a playable note, play it and exit the loop.
-                        //
-                        playNote(note, barDuration, song.getCurrentVolume());
-                        break;
-                    }
+                    break;
+                }
+                else if (note.charAt(0) == '#')
+                {
+                    //
+                    // The note is a notation, perform the action and loop back to process the next one.
+                    //
+                    performNotation(note.substring(1));
+                }
+                else
+                {
+                    //
+                    // This is a playable note, play it and exit the loop.
+                    //
+                    playNote(note, barDuration, song.getCurrentVolume());
+                    break;
                 }
             }
-        }
-        else if (taskType == TaskType.STOP_TASK)
-        {
-            stop();
         }
 
         if (debugEnabled)
         {
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
         }
-    }   //songPlayerTask
+    }   //playerTask
+
+    /**
+     * This method is called when the competition mode is about to end. It stops the player if sound is playing.
+     *
+     * @param taskType specifies the type of task being run.
+     * @param runMode specifies the competition mode that is running.
+     */
+    private void stopTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
+    {
+        final String funcName = "stopTask";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "taskType=%s,runMode=%s", taskType, runMode);
+        }
+
+        stop();
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
+        }
+    }   //stopTask
 
 }   //class TrcSongPlayer

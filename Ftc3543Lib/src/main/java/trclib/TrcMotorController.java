@@ -54,11 +54,11 @@ public interface TrcMotorController
     double getPower();
 
     /**
-     * This method returns the speed of the motor rotation.
+     * This method returns the velocity of the motor rotation in sensor unit per second.
      *
-     * @return motor rotation speed.
+     * @return motor rotation velocity in sensor unit per second.
      */
-    double getSpeed();
+    double getVelocity();
 
     /**
      * This method returns the state of the lower limit switch.

@@ -31,7 +31,7 @@ package trclib;
  * @param <I> specifies the type of the input image.
  * @param <O> specifies the type of the detected objects.
  */
-public class TrcVisionTask<I, O> implements TrcThread.PeriodicTask
+public class TrcVisionTask<I, O>
 {
     private static final String moduleName = "TrcVisionTask";
     private static final boolean debugEnabled = false;
@@ -69,18 +69,19 @@ public class TrcVisionTask<I, O> implements TrcThread.PeriodicTask
 
     }   //interface VisionProcessor
 
+    private final String instanceName;
+    private final VisionProcessor<I, O> visionProcessor;
+    private final I[] imageBuffers;
+    private final O[] detectedObjectBuffers;
+    private final TrcTaskMgr.TaskObject visionTaskObj;
+    private boolean taskEnabled = false;
+    private int imageIndex = 0;
+    private int bufferIndex = 0;
+
     private TrcDbgTrace tracer = null;
     private long totalTime = 0;
     private long totalFrames = 0;
     private double taskStartTime = 0.0;
-
-    private final String instanceName;
-    private VisionProcessor<I, O> visionProcessor;
-    private I[] imageBuffers;
-    private O[] detectedObjectBuffers;
-    private int imageIndex = 0;
-    private int bufferIndex = 0;
-    private TrcThread<O> visionTask;
 
     /**
      * Constructor: Create an instance of the object.
@@ -102,7 +103,7 @@ public class TrcVisionTask<I, O> implements TrcThread.PeriodicTask
         this.visionProcessor = visionProcessor;
         this.imageBuffers = imageBuffers;
         this.detectedObjectBuffers = detectedObjectBuffers;
-        visionTask = new TrcThread<>(instanceName, this, null);
+        visionTaskObj = TrcTaskMgr.getInstance().createTask(instanceName, this::visionTask);
     }   //TrcVisionTask
 
     /**
@@ -126,31 +127,12 @@ public class TrcVisionTask<I, O> implements TrcThread.PeriodicTask
     }   //setPerfReportEnabled
 
     /**
-     * This method is called to terminate the vision task. Once this is called, no other method in this class
-     * should be called except for isTaskTerminated().
-     */
-    public void terminateTask()
-    {
-        visionTask.terminateTask();
-    }   //terminateTask
-
-    /**
-     * This method checks if the vision task has been terminated.
-     *
-     * @return true if vision task is terminated, false otherwise.
-     */
-    public boolean isTaskTerminated()
-    {
-        return visionTask.isTaskTerminated();
-    }   //isTaskTerminated
-
-    /**
      * This method enables/disables the vision task. As long as the task is enabled, it will continue to
      * acquire/process images.
      *
      * @param enabled specifies true to enable vision task, false to disable.
      */
-    public void setEnabled(boolean enabled)
+    public synchronized void setEnabled(boolean enabled)
     {
         final String funcName = "setEnabled";
 
@@ -159,13 +141,18 @@ public class TrcVisionTask<I, O> implements TrcThread.PeriodicTask
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "enabled=%s", Boolean.toString(enabled));
         }
 
-        visionTask.setTaskEnabled(enabled);
-        if (enabled)
+        if (enabled && !taskEnabled)
         {
             totalTime = 0;
             totalFrames = 0;
             taskStartTime = TrcUtil.getCurrentTime();
+            visionTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);//STANDALONE_TASK, 50);
         }
+        else if (!enabled && taskEnabled)
+        {
+            visionTaskObj.unregisterTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);//STANDALONE_TASK);
+        }
+        taskEnabled = enabled;
 
         if (debugEnabled)
         {
@@ -178,18 +165,17 @@ public class TrcVisionTask<I, O> implements TrcThread.PeriodicTask
      *
      * @return true if the vision task is enabled, false otherwise.
      */
-    public boolean isEnabled()
+    public synchronized boolean isEnabled()
     {
         final String funcName = "isEnabled";
-        boolean enabled = visionTask.isTaskEnabled();
 
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", Boolean.toString(enabled));
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", taskEnabled);
         }
 
-        return enabled;
+        return taskEnabled;
     }   //isEnabled
 
     /**
@@ -197,7 +183,7 @@ public class TrcVisionTask<I, O> implements TrcThread.PeriodicTask
      *
      * @param interval specifies the processing interval in msec. If 0, process as fast as the CPU can run.
      */
-    public void setProcessingInterval(long interval)
+    public synchronized void setProcessingInterval(long interval)
     {
         final String funcName = "setProcessingInterval";
 
@@ -207,18 +193,18 @@ public class TrcVisionTask<I, O> implements TrcThread.PeriodicTask
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        visionTask.setProcessingInterval(interval);
-    }   //setProcessInterval
+        visionTaskObj.setTaskInterval(interval);
+    }   //setProcessingInterval
 
     /**
      * This method returns the vision task processing interval.
      *
      * @return vision task processing interval in msec.
      */
-    public long getProcessingInterval()
+    public synchronized long getProcessingInterval()
     {
         final String funcName = "getProcessingInterval";
-        long interval = visionTask.getProcessingInterval();
+        long interval = visionTaskObj.getTaskInterval();
 
         if (debugEnabled)
         {
@@ -229,56 +215,47 @@ public class TrcVisionTask<I, O> implements TrcThread.PeriodicTask
         return interval;
     }   //getProcessingInterval
 
-    //
-    // Implements TrcThread.PeriodicTask interface.
-    //
-
     /**
-     * This method runs the vision processing task.
+     * This method runs periodically to do vision processing.
      *
-     * @param context specifies the context (not used).
+     * @param taskType specifies the type of task being run.
+     * @param runMode specifies the current robot run mode.
      */
-    @Override
-    public void runPeriodic(Object context)
+    private synchronized void visionTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
-        final String funcName = "runPeriodic";
-        double startTime;
-        double elapsedTime;
+        final String funcName = "visionTask";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "taskType=%s,runMode=%s", taskType, runMode);
         }
 
-        synchronized (imageBuffers[imageIndex])
+        if (visionProcessor.grabFrame(imageBuffers[imageIndex]))
         {
-            if (visionProcessor.grabFrame(imageBuffers[imageIndex]))
+            double startTime = TrcUtil.getCurrentTimeMillis();
+            //
+            // Capture an image and subject it for object detection. The object detector produces an array of
+            // rectangles representing objects detected.
+            //
+            visionProcessor.detectObjects(
+                    imageBuffers[imageIndex],
+                    detectedObjectBuffers != null ? detectedObjectBuffers[bufferIndex] : null);
+            double elapsedTime = TrcUtil.getCurrentTimeMillis() - startTime;
+            totalTime += elapsedTime;
+            totalFrames++;
+            if (tracer != null)
             {
-                //
-                // Capture an image and subject it for object detection. The object detector produces an array of
-                // rectangles representing objects detected.
-                //
-                startTime = TrcUtil.getCurrentTimeMillis();
-                visionProcessor.detectObjects(
-                        imageBuffers[imageIndex],
-                        detectedObjectBuffers != null ? detectedObjectBuffers[bufferIndex] : null);
-                elapsedTime = TrcUtil.getCurrentTimeMillis() - startTime;
-                totalTime += elapsedTime;
-                totalFrames++;
-                if (tracer != null)
-                {
-                    tracer.traceInfo(funcName, "Average processing time = %.3f msec, Frame rate = %.1f",
-                            (double) totalTime / totalFrames, totalFrames / (TrcUtil.getCurrentTime() - taskStartTime));
-                }
-                //
-                // Switch to the next buffer so that we won't clobber the info while the client is accessing it.
-                //
-                imageIndex = (imageIndex + 1) % imageBuffers.length;
-                if (detectedObjectBuffers != null)
-                {
-                    visionTask.setData(detectedObjectBuffers[bufferIndex]);
-                    bufferIndex = (bufferIndex + 1) % detectedObjectBuffers.length;
-                }
+                tracer.traceInfo(funcName, "Average processing time = %.3f msec, Frame rate = %.1f",
+                        (double) totalTime / totalFrames, totalFrames / (TrcUtil.getCurrentTime() - taskStartTime));
+            }
+            //
+            // Switch to the next buffer so that we won't clobber the info while the client is accessing it.
+            //
+            imageIndex = (imageIndex + 1) % imageBuffers.length;
+            if (detectedObjectBuffers != null)
+            {
+                visionTaskObj.setTaskData(detectedObjectBuffers[bufferIndex]);
+                bufferIndex = (bufferIndex + 1) % detectedObjectBuffers.length;
             }
         }
 
@@ -286,6 +263,6 @@ public class TrcVisionTask<I, O> implements TrcThread.PeriodicTask
         {
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
         }
-    }   //runPeriodic
+    }   //visionTask
 
 }   //class TrcVisionTask

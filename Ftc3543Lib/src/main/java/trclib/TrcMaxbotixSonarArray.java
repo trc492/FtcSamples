@@ -52,7 +52,7 @@ public class TrcMaxbotixSonarArray
     private final TrcAnalogInput[] sensors;
     private final TrcDigitalOutput rx;
     private final boolean loopConfig;
-    private final TrcTaskMgr.TaskObject sonarArrayTaskObj;
+    private final TrcTaskMgr.TaskObject rangingTaskObj;
     private final TrcStateMachine<State> sm;
     private final TrcTimer timer;
     private final TrcEvent event;
@@ -82,7 +82,7 @@ public class TrcMaxbotixSonarArray
         this.sensors = sensors;
         this.rx = rx;
         this.loopConfig = loopConfig;
-        sonarArrayTaskObj = TrcTaskMgr.getInstance().createTask(instanceName + ".sonarArrayTask", this::sonarArrayTask);
+        rangingTaskObj = TrcTaskMgr.getInstance().createTask(instanceName + ".rangingTask", this::rangingTask);
         sm = new TrcStateMachine<>(instanceName);
         timer = new TrcTimer(instanceName);
         event = new TrcEvent(instanceName);
@@ -127,7 +127,7 @@ public class TrcMaxbotixSonarArray
      *
      * @return true if the sonar array is ranging, false otherwise.
      */
-    public boolean isRanging()
+    public synchronized boolean isRanging()
     {
         final String funcName = "isRanging";
 
@@ -146,7 +146,7 @@ public class TrcMaxbotixSonarArray
      * @param autoRepeat specifies true to auto repeat the ranging cycle, false otherwise. autoRepeat is ignored
      *                   if the array is wired in loop config because it is already in continuous ranging mode.
      */
-    public void startRanging(boolean autoRepeat)
+    public synchronized void startRanging(boolean autoRepeat)
     {
         final String funcName = "startRanging";
 
@@ -182,7 +182,7 @@ public class TrcMaxbotixSonarArray
      * loop config and was set to autoRepeat mode. If the sensor array is wired in loop config, the only way to
      * stop ranging is to remove power.
      */
-    public void stopRanging()
+    public synchronized void stopRanging()
     {
         final String funcName = "stopRanging";
 
@@ -233,13 +233,13 @@ public class TrcMaxbotixSonarArray
 
         if (enabled)
         {
-            sonarArrayTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            rangingTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);    //TODO: should use INPUT_TASK
             sm.start(State.PULL_RX_HIGH);
         }
         else
         {
             sm.stop();
-            sonarArrayTaskObj.unregisterTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            rangingTaskObj.unregisterTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
         }
 
         if (debugEnabled)
@@ -249,14 +249,14 @@ public class TrcMaxbotixSonarArray
     }   //setTaskEnabled
 
     /**
-     * This method is called periodically to run the state machine that generates teh RX pulse.
+     * This method is called periodically to run the state machine that generates the RX pulse for ranging.
      *
      * @param taskType specifies the type of task being run.
      * @param runMode specifies the competition mode that is running. (e.g. Autonomous, TeleOp, Test).
      */
-    public void sonarArrayTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
+    private synchronized void rangingTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
-        final String funcName = "sonarArrayTask";
+        final String funcName = "rangingTask";
 
         if (debugEnabled)
         {
@@ -299,6 +299,6 @@ public class TrcMaxbotixSonarArray
         {
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
         }
-    }   //sonarArrayTask
+    }   //rangingTask
 
 }   //class TrcMaxbotixSonarArray

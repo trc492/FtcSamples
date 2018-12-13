@@ -57,9 +57,9 @@ public abstract class TrcRobotBattery
      */
     public abstract double getPower();
 
-    private boolean voltageSupported = true;
-    private boolean currentSupported = true;
-    private boolean powerSupported = true;
+    private boolean voltageSupported;
+    private boolean currentSupported;
+    private boolean powerSupported;
     private final TrcTaskMgr.TaskObject robotBatteryTaskObj;
     private double lowestVoltage = 0.0;
     private double highestVoltage = 0.0;
@@ -71,15 +71,14 @@ public abstract class TrcRobotBattery
     private double lastTimestamp = 0.0;
 
     /**
-     */
-    /**
      * Constructor: create an instance of the object.
      *
      * @param voltageSupported specifies true if getVoltage is supported, false otherwise.
      * @param currentSupported specifies true if getCurrent is supported, false otherwise.
      * @param powerSupported specifies true if getPower is supported, false otherwise.
      */
-    public TrcRobotBattery(boolean voltageSupported, boolean currentSupported, boolean powerSupported)
+    public TrcRobotBattery(
+            boolean voltageSupported, boolean currentSupported, boolean powerSupported)
     {
         if (debugEnabled)
         {
@@ -87,6 +86,10 @@ public abstract class TrcRobotBattery
                 TrcDbgTrace.getGlobalTracer():
                 new TrcDbgTrace(moduleName, tracingEnabled, traceLevel, msgLevel);
         }
+
+        this.voltageSupported = voltageSupported;
+        this.currentSupported = currentSupported;
+        this.powerSupported = powerSupported;
 
         robotBatteryTaskObj = TrcTaskMgr.getInstance().createTask(
             moduleName + ".robotBatteryTask", this::robotBatteryTask);
@@ -98,9 +101,9 @@ public abstract class TrcRobotBattery
      *
      * @param enabled specifies true to enable the task, false to disable.
      */
-    public void setTaskEnabled(boolean enabled)
+    public synchronized void setEnabled(boolean enabled)
     {
-        final String funcName = "setTaskEnabled";
+        final String funcName = "setEnabled";
 
         if (debugEnabled)
         {
@@ -147,7 +150,7 @@ public abstract class TrcRobotBattery
 
             totalEnergy = 0.0;
             lastTimestamp = TrcUtil.getCurrentTime();
-            robotBatteryTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            robotBatteryTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);   //TODO: should use INPUT_TASK
         }
         else
         {
@@ -158,7 +161,7 @@ public abstract class TrcRobotBattery
         {
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
-    }   //setTaskEnabled
+    }   //setEnabled
 
     /**
      * This method returns the lowest voltage it has ever seen during the monitoring session.
@@ -166,7 +169,7 @@ public abstract class TrcRobotBattery
      * @return lowest battery voltage.
      * @throws UnsupportedOperationException if voltage is not supported by the system. 
      */
-    public double getLowestVoltage()
+    public synchronized double getLowestVoltage()
     {
         if (!voltageSupported)
         {
@@ -182,7 +185,7 @@ public abstract class TrcRobotBattery
      * @return highest battery voltage.
      * @throws UnsupportedOperationException if voltage is not supported by the system. 
      */
-    public double getHighestVoltage()
+    public synchronized double getHighestVoltage()
     {
         if (!voltageSupported)
         {
@@ -198,7 +201,7 @@ public abstract class TrcRobotBattery
      * @return lowest battery current.
      * @throws UnsupportedOperationException if current is not supported by the system. 
      */
-    public double getLowestCurrent()
+    public synchronized double getLowestCurrent()
     {
         if (!currentSupported)
         {
@@ -214,7 +217,7 @@ public abstract class TrcRobotBattery
      * @return highest battery current.
      * @throws UnsupportedOperationException if current is not supported by the system. 
      */
-    public double getHighestCurrent()
+    public synchronized double getHighestCurrent()
     {
         if (!currentSupported)
         {
@@ -230,7 +233,7 @@ public abstract class TrcRobotBattery
      * @return lowest battery power.
      * @throws UnsupportedOperationException if power is not supported by the system. 
      */
-    public double getLowestPower()
+    public synchronized double getLowestPower()
     {
         if (!powerSupported)
         {
@@ -246,7 +249,7 @@ public abstract class TrcRobotBattery
      * @return highest battery power.
      * @throws UnsupportedOperationException if power is not supported by the system. 
      */
-    public double getHighestPower()
+    public synchronized double getHighestPower()
     {
         if (!powerSupported)
         {
@@ -261,7 +264,7 @@ public abstract class TrcRobotBattery
      *
      * @return total energy consumed in WH (Watt-Hour).
      */
-    public double getTotalEnergy()
+    public synchronized double getTotalEnergy()
     {
         return totalEnergy;
     }   //getTotalEnergy
@@ -273,11 +276,11 @@ public abstract class TrcRobotBattery
      * @param taskType specifies the type of task being run.
      * @param runMode specifies the competition mode that is running.
      */
-    public void robotBatteryTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
+    private synchronized void robotBatteryTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
         final String funcName = "robotBatteryTask";
         double currTime = TrcUtil.getCurrentTime();
-        double voltage = 0.0, current = 0.0, power = 0.0;
+        double voltage = 0.0, current = 0.0, power;
 
         if (debugEnabled)
         {

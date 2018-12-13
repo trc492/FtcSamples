@@ -111,7 +111,7 @@ public class FtcAndroidTone extends TrcTone implements AudioTrack.OnPlaybackPosi
      *                to get the sustain level volume.
      * @param release specifies the release time in seconds.
      */
-    public void setSoundEnvelope(double attack, double decay, double sustain, double release)
+    public synchronized void setSoundEnvelope(double attack, double decay, double sustain, double release)
     {
         final String funcName = "setSoundEnvelope";
 
@@ -131,7 +131,7 @@ public class FtcAndroidTone extends TrcTone implements AudioTrack.OnPlaybackPosi
     /**
      * This method enables/disables the sound envelope.
      */
-    public void setSoundEnvelopeEnabled(boolean enabled)
+    public synchronized void setSoundEnvelopeEnabled(boolean enabled)
     {
         final String funcName = "setSoundEnvelopeEnabled";
 
@@ -149,7 +149,7 @@ public class FtcAndroidTone extends TrcTone implements AudioTrack.OnPlaybackPosi
      *
      * @param buffer specifies the sound data buffer.
      */
-    public void playSound(short[] buffer)
+    public synchronized void playSound(short[] buffer)
     {
         final String funcName = "playSound";
 
@@ -202,7 +202,7 @@ public class FtcAndroidTone extends TrcTone implements AudioTrack.OnPlaybackPosi
      * @param volume specifies the volume in the range 0.0 to 1.0.
      */
     @Override
-    public void playTone(Waveform waveform, double frequency, double duration, double volume)
+    public synchronized void playTone(Waveform waveform, double frequency, double duration, double volume)
     {
         final String funcName = "playTone";
 
@@ -258,7 +258,7 @@ public class FtcAndroidTone extends TrcTone implements AudioTrack.OnPlaybackPosi
      * This method stops the playing of the sound in progress.
      */
     @Override
-    public void stop()
+    public synchronized void stop()
     {
         final String funcName = "stop";
 
@@ -282,7 +282,7 @@ public class FtcAndroidTone extends TrcTone implements AudioTrack.OnPlaybackPosi
      * @return true if the sound is still playing, false otherwise.
      */
     @Override
-    public boolean isPlaying()
+    public synchronized boolean isPlaying()
     {
         final String funcName = "isPlaying";
 
@@ -306,7 +306,7 @@ public class FtcAndroidTone extends TrcTone implements AudioTrack.OnPlaybackPosi
      * @param track specifies the AudioTrack object that was playing.
      */
     @Override
-    public void onMarkerReached(AudioTrack track)
+    public synchronized void onMarkerReached(AudioTrack track)
     {
         final String funcName = "onMarkerReached";
 

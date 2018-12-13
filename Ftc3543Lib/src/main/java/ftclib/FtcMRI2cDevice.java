@@ -105,8 +105,8 @@ public class FtcMRI2cDevice extends FtcI2cDevice
         }
 
         byte[] data = {(byte)(newAddress & 0xff), I2CADDR_TRIGGER_BYTE_1, I2CADDR_TRIGGER_BYTE_2};
-        asyncWrite(REG_SET_I2C_ADDRESS, data);
-        setI2cAddress(newAddress, addressIs7Bit);
+        asyncWrite(null, REG_SET_I2C_ADDRESS, data, data.length, null, null);
+        deviceSynch.setI2cAddress(newAddress, addressIs7Bit);
     }   //changeI2cAddress
 
     /**

@@ -22,8 +22,6 @@
 
 package trclib;
 
-import trclib.TrcTaskMgr.TaskType;
-
 /**
  * This class implements a platform independent PID controlled motor. A PID controlled motor may consist of one or
  * two physical motors, a position sensor, typically an encoder (or could be a potentiometer). Optionally, it supports
@@ -78,6 +76,7 @@ public class TrcPidMotor
     private final double calPower;
     private final PowerCompensation powerCompensation;
     private final TrcTaskMgr.TaskObject pidMotorTaskObj;
+    private final TrcTaskMgr.TaskObject stopMotorTaskObj;
     private boolean active = false;
     private double syncGain = 0.0;
     private double positionScale = 1.0;
@@ -149,6 +148,7 @@ public class TrcPidMotor
         this.powerCompensation = powerCompensation;
         TrcTaskMgr taskMgr = TrcTaskMgr.getInstance();
         pidMotorTaskObj = taskMgr.createTask(instanceName + ".pidMotorTask", this::pidMotorTask);
+        stopMotorTaskObj = taskMgr.createTask(instanceName + ".stopMotorTask", this::stopMotorTask);
     }   //TrcPidMotor
 
     /**
@@ -247,7 +247,7 @@ public class TrcPidMotor
      * @param tracePidInfo specifies true to enable tracing of PID info, false otherwise.
      * @param battery specifies the battery object to get battery info for the message.
      */
-    public void setMsgTracer(TrcDbgTrace tracer, boolean tracePidInfo, TrcRobotBattery battery)
+    public synchronized void setMsgTracer(TrcDbgTrace tracer, boolean tracePidInfo, TrcRobotBattery battery)
     {
         this.msgTracer = tracer;
         this.tracePidInfo = tracePidInfo;
@@ -310,14 +310,14 @@ public class TrcPidMotor
      *
      * @return true if PID motor is active, false otherwise.
      */
-    public boolean isActive()
+    public synchronized boolean isActive()
     {
         final String funcName = "isActive";
 
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", Boolean.toString(active));
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", active);
         }
 
         return active;
@@ -326,7 +326,7 @@ public class TrcPidMotor
     /**
      * This method cancels a previous active PID motor operation.
      */
-    public void cancel()
+    public synchronized void cancel()
     {
         final String funcName = "cancel";
 
@@ -424,7 +424,7 @@ public class TrcPidMotor
      * @param beepHighFrequency specifies the high frequency beep.
      * @param beepDuration specifies the beep duration.
      */
-    public void setBeep(TrcTone beepDevice, double beepLowFrequency, double beepHighFrequency, double beepDuration)
+    public synchronized void setBeep(TrcTone beepDevice, double beepLowFrequency, double beepHighFrequency, double beepDuration)
     {
         final String funcName = "setBeep";
 
@@ -471,7 +471,7 @@ public class TrcPidMotor
      *                     stalled will the stalled condition be reset. If this is set to zero, the stalled condition
      *                     won't be cleared.
      */
-    public void setStallProtection(double stallMinPower, double stallTimeout, double resetTimeout)
+    public synchronized void setStallProtection(double stallMinPower, double stallTimeout, double resetTimeout)
     {
         final String funcName = "setStallProtection";
 
@@ -498,7 +498,7 @@ public class TrcPidMotor
      *                timeout, the operation will be canceled and the event will be signaled. If no timeout is
      *                specified, it should be set to zero.
      */
-    private void setTarget(double target, boolean holdTarget, TrcEvent event, double timeout)
+    private synchronized void setTarget(double target, boolean holdTarget, TrcEvent event, double timeout)
     {
         final String funcName = "setTarget";
 
@@ -541,7 +541,7 @@ public class TrcPidMotor
             expiredTime += TrcUtil.getCurrentTime();
         }
         //
-        // Set the PID motor task active.
+        // Set the PID motor task enabled.
         //
         setTaskEnabled(true);
 
@@ -585,7 +585,7 @@ public class TrcPidMotor
      * @param rangeHigh specifies the power range high limit.
      * @param stopPid specifies true to stop previous PID operation, false otherwise.
      */
-    private void setPower(double power, double rangeLow, double rangeHigh, boolean stopPid)
+    private synchronized void setPower(double power, double rangeLow, double rangeHigh, boolean stopPid)
     {
         final String funcName = "setPower";
 
@@ -800,7 +800,7 @@ public class TrcPidMotor
      * This method starts zero calibration mode by moving the motor with specified calibration power until a limit
      * switch is hit.
      */
-    public void zeroCalibrate()
+    public synchronized void zeroCalibrate()
     {
         final String funcName = "zeroCalibrate";
 
@@ -902,7 +902,7 @@ public class TrcPidMotor
      *
      * @param stopMotor specifies true if also stopping the physical motor(s), false otherwise.
      */
-    private void stop(boolean stopMotor)
+    private synchronized void stop(boolean stopMotor)
     {
         final String funcName = "stop";
 
@@ -946,13 +946,13 @@ public class TrcPidMotor
 
         if (enabled)
         {
-            pidMotorTaskObj.registerTask(TrcTaskMgr.TaskType.STOP_TASK);
-            pidMotorTaskObj.registerTask(TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
+            pidMotorTaskObj.registerTask(TrcTaskMgr.TaskType.OUTPUT_TASK);
+            stopMotorTaskObj.registerTask(TrcTaskMgr.TaskType.STOP_TASK);
         }
         else
         {
-            pidMotorTaskObj.unregisterTask(TrcTaskMgr.TaskType.STOP_TASK);
-            pidMotorTaskObj.unregisterTask(TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK);
+            pidMotorTaskObj.unregisterTask(TrcTaskMgr.TaskType.OUTPUT_TASK);
+            stopMotorTaskObj.unregisterTask(TrcTaskMgr.TaskType.STOP_TASK);
         }
         this.active = enabled;
 
@@ -963,17 +963,16 @@ public class TrcPidMotor
     }   //setTaskEnabled
 
     /**
-     * This method is called periodically to perform the PID motor task or when the competition mode is about to end
-     * to stop the PID motor operation if any. The PID motor task can be in one of two modes: zero calibration mode
-     * and normal mode. In zero calibration mode, it will drive the motor with the specified calibration power until
-     * it hits the lower limit switch. Then it will stop the motor and reset the motor position sensor. In normal mode,
-     * it calls the PID control to calculate and set the motor power. It also checks if the motor has reached the set
-     * target and disables the task.
+     * This method is called periodically to perform the PID motor task. The PID motor task can be in one of two
+     * modes: zero calibration mode and normal mode. In zero calibration mode, it will drive the motor with the
+     * specified calibration power until it hits the lower limit switch. Then it will stop the motor and reset the
+     * motor position sensor. In normal mode, it calls the PID control to calculate and set the motor power. It also
+     * checks if the motor has reached the set target and disables the task.
      *
      * @param taskType specifies the type of task being run.
      * @param runMode specifies the competition mode that is running.
      */
-    public void pidMotorTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
+    private synchronized void pidMotorTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
         final String funcName = "pidMotorTask";
 
@@ -982,95 +981,88 @@ public class TrcPidMotor
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "taskType=%s,runMode=%s", taskType, runMode);
         }
 
-        if (taskType == TaskType.POSTCONTINUOUS_TASK)
+        if (calibrating)
         {
-            if (calibrating)
+            //
+            // We are in zero calibration mode.
+            //
+            if (!motor1ZeroCalDone)
+            {
+                if (motor1.isLowerLimitSwitchActive())
+                {
+                    //
+                    // Done with motor 1 zero calibration. Call the motor directly to stop, do not call any of
+                    // the setPower or setMotorPower because they do not handle zero calibration mode.
+                    //
+                    motor1.resetPosition(false);
+                    motor1ZeroCalDone = true;
+                    motor1.set(0.0);
+                }
+                else
+                {
+                    motor1.set(calPower);
+                }
+            }
+
+            if (!motor2ZeroCalDone)
+            {
+                if (motor2.isLowerLimitSwitchActive())
+                {
+                    //
+                    // Done with motor 2 zero calibration. Call the motor directly to stop, do not call any of
+                    // the setPower or setMotorPower because they do not handle zero calibration mode.
+                    //
+                    motor2.resetPosition(false);
+                    motor2ZeroCalDone = true;
+                    motor2.set(0.0);
+                }
+                else
+                {
+                    motor2.set(calPower);
+                }
+            }
+
+            if (motor1ZeroCalDone && motor2ZeroCalDone)
             {
                 //
-                // We are in zero calibration mode.
+                // Done with zero calibration.
                 //
-                if (!motor1ZeroCalDone)
+                calibrating = false;
+                setTaskEnabled(false);
+            }
+        }
+        else
+        {
+            if (stalled ||
+                !holdTarget && pidCtrl.isOnTarget() ||
+                expiredTime != 0.0 && TrcUtil.getCurrentTime() >= expiredTime)
+            {
+                //
+                // We stop the motor if we either:
+                // - are stalled
+                // - have reached target and not holding target position
+                // - set a timeout and it has expired.
+                //
+                stop(true);
+                if (notifyEvent != null)
                 {
-                    if (motor1.isLowerLimitSwitchActive())
-                    {
-                        //
-                        // Done with motor 1 zero calibration. Call the motor directly to stop, do not call any of
-                        // the setPower or setMotorPower because they do not handle zero calibration mode.
-                        //
-                        motor1.resetPosition(false);
-                        motor1ZeroCalDone = true;
-                        motor1.set(0.0);
-                    }
-                    else
-                    {
-                        motor1.set(calPower);
-                    }
-                }
-
-                if (!motor2ZeroCalDone)
-                {
-                    if (motor2.isLowerLimitSwitchActive())
-                    {
-                        //
-                        // Done with motor 2 zero calibration. Call the motor directly to stop, do not call any of
-                        // the setPower or setMotorPower because they do not handle zero calibration mode.
-                        //
-                        motor2.resetPosition(false);
-                        motor2ZeroCalDone = true;
-                        motor2.set(0.0);
-                    }
-                    else
-                    {
-                        motor2.set(calPower);
-                    }
-                }
-
-                if (motor1ZeroCalDone && motor2ZeroCalDone)
-                {
-                    //
-                    // Done with zero calibration.
-                    //
-                    calibrating = false;
-                    setTaskEnabled(false);
+                    notifyEvent.set(true);
+                    notifyEvent = null;
                 }
             }
             else
             {
-                if (stalled ||
-                    !holdTarget && pidCtrl.isOnTarget() ||
-                    expiredTime != 0.0 && TrcUtil.getCurrentTime() >= expiredTime)
-                {
-                    //
-                    // We stop the motor if we either: 
-                    // - are stalled
-                    // - have reached target and not holding target position
-                    // - set a timeout and it has expired.
-                    //
-                    stop(true);
-                    if (notifyEvent != null)
-                    {
-                        notifyEvent.set(true);
-                        notifyEvent = null;
-                    }
-                }
-                else
-                {
-                    //
-                    // We are still in business. Call PID controller to calculate the motor power and set it.
-                    //
-                    motorPower = pidCtrl.getOutput();
-                    setPower(motorPower, MIN_MOTOR_POWER, MAX_MOTOR_POWER, false);
+                //
+                // We are still in business. Call PID controller to calculate the motor power and set it.
+                //
+                motorPower = pidCtrl.getOutput();
+                setPower(motorPower, MIN_MOTOR_POWER, MAX_MOTOR_POWER, false);
 
-                    if (msgTracer != null && tracePidInfo)
-                    {
-                        pidCtrl.printPidInfo(msgTracer, TrcUtil.getCurrentTime(), battery);
-                    }
+                if (msgTracer != null && tracePidInfo)
+                {
+                    pidCtrl.printPidInfo(msgTracer, TrcUtil.getCurrentTime(), battery);
                 }
             }
-        }
-        else if (taskType == TaskType.STOP_TASK)
-        {
-            stop(true);
         }
 
         if (debugEnabled)
@@ -1078,5 +1070,29 @@ public class TrcPidMotor
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
         }
     }   //pidMotorTask
+
+    /**
+     * This method is called when the competition mode is about to end to stop the PID motor operation if any.
+     *
+     * @param taskType specifies the type of task being run.
+     * @param runMode specifies the competition mode that is running.
+     */
+    private void stopMotorTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
+    {
+        final String funcName = "stopMotorTask";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "taskType=%s,runMode=%s", taskType, runMode);
+        }
+
+
+        stop(true);
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
+        }
+    }   //stopMotorTask
 
 }   //class TrcPidMotor

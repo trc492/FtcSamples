@@ -52,16 +52,6 @@ public class FtcMRColorSensor extends TrcSensor<FtcMRColorSensor.DataType>
     }   //enum DataType
 
     public ModernRoboticsI2cColorSensor sensor;
-    private int argbData = 0;
-    private long argbTagId = -1;
-    private int redData = 0;
-    private long redTagId = -1;
-    private int greenData = 0;
-    private long greenTagId = -1;
-    private int blueData = 0;
-    private long blueTagId = -1;
-    private int alphaData = 0;
-    private long alphaTagId = -1;
 
     /**
      * Constructor: Creates an instance of the object.
@@ -107,53 +97,27 @@ public class FtcMRColorSensor extends TrcSensor<FtcMRColorSensor.DataType>
     {
         final String funcName = "getRawData";
         SensorData<Integer> data = null;
-        long currTagId = FtcOpMode.getLoopCounter();
 
         switch (dataType)
         {
             case COLOR_NUMBER:
-                if (currTagId != argbTagId)
-                {
-                    argbData = sensor.argb();
-                    argbTagId = currTagId;
-                }
-                data = new SensorData<>(TrcUtil.getCurrentTime(), argbData);
+                data = new SensorData<>(TrcUtil.getCurrentTime(), sensor.argb());
                 break;
 
             case RED:
-                if (currTagId != redTagId)
-                {
-                    redData = sensor.red();
-                    redTagId = currTagId;
-                }
-                data = new SensorData<>(TrcUtil.getCurrentTime(), redData);
+                data = new SensorData<>(TrcUtil.getCurrentTime(), sensor.red());
                 break;
 
             case GREEN:
-                if (currTagId != greenTagId)
-                {
-                    greenData = sensor.green();
-                    greenTagId = currTagId;
-                }
-                data = new SensorData<>(TrcUtil.getCurrentTime(), greenData);
+                data = new SensorData<>(TrcUtil.getCurrentTime(), sensor.green());
                 break;
 
             case BLUE:
-                if (currTagId != blueTagId)
-                {
-                    blueData = sensor.blue();
-                    blueTagId = currTagId;
-                }
-                data = new SensorData<>(TrcUtil.getCurrentTime(), blueData);
+                data = new SensorData<>(TrcUtil.getCurrentTime(), sensor.blue());
                 break;
 
             case WHITE:
-                if (currTagId != alphaTagId)
-                {
-                    alphaData = sensor.alpha();
-                    alphaTagId = currTagId;
-                }
-                data = new SensorData<>(TrcUtil.getCurrentTime(), alphaData);
+                data = new SensorData<>(TrcUtil.getCurrentTime(), sensor.alpha());
                 break;
         }
 

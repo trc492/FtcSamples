@@ -43,8 +43,6 @@ public class FtcDigitalInput extends TrcDigitalInput
 
     private DigitalChannel digitalInput;
     private boolean inverted = false;
-    private boolean state = false;
-    private long stateTagId = -1;
 
     /**
      * Constructor: Creates an instance of the object.
@@ -81,7 +79,7 @@ public class FtcDigitalInput extends TrcDigitalInput
      *
      * @param inverted specifies true to invert the digital input, false otherwise.
      */
-    public void setInverted(boolean inverted)
+    public synchronized void setInverted(boolean inverted)
     {
         this.inverted = inverted;
     }   //setInverted
@@ -96,21 +94,15 @@ public class FtcDigitalInput extends TrcDigitalInput
      * @return true if the digital input sensor is active, false otherwise.
      */
     @Override
-    public boolean isActive()
+    public synchronized boolean isActive()
     {
         final String funcName = "isActive";
-        long currTagId = FtcOpMode.getLoopCounter();
-
-        if (currTagId != stateTagId)
-        {
-            state = digitalInput.getState() ^ inverted;
-            stateTagId = currTagId;
-        }
+        boolean state = digitalInput.getState() ^ inverted;
 
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", Boolean.toString(state));
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", state);
         }
 
         return state;

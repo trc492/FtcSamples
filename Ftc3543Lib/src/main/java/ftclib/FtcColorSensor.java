@@ -59,11 +59,6 @@ public class FtcColorSensor extends TrcSensor<FtcColorSensor.DataType>
     }   //enum DataType
 
     public ColorSensor sensor;
-    private int argbData = 0;
-    private long argbTagId = -1;
-    private int[] rgbaData = new int[4];
-    private long rgbaTagId = -1;
-    private float hsvValues[] = {0.0f, 0.0f, 0.0f};
 
     /**
      * Constructor: Creates an instance of the object.
@@ -105,53 +100,45 @@ public class FtcColorSensor extends TrcSensor<FtcColorSensor.DataType>
      * @return raw sensor data of the specified index and type.
      */
     @Override
-    public SensorData<Double> getRawData(int index, DataType dataType)
+    public synchronized SensorData<Double> getRawData(int index, DataType dataType)
     {
         final String funcName = "getRawData";
-        SensorData<Double> data = null;
-        long currTagId = FtcOpMode.getLoopCounter();
+        SensorData<Double> data;
         double value = 0.0;
 
         if (dataType == DataType.COLOR_NUMBER)
         {
-            if (currTagId != argbTagId)
-            {
-                argbData = sensor.argb();
-                argbTagId = currTagId;
-            }
-
-            value = argbData;
+            value = sensor.argb();
         }
         else
         {
-            if (currTagId != rgbaTagId)
+            int[] rgbaData = new int[4];
+
+            NormalizedRGBA normalizedColors = ((NormalizedColorSensor)sensor).getNormalizedColors();
+            rgbaData[0] = (int)(normalizedColors.red*100000.0);
+            rgbaData[1] = (int)(normalizedColors.green*100000.0);
+            rgbaData[2] = (int)(normalizedColors.blue*100000.0);
+            rgbaData[3] = (int)(normalizedColors.alpha*100000.0);
+
+            int max = rgbaData[0];
+            for (int i = 1; i < rgbaData.length; i++)
             {
-                NormalizedRGBA normalizedColors = ((NormalizedColorSensor)sensor).getNormalizedColors();
-                rgbaData[0] = (int)(normalizedColors.red*100000.0);
-                rgbaData[1] = (int)(normalizedColors.green*100000.0);
-                rgbaData[2] = (int)(normalizedColors.blue*100000.0);
-                rgbaData[3] = (int)(normalizedColors.alpha*100000.0);
-
-                int max = rgbaData[0];
-                for (int i = 1; i < rgbaData.length; i++)
+                if (rgbaData[i] > max)
                 {
-                    if (rgbaData[i] > max)
-                    {
-                        max = rgbaData[i];
-                    }
+                    max = rgbaData[i];
                 }
-
-                if (max > 255)
-                {
-                    for (int i = 0; i < rgbaData.length; i++)
-                    {
-                        rgbaData[i] = (int)((rgbaData[i]/(double)max)*255.0);
-                    }
-                }
-
-                rgbaTagId = currTagId;
-                Color.RGBToHSV(rgbaData[0], rgbaData[1], rgbaData[2], hsvValues);
             }
+
+            if (max > 255)
+            {
+                for (int i = 0; i < rgbaData.length; i++)
+                {
+                    rgbaData[i] = (int)((rgbaData[i]/(double)max)*255.0);
+                }
+            }
+
+            float hsvValues[] = {0.0f, 0.0f, 0.0f};
+            Color.RGBToHSV(rgbaData[0], rgbaData[1], rgbaData[2], hsvValues);
 
             switch (dataType)
             {

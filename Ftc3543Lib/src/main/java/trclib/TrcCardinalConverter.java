@@ -85,7 +85,8 @@ public class TrcCardinalConverter<D>
         this.sensor = sensor;
         this.dataType = dataType;
         numAxes = sensor.getNumAxes();
-        converterTaskObj = TrcTaskMgr.getInstance().createTask(instanceName + ".converterTask", this::converterTask);
+        converterTaskObj = TrcTaskMgr.getInstance().createTask(
+                instanceName + ".converterTask", this::converterTask);
 
         cardinalRangeLows = new double[numAxes];
         cardinalRangeHighs = new double[numAxes];
@@ -116,7 +117,7 @@ public class TrcCardinalConverter<D>
      *
      * @return true if converter task is enabled, false otherwise.
      */
-    public boolean isEnabled()
+    public synchronized boolean isEnabled()
     {
         final String funcName = "isEnabled";
 
@@ -135,9 +136,9 @@ public class TrcCardinalConverter<D>
      *
      * @param enabled specifies true for enabling the converter, disabling it otherwise.
      */
-    public void setTaskEnabled(boolean enabled)
+    public synchronized void setEnabled(boolean enabled)
     {
-        final String funcName = "setTaskEnabled";
+        final String funcName = "setEnabled";
 
         if (debugEnabled)
         {
@@ -147,12 +148,12 @@ public class TrcCardinalConverter<D>
         if (!this.enabled && enabled)
         {
             reset();
-            converterTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            converterTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);//STANDALONE_TASK, 100);
         }
         else if (this.enabled && !enabled)
         {
             reset();
-            converterTaskObj.unregisterTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            converterTaskObj.unregisterTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);//STANDALONE_TASK);
         }
         this.enabled = enabled;
 
@@ -160,14 +161,14 @@ public class TrcCardinalConverter<D>
         {
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
-    }   //setTaskEnabled
+    }   //setEnabled
 
     /**
      * This method resets the indexed converter.
      *
      * @param index specifies the axis index.
      */
-    public void reset(int index)
+    public synchronized void reset(int index)
     {
         final String funcName = "reset";
 
@@ -184,7 +185,7 @@ public class TrcCardinalConverter<D>
     /**
      * This method resets the converter of all axes.
      */
-    public void reset()
+    public synchronized void reset()
     {
         final String funcName = "reset";
 
@@ -207,7 +208,7 @@ public class TrcCardinalConverter<D>
      * @param rangeLow specifies the low value of the range.
      * @param rangeHigh specifies the high value of the range.
      */
-    public void setCardinalRange(int index, double rangeLow, double rangeHigh)
+    public synchronized void setCardinalRange(int index, double rangeLow, double rangeHigh)
     {
         final String funcName = "setCardinalRange";
 
@@ -233,7 +234,7 @@ public class TrcCardinalConverter<D>
      * @param index specifies the axis index.
      * @return converted cartesian data.
      */
-    public TrcSensor.SensorData<Double> getCartesianData(int index)
+    public synchronized TrcSensor.SensorData<Double> getCartesianData(int index)
     {
         final String funcName = "getCartesianData";
         TrcSensor.SensorData<Double> data = new TrcSensor.SensorData<>(
@@ -260,7 +261,7 @@ public class TrcCardinalConverter<D>
      * @param taskType specifies the type of task being run.
      * @param runMode specifies the competition mode that is running.
      */
-    public void converterTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
+    private synchronized void converterTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
         final String funcName = "converterTask";
 

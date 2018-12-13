@@ -31,11 +31,12 @@ import trclib.TrcDbgTrace;
  */
 public class FtcValueMenu extends FtcMenu
 {
-    private double minValue = 0.0;
-    private double maxValue = 0.0;
-    private double valueStep = 0.0;
-    private double currValue = 0.0;
-    private String valueFormat = null;
+    private final double minValue;
+    private final double maxValue ;
+    private final double valueStep;
+    private final String valueFormat;
+    private double currValue;
+    private double multiplier = 1.0;
     private FtcMenu childMenu = null;
 
     /**
@@ -59,8 +60,8 @@ public class FtcValueMenu extends FtcMenu
         this.minValue = minValue;
         this.maxValue = maxValue;
         this.valueStep = valueStep;
-        this.currValue = defaultValue;
         this.valueFormat = valueFormat;
+        this.currValue = defaultValue;
     }   //FtcValueMenu
 
     /**
@@ -108,11 +109,12 @@ public class FtcValueMenu extends FtcMenu
     /**
      * This method increases the current value by valueStep. If the value exceeds maxValue, it is capped at maxValue.
      */
+    @Override
     public void menuUp()
     {
         final String funcName = "menuUp";
 
-        currValue += valueStep;
+        currValue += valueStep*multiplier;
         if (currValue > maxValue)
         {
             currValue = maxValue;
@@ -128,11 +130,12 @@ public class FtcValueMenu extends FtcMenu
     /**
      * This method decreases the current value by valueStep. If the value is below minValue, it is capped at minValue.
      */
+    @Override
     public void menuDown()
     {
         final String funcName = "menuDown";
 
-        currValue -= valueStep;
+        currValue -= valueStep*multiplier;
         if (currValue < minValue)
         {
             currValue = minValue;
@@ -144,6 +147,46 @@ public class FtcValueMenu extends FtcMenu
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "! (value=%f)", currValue);
         }
     }   //menuDown
+
+    /**
+     * This method increases the multiplier of valueStep by 10 times.
+     */
+    @Override
+    public void menuAltUp()
+    {
+        final String funcName = "menuAltUp";
+
+        if (currValue + multiplier*valueStep*10.0 <= maxValue)
+        {
+            multiplier *= 10.0;
+        }
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "! (multiplier=%f)", multiplier);
+        }
+    }   //menuAltUp
+
+    /**
+     * This method decreases the multiplier of valueStep by 10 times.
+     */
+    @Override
+    public void menuAltDown()
+    {
+        final String funcName = "menuAltDown";
+
+        if (currValue - multiplier*valueStep/10.0 >= minValue)
+        {
+            multiplier /= 10.0;
+        }
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "! (multiplier=%f)", multiplier);
+        }
+    }   //menuAltDown
 
     /**
      * This method returns the child menu.

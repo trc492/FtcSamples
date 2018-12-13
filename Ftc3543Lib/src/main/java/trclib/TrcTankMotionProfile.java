@@ -29,8 +29,6 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.OptionalDouble;
-import java.util.stream.Stream;
 
 public class TrcTankMotionProfile
 {
@@ -62,7 +60,13 @@ public class TrcTankMotionProfile
             in.readLine(); // Get rid of the first line
             while ((line = in.readLine()) != null)
             {
-                double[] parts = Arrays.stream(line.split(",")).mapToDouble(Double::parseDouble).toArray();
+//                double[] parts = Arrays.stream(line.split(",")).mapToDouble(Double::parseDouble).toArray();
+                String[] tokens = line.split(",");
+                double[] parts = new double[tokens.length];
+                for (int i = 0; i < parts.length; i++)
+                {
+                    parts[i] = Double.parseDouble(tokens[i]);
+                }
                 if (parts.length != 8)
                     throw new IllegalArgumentException("There must be 8 columns in the csv file!");
                 TrcMotionProfilePoint point = new TrcMotionProfilePoint(parts[0], parts[1], parts[2], parts[3],
@@ -132,21 +136,49 @@ public class TrcTankMotionProfile
 
     public double getMinTimeStep()
     {
-        OptionalDouble minTimeStep = Stream.concat(Arrays.stream(leftPoints), Arrays.stream(rightPoints))
-            .mapToDouble(p -> p.timeStep).min();
-        if (minTimeStep.isPresent())
+//        OptionalDouble minTimeStep = Stream.concat(Arrays.stream(leftPoints), Arrays.stream(rightPoints))
+//            .mapToDouble(p -> p.timeStep).min();
+//        if (minTimeStep.isPresent())
+//        {
+//            return minTimeStep.getAsDouble();
+//        }
+//        throw new IllegalStateException("Empty motion profile!");
+        double minTimeStep = Double.POSITIVE_INFINITY;
+
+        for (int i = 0; i < leftPoints.length; i++)
         {
-            return minTimeStep.getAsDouble();
+            if (leftPoints[i].timeStep < minTimeStep)
+            {
+                minTimeStep = leftPoints[i].timeStep;
+            }
         }
-        throw new IllegalStateException("Empty motion profile!");
+
+        for (int i = 0; i < rightPoints.length; i++)
+        {
+            if (rightPoints[i].timeStep < minTimeStep)
+            {
+                minTimeStep = leftPoints[i].timeStep;
+            }
+        }
+
+        if (minTimeStep == Double.POSITIVE_INFINITY)
+        {
+            throw new IllegalStateException("Empty motion profile!");
+        }
+        else
+        {
+            return minTimeStep;
+        }
     }
 
     public TrcTankMotionProfile copy()
     {
-        TrcMotionProfilePoint[] left = Arrays.stream(leftPoints).map(TrcMotionProfilePoint::new)
-            .toArray(TrcMotionProfilePoint[]::new);
-        TrcMotionProfilePoint[] right = Arrays.stream(rightPoints).map(TrcMotionProfilePoint::new)
-            .toArray(TrcMotionProfilePoint[]::new);
+//        TrcMotionProfilePoint[] left = Arrays.stream(leftPoints).map(TrcMotionProfilePoint::new)
+//            .toArray(TrcMotionProfilePoint[]::new);
+//        TrcMotionProfilePoint[] right = Arrays.stream(rightPoints).map(TrcMotionProfilePoint::new)
+//            .toArray(TrcMotionProfilePoint[]::new);
+        TrcMotionProfilePoint[] left = Arrays.copyOf(leftPoints, leftPoints.length);
+        TrcMotionProfilePoint[] right = Arrays.copyOf(rightPoints, rightPoints.length);
         return new TrcTankMotionProfile(left, right);
     }
 

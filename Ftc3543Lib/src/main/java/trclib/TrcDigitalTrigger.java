@@ -89,9 +89,9 @@ public class TrcDigitalTrigger
      *
      * @param enabled specifies true to enable the task, false to disable.
      */
-    public void setTaskEnabled(boolean enabled)
+    public synchronized void setEnabled(boolean enabled)
     {
-        final String funcName = "setTaskEnabled";
+        final String funcName = "setEnabled";
 
         if (debugEnabled)
         {
@@ -101,7 +101,7 @@ public class TrcDigitalTrigger
         if (enabled)
         {
             prevState = null;
-            triggerTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);
+            triggerTaskObj.registerTask(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK);    //TODO: should use INPUT_TASK
         }
         else
         {
@@ -112,7 +112,7 @@ public class TrcDigitalTrigger
         {
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC);
         }
-    }   //setTaskEnabled
+    }   //setEnabled
 
     /**
      * This method is called periodically to check if the digital input device has changed state.
@@ -120,7 +120,7 @@ public class TrcDigitalTrigger
      * @param taskType specifies the type of task being run.
      * @param runMode specifies the competition mode that is running. (e.g. Autonomous, TeleOp, Test).
      */
-    public void triggerTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
+    private synchronized void triggerTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
         final String funcName = "triggerTask";
         boolean currState = digitalInput.isActive();

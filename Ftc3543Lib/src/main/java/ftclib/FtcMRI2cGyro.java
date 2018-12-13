@@ -22,7 +22,9 @@
 
 package ftclib;
 
+import com.qualcomm.robotcore.hardware.HardwareDevice;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.I2cDeviceSynch;
 
 import trclib.TrcDbgTrace;
 import trclib.TrcGyro;
@@ -83,7 +85,6 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice
     private static final byte CMD_RESET_Z_INTEGRATOR= 0x52;
     private static final byte CMD_WRITE_EEPROM_DATA = 0x57;
 
-    private int readerId = -1;
     private boolean calibrating = false;
     private int xSign = 1;
     private int ySign = 1;
@@ -106,8 +107,10 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice
             dbgTrace = new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
+        deviceSynch.setDeviceInfo(HardwareDevice.Manufacturer.ModernRobotics, "MR Gyro Sensor");
+        deviceSynch.setBufferedReadWindow(READ_START, READ_LENGTH, I2cDeviceSynch.ReadMode.REPEAT, READ_LENGTH);
+
         resetZIntegrator();
-        readerId = addReader(instanceName, READ_START, READ_LENGTH);
     }   //FtcMRI2cGyro
 
     /**
@@ -135,7 +138,7 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice
     /**
      * This method initiates the gyro calibration. The process may take a little time to complete.
      */
-    public void calibrate()
+    public synchronized void calibrate()
     {
         final String funcName = "calibrate";
 
@@ -154,7 +157,7 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice
      *
      * @return true if calibration is still in progress, false otherwise.
      */
-    public boolean isCalibrating()
+    public synchronized boolean isCalibrating()
     {
         final String funcName = "isCalibrating";
 
@@ -172,10 +175,10 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice
      *
      * @return heading data in the range of 0 and 359 inclusive.
      */
-    public TrcSensor.SensorData<Double> getHeading()
+    public synchronized TrcSensor.SensorData<Double> getHeading()
     {
         final String funcName = "getHeading";
-        byte[] regData = getData(readerId);
+        byte[] regData = readData(READ_START, READ_LENGTH);
         int value = zSign*TrcUtil.bytesToInt(
                 regData[REG_HEADING_LSB - READ_START], regData[REG_HEADING_MSB - READ_START]);
         //
@@ -183,7 +186,7 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice
         // So we are reversing it.
         //
         TrcSensor.SensorData<Double> data = new TrcSensor.SensorData<>(
-                getDataTimestamp(readerId), (double)((360 - value)%360));
+                TrcUtil.getCurrentTime(), (double)((360 - value)%360));
 
         if (debugEnabled)
         {
@@ -200,7 +203,7 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice
      *
      * @return integrated Z value.
      */
-    public TrcSensor.SensorData<Double> getIntegratedZ()
+    public synchronized TrcSensor.SensorData<Double> getIntegratedZ()
     {
         final String funcName = "getIntegratedZ";
 
@@ -210,7 +213,7 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice
         }
 
         TrcSensor.SensorData<Double> data;
-        byte[] regData = getData(readerId);
+        byte[] regData = readData(READ_START, READ_LENGTH);
         //
         // MR gyro IntegratedZ is decreasing when turning clockwise. This is opposite to convention.
         // So we are reversing it.
@@ -219,7 +222,7 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice
         {
             int value = zSign * TrcUtil.bytesToInt(
                     regData[REG_INTEGRATED_Z_LSB - READ_START], regData[REG_INTEGRATED_Z_MSB - READ_START]);
-            data = new TrcSensor.SensorData<>(getDataTimestamp(readerId), (double)-value);
+            data = new TrcSensor.SensorData<>(TrcUtil.getCurrentTime(), (double)-value);
         }
         else
         {
@@ -240,12 +243,12 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice
      *
      * @return raw X turn rate.
      */
-    public TrcSensor.SensorData<Double> getRawX()
+    public synchronized TrcSensor.SensorData<Double> getRawX()
     {
         final String funcName = "getRawX";
-        byte[] regData = getData(readerId);
+        byte[] regData = readData(READ_START, READ_LENGTH);
         TrcSensor.SensorData<Double> data = new TrcSensor.SensorData<>(
-                getDataTimestamp(readerId),
+                TrcUtil.getCurrentTime(),
                 -xSign*(double)TrcUtil.bytesToInt(
                         regData[REG_RAW_X_LSB - READ_START], regData[REG_RAW_X_MSB - READ_START]));
 
@@ -264,12 +267,12 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice
      *
      * @return raw Y turn rate.
      */
-    public TrcSensor.SensorData<Double> getRawY()
+    public synchronized TrcSensor.SensorData<Double> getRawY()
     {
         final String funcName = "getRawY";
-        byte[] regData = getData(readerId);
+        byte[] regData = readData(READ_START, READ_LENGTH);
         TrcSensor.SensorData<Double> data = new TrcSensor.SensorData<>(
-                getDataTimestamp(readerId),
+                TrcUtil.getCurrentTime(),
                 -ySign*(double)TrcUtil.bytesToInt(
                         regData[REG_RAW_Y_LSB - READ_START], regData[REG_RAW_Y_MSB - READ_START]));
 
@@ -288,12 +291,12 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice
      *
      * @return raw Z turn rate.
      */
-    public TrcSensor.SensorData<Double> getRawZ()
+    public synchronized TrcSensor.SensorData<Double> getRawZ()
     {
         final String funcName = "getRawZ";
-        byte[] regData = getData(readerId);
+        byte[] regData = readData(READ_START, READ_LENGTH);
         TrcSensor.SensorData<Double> data = new TrcSensor.SensorData<>(
-                getDataTimestamp(readerId),
+                TrcUtil.getCurrentTime(),
                 -zSign*(double)TrcUtil.bytesToInt(
                         regData[REG_RAW_Z_LSB - READ_START], regData[REG_RAW_Z_MSB - READ_START]));
 
@@ -312,12 +315,12 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice
      *
      * @return Z offset.
      */
-    public TrcSensor.SensorData<Double> getZOffset()
+    public synchronized TrcSensor.SensorData<Double> getZOffset()
     {
         final String funcName = "getZOffset";
-        byte[] regData = getData(readerId);
+        byte[] regData = readData(READ_START, READ_LENGTH);
         TrcSensor.SensorData<Double> data = new TrcSensor.SensorData<>(
-                getDataTimestamp(readerId),
+                TrcUtil.getCurrentTime(),
                 (double)TrcUtil.bytesToInt(
                         regData[REG_Z_OFFSET_LSB - READ_START], regData[REG_Z_OFFSET_MSB - READ_START]));
 
@@ -336,12 +339,12 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice
      *
      * @return Z scaling coefficient.
      */
-    public TrcSensor.SensorData<Double> getZScaling()
+    public synchronized TrcSensor.SensorData<Double> getZScaling()
     {
         final String funcName = "getZScaling";
-        byte[] regData = getData(readerId);
+        byte[] regData = readData(READ_START, READ_LENGTH);
         TrcSensor.SensorData<Double> data = new TrcSensor.SensorData<>(
-                getDataTimestamp(readerId),
+                TrcUtil.getCurrentTime(),
                 (double)TrcUtil.bytesToInt(
                         regData[REG_Z_SCALING_LSB - READ_START], regData[REG_Z_SCALING_MSB - READ_START]));
 
@@ -424,7 +427,7 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice
      * @param inverted specifies true to invert x-axis, false otherwise.
      */
     @Override
-    public void setXInverted(boolean inverted)
+    public synchronized void setXInverted(boolean inverted)
     {
         xSign = inverted? -1: 1;
     }   //setXInverted
@@ -436,7 +439,7 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice
      * @param inverted specifies true to invert y-axis, false otherwise.
      */
     @Override
-    public void setYInverted(boolean inverted)
+    public synchronized void setYInverted(boolean inverted)
     {
         ySign = inverted? -1: 1;
     }   //setYInverted
@@ -448,7 +451,7 @@ public class FtcMRI2cGyro extends FtcMRI2cDevice
      * @param inverted specifies true to invert z-axis, false otherwise.
      */
     @Override
-    public void setZInverted(boolean inverted)
+    public synchronized void setZInverted(boolean inverted)
     {
         zSign = inverted? -1: 1;
     }   //setZInverted

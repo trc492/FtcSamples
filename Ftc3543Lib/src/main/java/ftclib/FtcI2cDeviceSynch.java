@@ -250,7 +250,7 @@ public class FtcI2cDeviceSynch extends I2cDeviceSynchDevice<I2cDeviceSynch>
     public byte[] readData(int startReg, int len)
     {
         final String funcName = "readData";
-        byte[] data = device.read(startReg, len);
+        byte[] data = device.read(startReg == -1? 0: startReg, len);
 
         if (debugEnabled)
         {

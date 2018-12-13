@@ -34,8 +34,6 @@ public class TrcSwerveDriveBase extends TrcSimpleDriveBase
 {
     private final TrcSwerveModule lfModule, rfModule, lrModule, rrModule;
     private final double wheelBaseWidth, wheelBaseLength, wheelBaseDiagonal;
-    private Double prevTimestamp = null;
-    private double prevLfEnc, prevRfEnc, prevLrEnc, prevRrEnc;
 
     /**
      * Constructor: Create an instance of the 4-wheel swerve drive base.
@@ -246,7 +244,7 @@ public class TrcSwerveDriveBase extends TrcSimpleDriveBase
         {
             if(inverted)
             {
-                dbgTrace.traceWarn(
+                globalTracer.traceWarn(
                     funcName, "You should not be using inverted and field reference frame at the same time!");
             }
 
@@ -283,10 +281,10 @@ public class TrcSwerveDriveBase extends TrcSimpleDriveBase
 
         if (motorPowerMapper != null)
         {
-            lfPower = motorPowerMapper.translateMotorPower(lfPower, lfModule.getSpeed());
-            rfPower = motorPowerMapper.translateMotorPower(rfPower, rfModule.getSpeed());
-            lrPower = motorPowerMapper.translateMotorPower(lrPower, lrModule.getSpeed());
-            rrPower = motorPowerMapper.translateMotorPower(rrPower, rrModule.getSpeed());
+            lfPower = motorPowerMapper.translateMotorPower(lfPower, lfModule.getVelocity());
+            rfPower = motorPowerMapper.translateMotorPower(rfPower, rfModule.getVelocity());
+            lrPower = motorPowerMapper.translateMotorPower(lrPower, lrModule.getVelocity());
+            rrPower = motorPowerMapper.translateMotorPower(rrPower, rrModule.getVelocity());
         }
 
         lfModule.setSteerAngle(lfAngle);
@@ -306,10 +304,13 @@ public class TrcSwerveDriveBase extends TrcSimpleDriveBase
     }   //holonomicDrive
 
     /**
-     * This method is called periodically to monitor the encoders to update the odometry data.
+     * This method is called periodically to monitor the position sensors to update the odometry data. It assumes the
+     * caller has the odometry lock.
+     *
+     * @param odometry specifies the odometry object to be updated.
      */
     @Override
-    protected void updateOdometry()
+    protected void updateOdometry(Odometry odometry)
     {
         final String funcName = "updateOdometry";
 
@@ -317,13 +318,6 @@ public class TrcSwerveDriveBase extends TrcSimpleDriveBase
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK);
         }
-
-        double currTime = TrcUtil.getCurrentTime();
-
-        double lfEnc = lfModule.getPosition();
-        double rfEnc = rfModule.getPosition();
-        double lrEnc = lrModule.getPosition();
-        double rrEnc = rrModule.getPosition();
 
         double lfAngle = lfModule.getSteerAngle();
         double rfAngle = rfModule.getSteerAngle();
@@ -335,37 +329,24 @@ public class TrcSwerveDriveBase extends TrcSimpleDriveBase
         double angleCos = Math.cos(avgAngleRad);
         double angleSin = Math.sin(avgAngleRad);
 
-        //
-        // First time. Initialize all prevEnc readings.
-        //
-        if (prevTimestamp == null)
-        {
-            prevTimestamp = currTime;
-            prevLfEnc = lfEnc;
-            prevRfEnc = rfEnc;
-            prevLrEnc = lrEnc;
-            prevRrEnc = rrEnc;
-        }
-
-        double timeDelta = currTime - prevTimestamp;
+        double timeDelta = odometry.currTimestamp - odometry.prevTimestamp;
         double avgEncDelta = TrcUtil.average(
-            lfEnc - prevLfEnc, rfEnc - prevRfEnc, lrEnc - prevLrEnc, rrEnc - prevRrEnc);
-        double avgEncSpeed = timeDelta != 0.0? avgEncDelta/timeDelta: 0.0;
+                odometry.currPositions[MotorType.LEFT_FRONT.value] - odometry.prevPositions[MotorType.LEFT_FRONT.value],
+                odometry.currPositions[MotorType.RIGHT_FRONT.value] - odometry.prevPositions[MotorType.RIGHT_FRONT.value],
+                odometry.currPositions[MotorType.LEFT_REAR.value] - odometry.prevPositions[MotorType.LEFT_REAR.value],
+                odometry.currPositions[MotorType.RIGHT_REAR.value] - odometry.prevPositions[MotorType.RIGHT_REAR.value]);
+        double avgEncVel = timeDelta != 0.0 ? avgEncDelta / timeDelta : 0.0;
 
-        updateXOdometry(getRawXPosition() + avgEncDelta*angleCos, avgEncSpeed*angleCos);
-        updateYOdometry(getRawYPosition() + avgEncDelta*angleSin, avgEncSpeed*angleSin);
+        odometry.xRawPos = getRawXPosition() + avgEncDelta*angleCos;
+        odometry.xRawVel = avgEncVel*angleCos;
+        odometry.yRawPos = getRawYPosition() + avgEncDelta*angleSin;
+        odometry.yRawVel = avgEncVel*angleSin;
         //
         // Rotation position is only valid when the robot is doing turn-in-place.
         // In Swerve Drive, the wheels are steered in a diamond formation (i.e. tangential to the turning circle).
         // So the rotation position is the degree turned by the robot in the turning circle.
         //
-        updateRotationOdometry(getRawRotationPosition() + avgEncDelta);
-
-        prevTimestamp = currTime;
-        prevLfEnc = lfEnc;
-        prevRfEnc = rfEnc;
-        prevLrEnc = lrEnc;
-        prevRrEnc = rrEnc;
+        odometry.rotRawPos = getRawRotationPosition() + avgEncDelta;
 
         if (debugEnabled)
         {

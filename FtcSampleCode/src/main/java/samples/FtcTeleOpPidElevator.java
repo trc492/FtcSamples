@@ -71,7 +71,7 @@ public class FtcTeleOpPidElevator extends FtcOpMode implements TrcGameController
     //
 
     @Override
-    public void startMode(TrcRobot.RunMode prevMode)
+    public void startMode(TrcRobot.RunMode prevMode, TrcRobot.RunMode nextMode)
     {
         dashboard.clearDisplay();
     }   //startMode

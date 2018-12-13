@@ -75,7 +75,7 @@ public class FtcAutoK9PidLineFollow extends FtcOpMode
     //
 
     @Override
-    public void startMode(TrcRobot.RunMode prevMode)
+    public void startMode(TrcRobot.RunMode prevMode, TrcRobot.RunMode nextMode)
     {
         robot.startMode(TrcRobot.RunMode.AUTO_MODE);
         //
@@ -85,7 +85,7 @@ public class FtcAutoK9PidLineFollow extends FtcOpMode
     }   //startMode
 
     @Override
-    public void stopMode(TrcRobot.RunMode nextMode)
+    public void stopMode(TrcRobot.RunMode prevMode, TrcRobot.RunMode nextMode)
     {
         robot.stopMode(TrcRobot.RunMode.AUTO_MODE);
     }   //stopMode
@@ -110,7 +110,7 @@ public class FtcAutoK9PidLineFollow extends FtcOpMode
                     // Go forward slowly for 3 ft to find the line.
                     // If line is detected, PID drive will be interrupted.
                     //
-                    robot.lightTrigger.setTaskEnabled(true);
+                    robot.lightTrigger.setEnabled(true);
                     robot.drivePidCtrl.setOutputRange(-0.5, 0.5);
                     robot.pidDrive.setTarget(36.0, 0.0, false, event);
                     sm.addEvent(event);
@@ -133,7 +133,7 @@ public class FtcAutoK9PidLineFollow extends FtcOpMode
                     //
                     // Follow the line for 5 ft.
                     //
-                    robot.lightTrigger.setTaskEnabled(false);
+                    robot.lightTrigger.setEnabled(false);
                     robot.drivePidCtrl.setOutputRange(-0.3, 0.3);
                     robot.lightPidCtrl.setOutputRange(-0.3, 0.3);
                     robot.lineFollowDrive.setTarget(60.0, K9Robot.LIGHT_THRESHOLD, false, event);

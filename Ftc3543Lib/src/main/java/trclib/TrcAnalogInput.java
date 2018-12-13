@@ -148,7 +148,7 @@ public abstract class TrcAnalogInput extends TrcSensor<TrcAnalogInput.DataType>
         //
         if (dataIntegrator != null)
         {
-            dataIntegrator.setTaskEnabled(enabled);
+            dataIntegrator.setEnabled(enabled);
         }
     }   //setEnabled
 

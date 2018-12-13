@@ -45,8 +45,6 @@ public class FtcAnalogInput extends TrcAnalogInput
 
     private AnalogInput sensor;
     private double maxVoltage;
-    private double sensorData;
-    private long dataTagId = -1;
 
     /**
      * Constructor: Creates an instance of the object.
@@ -94,7 +92,7 @@ public class FtcAnalogInput extends TrcAnalogInput
     /**
      * This method calibrates the sensor.
      */
-    public void calibrate()
+    public synchronized void calibrate()
     {
         calibrate(DataType.INPUT_DATA);
     }   //calibrate
@@ -111,7 +109,7 @@ public class FtcAnalogInput extends TrcAnalogInput
      * @return raw sensor data of the specified type.
      */
     @Override
-    public SensorData<Double> getRawData(int index, DataType dataType)
+    public synchronized SensorData<Double> getRawData(int index, DataType dataType)
     {
         final String funcName = "getRawData";
         SensorData<Double> data;
@@ -121,13 +119,7 @@ public class FtcAnalogInput extends TrcAnalogInput
         //
         if (dataType == DataType.INPUT_DATA || dataType == DataType.NORMALIZED_DATA)
         {
-            long currTagId = FtcOpMode.getLoopCounter();
-            if (currTagId != dataTagId)
-            {
-                sensorData = sensor.getVoltage();
-                dataTagId = currTagId;
-            }
-
+            double sensorData = sensor.getVoltage();
             data = new SensorData<>(
                     TrcUtil.getCurrentTime(), dataType == DataType.INPUT_DATA? sensorData: sensorData/maxVoltage);
         }

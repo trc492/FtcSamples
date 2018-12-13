@@ -80,7 +80,7 @@ public class FtcAndroidGyro extends TrcGyro
      * @param enabled specifies true if enabling, false otherwise.
      */
     @Override
-    public void setEnabled(boolean enabled)
+    public synchronized void setEnabled(boolean enabled)
     {
         sensor.setEnabled(enabled);
         super.setEnabled(enabled);
@@ -90,7 +90,7 @@ public class FtcAndroidGyro extends TrcGyro
      * This method calibrates the sensor. If the sensor is not enabled, it must enable it first before starting
      * calibration. It will disable the sensor if it was disabled before calibration.
      */
-    public void calibrate()
+    public synchronized void calibrate()
     {
         boolean sensorEnabled = sensor.isEnabled();
 
@@ -118,7 +118,7 @@ public class FtcAndroidGyro extends TrcGyro
      * @return raw data of the specified type for the x-axis.
      */
     @Override
-    public SensorData<Double> getRawXData(DataType dataType)
+    public synchronized SensorData<Double> getRawXData(DataType dataType)
     {
         final String funcName = "getRawXData";
         SensorData<Double> data;
@@ -149,7 +149,7 @@ public class FtcAndroidGyro extends TrcGyro
      * @return raw data of the specified type for the y-axis.
      */
     @Override
-    public SensorData<Double> getRawYData(DataType dataType)
+    public synchronized SensorData<Double> getRawYData(DataType dataType)
     {
         final String funcName = "getRawYData";
         SensorData<Double> data;
@@ -180,7 +180,7 @@ public class FtcAndroidGyro extends TrcGyro
      * @return raw data of the specified type for the z-axis.
      */
     @Override
-    public SensorData<Double> getRawZData(DataType dataType)
+    public synchronized SensorData<Double> getRawZData(DataType dataType)
     {
         final String funcName = "getRawZData";
         SensorData<Double> data;

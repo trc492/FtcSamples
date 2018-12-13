@@ -73,6 +73,11 @@ public class FtcAndroidSensor extends TrcSensor implements SensorEventListener
         }
 
         sensorManager = (SensorManager)context.getSystemService(Context.SENSOR_SERVICE);
+        if (sensorManager == null)
+        {
+            throw new RuntimeException("Failed to get sensor service.");
+        }
+
         sensor = sensorManager.getDefaultSensor(sensorType);
         if (sensor == null)
         {
@@ -177,7 +182,7 @@ public class FtcAndroidSensor extends TrcSensor implements SensorEventListener
      * @param enabled specifies true to enable data listener, false otherwise.
      * @param samplingInterval specifies the maximum sampling interval in microseconds.
      */
-    public void setEnabled(boolean enabled, int samplingInterval)
+    public synchronized void setEnabled(boolean enabled, int samplingInterval)
     {
         final String funcName = "setEnabled";
 
@@ -213,7 +218,7 @@ public class FtcAndroidSensor extends TrcSensor implements SensorEventListener
      *
      * @return true if sensor is enabled, false otherwise.
      */
-    public boolean isEnabled()
+    public synchronized boolean isEnabled()
     {
         final String funcName = "isEnabled";
 
@@ -238,7 +243,7 @@ public class FtcAndroidSensor extends TrcSensor implements SensorEventListener
      * @return raw sensor data of the specified axis.
      */
     @Override
-    public SensorData<Double> getRawData(int index, Object dataType)
+    public synchronized SensorData<Double> getRawData(int index, Object dataType)
     {
         final String funcName = "getRawData";
         SensorData<Double> data = new SensorData<>(sensorData[index].timestamp, sensorData[index].value);
@@ -283,7 +288,7 @@ public class FtcAndroidSensor extends TrcSensor implements SensorEventListener
      * @param event specifies the sensor data.
      */
     @Override
-    public final void onSensorChanged(SensorEvent event)
+    public synchronized final void onSensorChanged(SensorEvent event)
     {
         final String funcName = "onSensorChanged";
 
