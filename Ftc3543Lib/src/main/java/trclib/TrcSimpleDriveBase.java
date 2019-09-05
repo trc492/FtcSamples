@@ -185,6 +185,17 @@ public class TrcSimpleDriveBase extends TrcDriveBase
         this(leftMotor, rightMotor, null);
     }   //TrcSimpleDriveBase
 
+    // CodeReview: Please explain what is this method for? Nobody is calling it. Why divide yScale by wheel base width?
+    /**
+     * This method sets the wheel base width of the robot drive base.
+     *
+     * @param width specifies the wheel base width.
+     */
+    public void setWheelBaseWidth(double width)
+    {
+        setPositionScales(xScale, yScale, yScale / width);
+    }   //setWheelBaseWidth
+
     /**
      * This method inverts direction of a given motor in the drive train.
      *
@@ -212,107 +223,112 @@ public class TrcSimpleDriveBase extends TrcDriveBase
      * This method implements tank drive where leftPower controls the left motors and right power controls the right
      * motors.
      *
+     * @param owner specifies the ID string of the caller for checking ownership, can be null if caller is not
+     *              ownership aware.
      * @param leftPower specifies left power value.
      * @param rightPower specifies right power value.
      * @param inverted specifies true to invert control (i.e. robot front becomes robot back).
      */
     @Override
-    public void tankDrive(double leftPower, double rightPower, boolean inverted)
+    public void tankDrive(String owner, double leftPower, double rightPower, boolean inverted)
     {
         final String funcName = "tankDrive";
 
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
-                "leftPower=%f,rightPower=%f,inverted=%s", leftPower, rightPower, inverted);
+                "owner=%s,leftPower=%f,rightPower=%f,inverted=%s", owner, leftPower, rightPower, inverted);
         }
 
-        leftPower = TrcUtil.clipRange(leftPower);
-        rightPower = TrcUtil.clipRange(rightPower);
-
-        if (inverted)
+        if (validateOwnership(owner))
         {
-            double swap = leftPower;
-            leftPower = -rightPower;
-            rightPower = -swap;
-        }
+            leftPower = TrcUtil.clipRange(leftPower);
+            rightPower = TrcUtil.clipRange(rightPower);
 
-        if (isGyroAssistEnabled())
-        {
-            double assistPower = getGyroAssistPower((leftPower - rightPower)/2.0);
-            leftPower += assistPower;
-            rightPower -= assistPower;
-            double maxMag = Math.max(Math.abs(leftPower), Math.abs(rightPower));
-            if (maxMag > 1.0)
+            if (inverted)
             {
-                leftPower /= maxMag;
-                rightPower /= maxMag;
+                double swap = leftPower;
+                leftPower = -rightPower;
+                rightPower = -swap;
             }
-        }
 
-        leftPower = clipMotorOutput(leftPower);
-        rightPower = clipMotorOutput(rightPower);
-
-        double wheelPower;
-
-        if (leftFrontMotor != null)
-        {
-            wheelPower = leftPower;
-            if (motorPowerMapper != null)
+            if (isGyroAssistEnabled())
             {
-                wheelPower = motorPowerMapper.translateMotorPower(wheelPower, leftFrontMotor.getVelocity());
+                double assistPower = getGyroAssistPower((leftPower - rightPower)/2.0);
+                leftPower += assistPower;
+                rightPower -= assistPower;
+                double maxMag = Math.max(Math.abs(leftPower), Math.abs(rightPower));
+                if (maxMag > 1.0)
+                {
+                    leftPower /= maxMag;
+                    rightPower /= maxMag;
+                }
             }
-            leftFrontMotor.set(wheelPower);
-        }
 
-        if (rightFrontMotor != null)
-        {
-            wheelPower = rightPower;
-            if (motorPowerMapper != null)
-            {
-                wheelPower = motorPowerMapper.translateMotorPower(wheelPower, rightFrontMotor.getVelocity());
-            }
-            rightFrontMotor.set(wheelPower);
-        }
+            leftPower = clipMotorOutput(leftPower);
+            rightPower = clipMotorOutput(rightPower);
 
-        if (leftRearMotor != null)
-        {
-            wheelPower = leftPower;
-            if (motorPowerMapper != null)
-            {
-                wheelPower = motorPowerMapper.translateMotorPower(wheelPower, leftRearMotor.getVelocity());
-            }
-            leftRearMotor.set(wheelPower);
-        }
+            double wheelPower;
 
-        if (rightRearMotor != null)
-        {
-            wheelPower = rightPower;
-            if (motorPowerMapper != null)
+            if (leftFrontMotor != null)
             {
-                wheelPower = motorPowerMapper.translateMotorPower(wheelPower, rightRearMotor.getVelocity());
+                wheelPower = leftPower;
+                if (motorPowerMapper != null)
+                {
+                    wheelPower = motorPowerMapper.translateMotorPower(wheelPower, leftFrontMotor.getVelocity());
+                }
+                leftFrontMotor.set(wheelPower);
             }
-            rightRearMotor.set(wheelPower);
-        }
 
-        if (leftMidMotor != null)
-        {
-            wheelPower = leftPower;
-            if (motorPowerMapper != null)
+            if (rightFrontMotor != null)
             {
-                wheelPower = motorPowerMapper.translateMotorPower(wheelPower, leftMidMotor.getVelocity());
+                wheelPower = rightPower;
+                if (motorPowerMapper != null)
+                {
+                    wheelPower = motorPowerMapper.translateMotorPower(wheelPower, rightFrontMotor.getVelocity());
+                }
+                rightFrontMotor.set(wheelPower);
             }
-            leftMidMotor.set(wheelPower);
-        }
 
-        if (rightMidMotor != null)
-        {
-            wheelPower = rightPower;
-            if (motorPowerMapper != null)
+            if (leftRearMotor != null)
             {
-                wheelPower = motorPowerMapper.translateMotorPower(wheelPower, rightMidMotor.getVelocity());
+                wheelPower = leftPower;
+                if (motorPowerMapper != null)
+                {
+                    wheelPower = motorPowerMapper.translateMotorPower(wheelPower, leftRearMotor.getVelocity());
+                }
+                leftRearMotor.set(wheelPower);
             }
-            rightMidMotor.set(wheelPower);
+
+            if (rightRearMotor != null)
+            {
+                wheelPower = rightPower;
+                if (motorPowerMapper != null)
+                {
+                    wheelPower = motorPowerMapper.translateMotorPower(wheelPower, rightRearMotor.getVelocity());
+                }
+                rightRearMotor.set(wheelPower);
+            }
+
+            if (leftMidMotor != null)
+            {
+                wheelPower = leftPower;
+                if (motorPowerMapper != null)
+                {
+                    wheelPower = motorPowerMapper.translateMotorPower(wheelPower, leftMidMotor.getVelocity());
+                }
+                leftMidMotor.set(wheelPower);
+            }
+
+            if (rightMidMotor != null)
+            {
+                wheelPower = rightPower;
+                if (motorPowerMapper != null)
+                {
+                    wheelPower = motorPowerMapper.translateMotorPower(wheelPower, rightMidMotor.getVelocity());
+                }
+                rightMidMotor.set(wheelPower);
+            }
         }
 
         if (debugEnabled)
@@ -322,13 +338,13 @@ public class TrcSimpleDriveBase extends TrcDriveBase
     }   //tankDrive
 
     /**
-     * This method is called periodically to monitor the position sensors to update the odometry data. It assumes the
-     * caller has the odometry lock.
+     * This method is called periodically to monitor the position sensors to update the odometry data.
      *
-     * @param odometry specifies the odometry object to be updated.
+     * @param motorsState specifies the state information of the drivebase motors for calculating pose.
+     * @return a TrcPose2D object describing the change in position since the last update.
      */
     @Override
-    protected void updateOdometry(Odometry odometry)
+    protected TrcPose2D updateOdometry(MotorsState motorsState)
     {
         final String funcName = "updateOdometry";
 
@@ -337,22 +353,51 @@ public class TrcSimpleDriveBase extends TrcDriveBase
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK);
         }
 
-        odometry.yRawPos = TrcUtil.average(
-                odometry.currPositions[MotorType.LEFT_FRONT.value], odometry.currPositions[MotorType.RIGHT_FRONT.value],
-                odometry.currPositions[MotorType.LEFT_REAR.value], odometry.currPositions[MotorType.RIGHT_REAR.value]);
-        odometry.yRawVel = TrcUtil.average(
-                odometry.currVelocities[MotorType.LEFT_FRONT.value], odometry.currVelocities[MotorType.RIGHT_FRONT.value],
-                odometry.currVelocities[MotorType.LEFT_REAR.value], odometry.currVelocities[MotorType.RIGHT_REAR.value]);
-        odometry.rotRawPos = TrcUtil.average(
-                odometry.currPositions[MotorType.LEFT_FRONT.value],
-                odometry.currPositions[MotorType.LEFT_REAR.value],
-                -odometry.currPositions[MotorType.RIGHT_FRONT.value],
-                -odometry.currPositions[MotorType.RIGHT_REAR.value]);
+        TrcPose2D odometry = new TrcPose2D();
+
+        odometry.x = 0;
+        odometry.y = TrcUtil.average(motorsState.motorPosDiffs) * yScale;
+
+        odometry.xVel = 0;
+        odometry.yVel = TrcUtil.average(motorsState.currVelocities) * xScale;
+
+        // Calculate heading and turn rate using positional info in case we don't have a gyro.
+        // Get the average of all left and right motors separately, since this drivebase may have between 2-6 motors
+        double lPos = 0, rPos = 0;
+        double lVel = 0, rVel = 0;
+
+        for (int i = 0; i < motorsState.motorPosDiffs.length; i++)
+        {
+            double posDiff = motorsState.motorPosDiffs[i];
+            double vel = motorsState.currVelocities[i];
+
+            if (i % 2 == 0)
+            {
+                lPos += posDiff;
+                lVel += vel;
+            }
+            else
+            {
+                rPos += posDiff;
+                rVel += vel;
+            }
+        }
+
+        double motorsPerSide = getNumMotors() / 2.0;
+        lPos /= motorsPerSide;
+        rPos /= motorsPerSide;
+        lVel /= motorsPerSide;
+        rVel /= motorsPerSide;
+
+        odometry.heading = Math.toDegrees((lPos - rPos) * rotScale);
+        odometry.turnRate = Math.toDegrees((lVel - rVel) * rotScale);
 
         if (debugEnabled)
         {
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
         }
+
+        return odometry;
     }   //updateOdometry
 
 }   //class TrcSimpleDriveBase

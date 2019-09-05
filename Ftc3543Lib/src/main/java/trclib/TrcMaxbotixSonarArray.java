@@ -117,6 +117,7 @@ public class TrcMaxbotixSonarArray
      *
      * @return instance name.
      */
+    @Override
     public String toString()
     {
         return instanceName;

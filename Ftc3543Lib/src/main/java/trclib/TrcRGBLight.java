@@ -193,6 +193,7 @@ public abstract class TrcRGBLight
      *
      * @return instance name.
      */
+    @Override
     public String toString()
     {
         return instanceName;

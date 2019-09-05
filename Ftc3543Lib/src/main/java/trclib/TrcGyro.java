@@ -285,6 +285,7 @@ public abstract class TrcGyro extends TrcSensor<TrcGyro.DataType>
      *
      * @return instance name.
      */
+    @Override
     public String toString()
     {
         return instanceName;
@@ -823,8 +824,10 @@ public abstract class TrcGyro extends TrcSensor<TrcGyro.DataType>
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.CALLBK, "index=%d", index);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.CALLBK,
-                               "=(timestamp=%.3f,value=%f", data.timestamp, data.value);
+            dbgTrace.traceExit(
+                    funcName, TrcDbgTrace.TraceLevel.CALLBK,
+                    "=(timestamp=%.3f,value=%f",
+                    data != null? data.timestamp: 0.0, data != null? data.value: 0.0);
         }
 
         return data;

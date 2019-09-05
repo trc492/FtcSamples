@@ -67,6 +67,7 @@ public abstract class TrcDigitalOutput
      *
      * @return instance name.
      */
+    @Override
     public String toString()
     {
         return instanceName;

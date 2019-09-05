@@ -202,6 +202,7 @@ public abstract class TrcI2cDevice
      *
      * @return instance name.
      */
+    @Override
     public String toString()
     {
         return instanceName;

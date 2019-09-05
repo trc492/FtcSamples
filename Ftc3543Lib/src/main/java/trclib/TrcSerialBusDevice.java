@@ -24,13 +24,13 @@ package trclib;
 
 import java.util.Arrays;
 import java.util.Locale;
-import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * This class implements a platform independent serial bus device. This class is intended to be inherited by a
  * platform dependent serial bus device such as I2C device or Serial Port device that provides synchronous methods
- * to access the device. It creates a request queue to allow both synchronous and asynchronous requests to be queued
- * for processing. The request queue is processed by a separate thread for asynchronous access.
+ * to access the device. Optionally, it creates a request queue to allow both synchronous and asynchronous requests
+ * to be queued for processing. The request queue is processed by a separate thread for asynchronous access. If
+ * no request queue is specified, only synchronous requests are allowed.
  */
 public abstract class TrcSerialBusDevice
 {
@@ -67,44 +67,39 @@ public abstract class TrcSerialBusDevice
      */
     public class Request
     {
-        public Object requestCtxt;
+        public Object requestId;
         public boolean readRequest;
         public int address;
         public byte[] buffer;
         public int length;
-        public boolean repeat;
-        public TrcEvent event;
-        public TrcNotifier.Receiver handler;
-        public boolean error;
+        public TrcEvent completionEvent;
+        public TrcNotifier.Receiver completionHandler;
         public boolean canceled;
 
         /**
          * Constructor: Create an instance of the object.
          *
-         * @param requestCtxt specifies the request context and is not interpreted by the TrcSerialBusDevice class.
+         * @param requestId specifies the request ID and is not interpreted by the TrcSerialBusDevice class.
          *                    it is just passed back to the requester's notification handler.
          * @param readRequest specifies true for a read request, false for a write request.
          * @param address specifies the data address if any, can be -1 if no address is required.
          * @param buffer specifies the buffer that contains data for a write request, ignored for read request.
          * @param length specifies the number of bytes to read or write.
-         * @param repeat specifies true to re-queue the request when completed.
-         * @param event specifies the event to signal when the request is completed, can be null if none specified.
-         * @param handler specifies the notification handler to call when the request is completed, can be null if
-         *                none specified.
+         * @param completionEvent specifies the event to signal when the request is completed.
+         * @param completionHandler specifies the notification handler to call when the request is completed,
+         *                          can be null if none specified.
          */
         public Request(
-            Object requestCtxt, boolean readRequest, int address, byte[] buffer, int length, boolean repeat,
-            TrcEvent event, TrcNotifier.Receiver handler)
+            Object requestId, boolean readRequest, int address, byte[] buffer, int length, TrcEvent completionEvent,
+            TrcNotifier.Receiver completionHandler)
         {
-            this.requestCtxt = requestCtxt;
+            this.requestId = requestId;
             this.readRequest = readRequest;
             this.address = address;
             this.buffer = buffer;
             this.length = length;
-            this.repeat = repeat;
-            this.event = event;
-            this.handler = handler;
-            this.error = false;
+            this.completionEvent = completionEvent;
+            this.completionHandler = completionHandler;
             this.canceled = false;
         }   //Request
 
@@ -113,30 +108,25 @@ public abstract class TrcSerialBusDevice
          *
          * @return request info string.
          */
+        @Override
         public String toString()
         {
-            return String.format(Locale.US, "%s: %s, addr=%d, buff=%s, len=%d, repeat=%s, event=%s, err=%s, canceled=%s",
-                requestCtxt != null? requestCtxt: "null", readRequest? "Read": "Write", address,
-                buffer == null? "null": Arrays.toString(buffer), length, repeat, event, error, canceled);
+            return String.format(Locale.US, "%s: %s, addr=%d, buff=%s, len=%d, event=%s, canceled=%s",
+                requestId != null? requestId: "null", readRequest? "Read": "Write", address,
+                buffer == null? "null": Arrays.toString(buffer), length, completionEvent, canceled);
         }   //toString
 
     }   //class Request
 
     private final String instanceName;
-    private final LinkedBlockingQueue<Request> requestQueue;
-    private volatile Thread deviceThread = null;
-    private boolean enabled = false;
-    private Request preemptingRequest = null;
-    private TrcDbgTrace perfTracer = null;
-    private double totalNanoTime = 0.0;
-    private int totalRequests = 0;
+    private final TrcRequestQueue<Request> requestQueue;
 
     /**
      * Constructor: Creates an instance of the object.
      *
      * @param instanceName specifies the instance name.
      */
-    public TrcSerialBusDevice(String instanceName)
+    public TrcSerialBusDevice(String instanceName, boolean useRequestQueue)
     {
         if (debugEnabled)
         {
@@ -146,7 +136,7 @@ public abstract class TrcSerialBusDevice
         }
 
         this.instanceName = instanceName;
-        requestQueue = new LinkedBlockingQueue<>();
+        requestQueue = useRequestQueue ? new TrcRequestQueue<>(instanceName) : null;
     }   //TrcSerialBusDevice
 
     /**
@@ -154,6 +144,7 @@ public abstract class TrcSerialBusDevice
      *
      * @return instance name.
      */
+    @Override
     public String toString()
     {
         return instanceName;
@@ -166,31 +157,9 @@ public abstract class TrcSerialBusDevice
      */
     public synchronized void setEnabled(boolean enabled)
     {
-        if (deviceThread == null && enabled)
+        if (requestQueue != null)
         {
-            //
-            // Device thread was not enabled, somebody wants to enable it.
-            //
-            deviceThread = new Thread(this::deviceTask, instanceName);
-            deviceThread.start();
-            this.enabled = true;
-        }
-        else if (deviceThread != null && !enabled)
-        {
-            //
-            // Device thread was enabled, somebody wants to disable it.
-            //
-            if (this.enabled)
-            {
-                //
-                // Make sure the device thread is indeed enabled. The request queue may not be empty. So we need to
-                // signal termination but allow the device thread to orderly shut down.
-                // If device thread is already disabled and the deviceThread is still active, it means the thread is
-                // busy emptying its queue. So we don't need to double signal termination.
-                //
-                this.enabled = false;
-                deviceThread.interrupt();
-            }
+            requestQueue.setEnabled(enabled);
         }
     }   //setEnabled
 
@@ -201,19 +170,8 @@ public abstract class TrcSerialBusDevice
      */
     public synchronized boolean isEnabled()
     {
-        return enabled;
+        return requestQueue == null || requestQueue.isEnabled();
     }   //isEnabled
-
-    /**
-     * This method enables/disables performance report.
-     *
-     * @param tracer specifies the tracer to be used for performance tracing, can be null to disable performance
-     *               tracing.
-     */
-    public synchronized void setPerformanceTracer(TrcDbgTrace tracer)
-    {
-        perfTracer = tracer;
-    }   //setPerformanceTracer
 
     /**
      * This method is doing a synchronous read from the device with the specified length to read.
@@ -225,7 +183,6 @@ public abstract class TrcSerialBusDevice
     public byte[] syncRead(int address, int length)
     {
         final String funcName = "syncRead";
-        byte[] data = null;
 
         if (debugEnabled)
         {
@@ -237,18 +194,28 @@ public abstract class TrcSerialBusDevice
             throw new RuntimeException("Device is not enabled, must call setEnabled first.");
         }
 
-        TrcEvent event = new TrcEvent(instanceName + "." + funcName + "." + length);
-        Request request = new Request(null, true, address, null, length, false, event, null);
-
-        requestQueue.add(request);
-
-        while (!event.isSignaled())
+        byte[] data = null;
+        if (requestQueue != null)
         {
-            Thread.yield();
-        }
+            TrcEvent completionEvent = new TrcEvent(instanceName + "." + funcName);
+            Request request = new Request(null, true, address, null, length, completionEvent, null);
+            TrcRequestQueue<Request>.RequestEntry entry = requestQueue.add(request, this::requestHandler, false);
 
-        data = request.buffer;
-        request.buffer = null;
+            while (!completionEvent.isSignaled())
+            {
+                Thread.yield();
+            }
+
+            if (!entry.isCanceled())
+            {
+                data = request.buffer;
+                request.buffer = null;
+            }
+        }
+        else
+        {
+            data = readData(address, length);
+        }
 
         if (debugEnabled)
         {
@@ -281,7 +248,6 @@ public abstract class TrcSerialBusDevice
     public int syncWrite(int address, byte[] data, int length)
     {
         final String funcName = "syncWrite";
-        int bytesWritten;
 
         if (debugEnabled)
         {
@@ -294,16 +260,27 @@ public abstract class TrcSerialBusDevice
             throw new RuntimeException("Must call setEnabled first.");
         }
 
-        TrcEvent event = new TrcEvent(instanceName + "." + funcName + "." + length);
-        Request request = new Request(null, false, address, data, length, false, event, null);
-
-        requestQueue.add(request);
-
-        while (!event.isSignaled())
+        int bytesWritten = 0;
+        if (requestQueue != null)
         {
-            Thread.yield();
+            TrcEvent completionEvent = new TrcEvent(instanceName + "." + funcName);
+            Request request = new Request(null, false, address, data, length, completionEvent, null);
+            TrcRequestQueue<Request>.RequestEntry  entry = requestQueue.add(request, this::requestHandler, false);
+
+            while (!completionEvent.isSignaled())
+            {
+                Thread.yield();
+            }
+
+            if (!entry.isCanceled())
+            {
+                bytesWritten = request.length;
+            }
         }
-        bytesWritten = request.length;
+        else
+        {
+            bytesWritten = writeData(address, data, length);
+        }
 
         if (debugEnabled)
         {
@@ -328,28 +305,37 @@ public abstract class TrcSerialBusDevice
     /**
      * This method is doing an asynchronous read from the device with the specified length to read.
      *
-     * @param requestCtxt specifies the request context and is not interpreted by the TrcSerialBusDevice class.
+     * @param requestId specifies the request ID and is not interpreted by the TrcSerialBusDevice class.
      *                    it is just passed back to the requester's notification handler.
      * @param address specifies the data address if any, can be -1 if no address is required.
      * @param length specifies the number of bytes to read.
      * @param repeat specifies true to re-queue the request when completed.
-     * @param event specifies the event to signal when the request is completed, can be null if none specified.
-     * @param handler specifies the notification handler to call when the request is completed, can be null if none
-     *                specified.
+     * @param completionEvent specifies the event to signal when the request is completed,
+     *                        can be null if none specified.
+     * @param completionHandler specifies the notification handler to call when the request is completed,
+     *                          can be null if none specified.
      */
     public void asyncRead(
-        Object requestCtxt, int address, int length, boolean repeat, TrcEvent event, TrcNotifier.Receiver handler)
+        Object requestId, int address, int length, boolean repeat, TrcEvent completionEvent,
+        TrcNotifier.Receiver completionHandler)
     {
         final String funcName = "asyncRead";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "ctxt=%s,addr=%d,len=%d,repeat=%s,event=%s",
-                requestCtxt == null? "null": requestCtxt, address, length, Boolean.toString(repeat),
-                event == null? "null": event.toString());
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "Id=%s,addr=%d,len=%d,repeat=%s,event=%s",
+                requestId == null? "null": requestId, address, length, repeat, completionEvent);
         }
 
-        requestQueue.add(new Request(requestCtxt, true, address, null, length, repeat, event, handler));
+        if (requestQueue != null)
+        {
+            Request request = new Request(requestId, true, address, null, length, completionEvent, completionHandler);
+            requestQueue.add(request, this::requestHandler, repeat);
+        }
+        else
+        {
+            throw new UnsupportedOperationException("asyncRead is not support without a request queue.");
+        }
 
         if (debugEnabled)
         {
@@ -407,28 +393,37 @@ public abstract class TrcSerialBusDevice
     /**
      * This method is doing an asynchronous write to the device with the specified data and length
      *
-     * @param requestCtxt specifies the request context and is not interpreted by the TrcSerialBusDevice class.
+     * @param requestId specifies the request ID and is not interpreted by the TrcSerialBusDevice class.
      *                    it is just passed back to the requester's notification handler.
      * @param address specifies the data address if any, can be -1 if no address is required.
      * @param data specifies the buffer containing the data to write to the device.
      * @param length specifies the number of bytes to write.
-     * @param event specifies the event to signal when the request is completed, can be null if none specified.
-     * @param handler specifies the notification handler to call when the request is completed, can be null if none
-     *                specified.
+     * @param completionEvent specifies the event to signal when the request is completed,
+     *                        can be null if none specified.
+     * @param completionHandler specifies the notification handler to call when the request is completed,
+     *                          can be null if none specified.
      */
     public void asyncWrite(
-        Object requestCtxt, int address, byte[] data, int length, TrcEvent event, TrcNotifier.Receiver handler)
+        Object requestId, int address, byte[] data, int length, TrcEvent completionEvent,
+        TrcNotifier.Receiver completionHandler)
     {
         final String funcName = "asyncWrite";
 
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "ctxt=%s,addr=%d,data=%s,length=%d,event=%s",
-                requestCtxt == null? "null": requestCtxt, address, Arrays.toString(data), length,
-                event == null? "null": event.toString());
+                requestId == null? "null": requestId, address, Arrays.toString(data), length, completionEvent);
         }
 
-        requestQueue.add(new Request(requestCtxt, false, address, data, length, false, event, handler));
+        if (requestQueue != null)
+        {
+            Request request = new Request(requestId, false, address, data, length, completionEvent, completionHandler);
+            requestQueue.add(request, this::requestHandler, false);
+        }
+        else
+        {
+            throw new UnsupportedOperationException("asyncWrite is not support without a request queue.");
+        }
 
         if (debugEnabled)
         {
@@ -461,7 +456,15 @@ public abstract class TrcSerialBusDevice
      */
     public synchronized void preemptiveWrite(int address, byte[] data, int length)
     {
-        preemptingRequest = new Request(null, false, address, data, length, false, null, null);
+        if (requestQueue != null)
+        {
+            requestQueue.addPriorityRequest(
+                new Request(null, false, address, data, length, null, null), this::requestHandler);
+        }
+        else
+        {
+            throw new UnsupportedOperationException("preemptiveWrite is not support without a request queue.");
+        }
     }   //preemptiveWrite
 
     /**
@@ -542,165 +545,56 @@ public abstract class TrcSerialBusDevice
     /**
      * This method processes a request.
      *
-     * @param request specifies the request to be processed.
+     * @param context specifies the request entry to be processed.
      */
-    private void processRequest(Request request)
+    private void requestHandler(Object context)
     {
-        final String funcName = "processRequest";
+        final String funcName = "requestHandler";
+        @SuppressWarnings("unchecked")
+        TrcRequestQueue<Request>.RequestEntry entry = (TrcRequestQueue<Request>.RequestEntry) context;
+        Request request = entry.getRequest();
 
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "request=%s", request);
         }
 
-        long startNanoTime = TrcUtil.getCurrentTimeNanos();
-        if (request.readRequest)
+        request.canceled = entry.isCanceled();
+        if (!request.canceled)
         {
-            request.buffer = readData(request.address, request.length);
-            request.error = request.buffer == null;
-        }
-        else
-        {
-            int length = writeData(request.address, request.buffer, request.length);
-            request.error = length != request.length;
-            request.length = length;
-        }
-        long elapsedTime = TrcUtil.getCurrentTimeNanos() - startNanoTime;
-        totalNanoTime += elapsedTime;
-        totalRequests++;
-        if (perfTracer != null)
-        {
-            perfTracer.traceInfo(funcName, "Average request time = %.6f sec", totalNanoTime/totalRequests/1000000000.0);
-        }
-
-        if (request.event != null)
-        {
-            request.event.set(true);
+            if (request.readRequest)
+            {
+                request.buffer = readData(request.address, request.length);
+                if (debugEnabled)
+                {
+                    if (request.buffer != null)
+                    {
+                        dbgTrace.traceInfo(funcName, "readData(addr=0x%x,len=%d)=%s",
+                        request.address, request.length, Arrays.toString(request.buffer));
+    
+                    }
+                }
+            }
+            else
+            {
+                request.length = writeData(request.address, request.buffer, request.length);
+            }
         }
 
-        if (request.handler != null)
+        if (request.completionEvent != null)
         {
-            request.handler.notify(request);
+            request.completionEvent.set(true);
         }
 
-        if (request.readRequest && request.repeat)
+        if (request.completionHandler != null)
         {
-            //
-            // This is a repeat request, add it back to the tail of the queue.
-            //
-            requestQueue.add(request);
+            request.completionHandler.notify(request);
         }
 
         if (debugEnabled)
         {
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
         }
-    }   //processRequest
-
-    /**
-     * This method cancels a request.
-     *
-     * @param request specifies the request to be canceled.
-     */
-    private void cancelRequest(Request request)
-    {
-        final String funcName = "cancelRequest";
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "request=%s", request);
-        }
-
-        request.canceled = true;
-
-        if (request.event != null)
-        {
-            request.event.cancel();
-        }
-
-        if (request.handler != null)
-        {
-            request.handler.notify(request);
-        }
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
-        }
-    }   //cancelRequest
-
-    /**
-     * This method is called when the device thread is started. It processes all requests in the request queue when
-     * they arrive. If the request queue is empty, the thread is blocked until a new request arrives. Therefore,
-     * this thread only runs when there are requests in the queue. If this thread is interrupted, it will clean up
-     * the request queue before exiting.
-     */
-    private void deviceTask()
-    {
-        final String funcName = "deviceTask";
-        Request request;
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceInfo("SerialBusDevice %s starting...", instanceName);
-        }
-
-        while (!Thread.currentThread().isInterrupted())
-        {
-            synchronized (this)
-            {
-                if (preemptingRequest != null)
-                {
-                    request = preemptingRequest;
-                    preemptingRequest = null;
-                }
-                else
-                {
-                    request = null;
-                }
-            }
-
-            try
-            {
-                if (request == null)
-                {
-                    request = requestQueue.take();
-                }
-
-                if (debugEnabled)
-                {
-                    dbgTrace.traceInfo(funcName, "[%.3f] processing request %s", TrcUtil.getCurrentTime(), request);
-                }
-
-                processRequest(request);
-            }
-            catch (InterruptedException e)
-            {
-                if (debugEnabled)
-                {
-                    dbgTrace.traceInfo(funcName, "Terminating SerialBusDevice %s", instanceName);
-                }
-                break;
-            }
-        }
-        //
-        // The thread is terminating, empty the queue before exiting.
-        //
-        while ((request = requestQueue.poll()) != null)
-        {
-            cancelRequest(request);
-            if (debugEnabled)
-            {
-                dbgTrace.traceInfo(funcName, "[%.3f] Canceling request %s", TrcUtil.getCurrentTime(), request);
-            }
-        }
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceInfo(funcName, "SerialBusDevice %s is terminated", instanceName);
-        }
-
-        deviceThread = null;
-    }   //deviceTask
+    }   //requestHandler
 
 }   //class TrcSerialBusDevice

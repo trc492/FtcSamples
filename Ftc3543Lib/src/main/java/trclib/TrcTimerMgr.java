@@ -106,7 +106,7 @@ public class TrcTimerMgr
     public double add(TrcTimer timer, double callerID)
     {
         final String funcName = "add";
-        double securityKey = 0.0;
+        double securityKey;
         long expiredTimeInMsec = timer.getExpiredTimeInMsec();
 
         if (debugEnabled)
@@ -208,13 +208,18 @@ public class TrcTimerMgr
 
         synchronized (timerList)
         {
-            if (securityKey == securityKeyMap.get(timer))
+            Double key = securityKeyMap.get(timer);
+
+            if (key != null)
             {
-                success = timerList.remove(timer);
-            }
-            else
-            {
-                throw new SecurityException("Only the owner of the timer is allowed to remove it from the list.");
+                if (securityKey == key)
+                {
+                    success = timerList.remove(timer);
+                }
+                else
+                {
+                    throw new SecurityException("Only the owner of the timer is allowed to remove it from the list.");
+                }
             }
         }
 

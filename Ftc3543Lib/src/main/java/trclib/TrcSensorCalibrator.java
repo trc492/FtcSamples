@@ -74,6 +74,7 @@ public class TrcSensorCalibrator<D>
      *
      * @return instance name.
      */
+    @Override
     public String toString()
     {
         return instanceName;

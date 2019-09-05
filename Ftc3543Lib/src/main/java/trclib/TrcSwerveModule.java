@@ -42,43 +42,47 @@ public class TrcSwerveModule implements TrcMotorController
     public final TrcMotorController driveMotor;
     public final TrcPidMotor steerMotor;
     public final TrcEnhancedServo steerServo;
+    private TrcWarpSpace warpSpace;
     private double prevSteerAngle = 0.0;
     private double optimizedWheelDir = 1.0;
+    private boolean steerLimitsEnabled = false;
+    private double steerLowLimit = 0.0;
+    private double steerHighLimit = 0.0;
 
     /**
      * Constructor: Create an instance of the object.
      * Note: steerMotor and steerServo are exclusive. You can either have a steerMotor or a steerServo but not both.
      *
      * @param instanceName specifies the instance name.
-     * @param driveMotor specifies the drive motor.
-     * @param steerMotor specifies the steering motor.
-     * @param steerServo specifies the steering servo.
+     * @param driveMotor   specifies the drive motor.
+     * @param steerMotor   specifies the steering motor.
+     * @param steerServo   specifies the steering servo.
      */
-    private TrcSwerveModule(
-        String instanceName, TrcMotorController driveMotor, TrcPidMotor steerMotor, TrcEnhancedServo steerServo)
+    private TrcSwerveModule(String instanceName, TrcMotorController driveMotor, TrcPidMotor steerMotor,
+        TrcEnhancedServo steerServo)
     {
         if (debugEnabled)
         {
-            dbgTrace = useGlobalTracer?
-                TrcDbgTrace.getGlobalTracer():
-                    new TrcDbgTrace(moduleName, tracingEnabled, traceLevel, msgLevel);
+            dbgTrace = useGlobalTracer ?
+                TrcDbgTrace.getGlobalTracer() :
+                new TrcDbgTrace(moduleName, tracingEnabled, traceLevel, msgLevel);
         }
 
         this.instanceName = instanceName;
         this.driveMotor = driveMotor;
         this.steerMotor = steerMotor;
         this.steerServo = steerServo;
+        warpSpace = new TrcWarpSpace(instanceName + ".warpSpace", 0.0, 360.0);
     }   //TrcSwerveModule
 
     /**
      * Constructor: Create an instance of the object.
      *
      * @param instanceName specifies the instance name.
-     * @param driveMotor specifies the drive motor.
-     * @param steerMotor specifies the steering motor.
+     * @param driveMotor   specifies the drive motor.
+     * @param steerMotor   specifies the steering motor.
      */
-    public TrcSwerveModule(
-        String instanceName, TrcMotorController driveMotor, TrcPidMotor steerMotor)
+    public TrcSwerveModule(String instanceName, TrcMotorController driveMotor, TrcPidMotor steerMotor)
     {
         this(instanceName, driveMotor, steerMotor, null);
     }   //TrcSwerveModule
@@ -87,11 +91,10 @@ public class TrcSwerveModule implements TrcMotorController
      * Constructor: Create an instance of the object.
      *
      * @param instanceName specifies the instance name.
-     * @param driveMotor specifies the drive motor.
-     * @param steerServo specifies the steering servo.
+     * @param driveMotor   specifies the drive motor.
+     * @param steerServo   specifies the steering servo.
      */
-    public TrcSwerveModule(
-        String instanceName, TrcMotorController driveMotor, TrcEnhancedServo steerServo)
+    public TrcSwerveModule(String instanceName, TrcMotorController driveMotor, TrcEnhancedServo steerServo)
     {
         this(instanceName, driveMotor, null, steerServo);
     }   //TrcSwerveModule
@@ -101,10 +104,38 @@ public class TrcSwerveModule implements TrcMotorController
      *
      * @return instance name.
      */
+    @Override
     public String toString()
     {
         return instanceName;
     }   //toString
+
+    /**
+     * This method sets the hard steer limits, used for noncontinuous swerve modules. The angles must be in range
+     * (-180,180]. The limits must also be more than 180 degrees apart.
+     *
+     * @param steerLowLimit  The low steer limit.
+     * @param steerHighLimit The high steer limit.
+     */
+    public void setSteeringLimits(double steerLowLimit, double steerHighLimit)
+    {
+        if (steerHighLimit - steerLowLimit < 180.0)
+        {
+            throw new IllegalArgumentException("steerLowLimit must be at least 180 less than steerHighLimit!");
+        }
+
+        this.steerLimitsEnabled = true;
+        this.steerLowLimit = steerLowLimit;
+        this.steerHighLimit = steerHighLimit;
+    }   //setSteeringLimits
+
+    /**
+     * This method disables the steer limits.
+     */
+    public void disableSteeringLimits()
+    {
+        this.steerLimitsEnabled = false;
+    }   //disableSteeringLimits
 
     /**
      * This method performs a zero calibration on the steering motor.
@@ -158,20 +189,21 @@ public class TrcSwerveModule implements TrcMotorController
     /**
      * This method sets the steer angle.
      *
-     * @param angle specifies the angle in degrees to set the steer motor to, in the range [0,360).
+     * @param angle    specifies the angle in degrees to set the steer motor to. Not necessarily within [0,360).
      * @param optimize specifies true to optimize steering angle to be no greater than 90 degrees, false otherwise.
-     * @param hold specifies true to hold the angle, false otherwise.
+     * @param hold     specifies true to hold the angle, false otherwise.
      */
-    public void setSteerAngle(final double angle, boolean optimize, boolean hold)
+    public void setSteerAngle(double angle, boolean optimize, boolean hold)
     {
         final String funcName = "setSteerAngle";
+        angle = warpSpace.getOptimizedTarget(angle, prevSteerAngle);
         double angleDelta = angle - prevSteerAngle;
         double newAngle = angle;
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
-                "angle=%f,optimize=%s,hold=%s", angle, optimize, hold);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "angle=%f,optimize=%s,hold=%s", angle, optimize,
+                hold);
         }
 
         // If we are not optimizing, reset wheel direction back to normal.
@@ -180,8 +212,25 @@ public class TrcSwerveModule implements TrcMotorController
         {
             // We are optimizing and the steer delta is greater than 90 degrees.
             // Adjust the steer delta to be within 90 degrees and flip the wheel direction.
-            newAngle += angleDelta < 0.0? 180.0: -180.0;
+            newAngle += angleDelta < 0.0 ? 180.0 : -180.0;
             optimizedWheelDir = -1.0;
+        }
+
+        if (steerLimitsEnabled)
+        {
+            double boundedAngle = TrcUtil.modulo(newAngle, 360.0);  // Bound angle within [0,360).
+            // Convert angle to range (-180,180].
+            boundedAngle = boundedAngle > 180 ? boundedAngle - 360.0 : boundedAngle;
+            if (boundedAngle < steerLowLimit)
+            {
+                newAngle = boundedAngle + 180;
+                optimizedWheelDir *= -1;
+            }
+            else if (boundedAngle > steerHighLimit)
+            {
+                newAngle = boundedAngle - 180;
+                optimizedWheelDir *= -1;
+            }
         }
 
         steerMotor.setTarget(newAngle, hold);
@@ -201,7 +250,7 @@ public class TrcSwerveModule implements TrcMotorController
     /**
      * This method sets the steer angle.
      *
-     * @param angle specifies the angle in degrees to set the steer motor to, in the range [0,360).
+     * @param angle    specifies the angle in degrees to set the steer motor to, in the range [0,360).
      * @param optimize specifies true to optimize steering angle to be no greater than 90 degrees, false otherwise.
      */
     public void setSteerAngle(double angle, boolean optimize)
@@ -381,7 +430,7 @@ public class TrcSwerveModule implements TrcMotorController
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        driveMotor.set(value*optimizedWheelDir);
+        driveMotor.set(value * optimizedWheelDir);
     }   //set
 
     /**

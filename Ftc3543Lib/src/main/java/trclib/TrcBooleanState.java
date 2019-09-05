@@ -37,6 +37,7 @@ public class TrcBooleanState
     private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
 
+    private final String instanceName;
     private boolean state;
 
     /**
@@ -54,6 +55,7 @@ public class TrcBooleanState
                 new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
+        this.instanceName = instanceName;
         this.state = state;
     }   //TrcBooleanState
 
@@ -66,6 +68,17 @@ public class TrcBooleanState
     {
         this(instanceName, false);
     }   //TrcBooleanState
+
+    /**
+     * This method returns the instance name.
+     *
+     * @return instance name.
+     */
+    @Override
+    public String toString()
+    {
+        return instanceName;
+    }   //toString
 
     /**
      * This method returns the state of the object.

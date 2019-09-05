@@ -111,6 +111,7 @@ public class TrcVisionTask<I, O>
      *
      * @return instance name.
      */
+    @Override
     public String toString()
     {
         return instanceName;

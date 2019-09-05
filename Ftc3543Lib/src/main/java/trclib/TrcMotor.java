@@ -47,6 +47,21 @@ public abstract class TrcMotor implements TrcMotorController
     protected TrcDbgTrace dbgTrace = null;
 
     /**
+     * This interface, if provided, is called if a digital input device is registered to reset the motor position
+     * on trigger and a trigger event occurred.
+     */
+    public interface DigitalTriggerHandler
+    {
+        /**
+         * This method is called when a digital trigger event occurred.
+         *
+         * @param active specifies true if the digital input is active, false if inactive.
+         */
+        void digitalTriggerEvent(boolean active);
+
+    }   //interface DigitalTriggerHandler
+
+    /**
      * This method returns the motor position by reading the position sensor. The position sensor can be an encoder
      * or a potentiometer.
      *
@@ -82,6 +97,8 @@ public abstract class TrcMotor implements TrcMotorController
     private boolean odometryEnabled = false;
     private double maxMotorVelocity = 0.0;
     private TrcPidController velocityPidCtrl = null;
+    private DigitalTriggerHandler digitalTriggerHandler = null;
+    private boolean calibrating = false;
 
     /**
      * Constructor: Create an instance of the object.
@@ -92,8 +109,8 @@ public abstract class TrcMotor implements TrcMotorController
     {
         if (debugEnabled)
         {
-            dbgTrace = useGlobalTracer?
-                TrcDbgTrace.getGlobalTracer():
+            dbgTrace = useGlobalTracer ?
+                TrcDbgTrace.getGlobalTracer() :
                 new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
@@ -118,6 +135,7 @@ public abstract class TrcMotor implements TrcMotorController
      *
      * @return instance name.
      */
+    @Override
     public String toString()
     {
         return instanceName;
@@ -189,13 +207,19 @@ public abstract class TrcMotor implements TrcMotorController
             resetOdometry();
             synchronized (odometryMotors)
             {
-                odometryMotors.add(this);
-                if (odometryMotors.size() == 1)
+                //
+                // Add only if this motor is not already on the list.
+                //
+                if (!odometryMotors.contains(this))
                 {
-                    //
-                    // We are the first one on the list, start the task.
-                    //
-                    odometryTaskObj.registerTask(TaskType.INPUT_TASK);
+                    odometryMotors.add(this);
+                    if (odometryMotors.size() == 1)
+                    {
+                        //
+                        // We are the first one on the list, start the task.
+                        //
+                        odometryTaskObj.registerTask(TaskType.INPUT_TASK);
+                    }
                 }
             }
         }
@@ -240,7 +264,7 @@ public abstract class TrcMotor implements TrcMotorController
      * odometry task to calculate it.
      *
      * @param taskType specifies the type of task being run.
-     * @param runMode specifies the competition mode that is running.
+     * @param runMode  specifies the competition mode that is running.
      */
     public static void odometryTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
@@ -248,13 +272,12 @@ public abstract class TrcMotor implements TrcMotorController
 
         if (debugEnabled)
         {
-            globalTracer.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK,
-                    "taskType=%s,runMode=%s", taskType, runMode);
+            globalTracer.traceEnter(funcName, TrcDbgTrace.TraceLevel.TASK, "taskType=%s,runMode=%s", taskType, runMode);
         }
 
         synchronized (odometryMotors)
         {
-            for (TrcMotor motor: odometryMotors)
+            for (TrcMotor motor : odometryMotors)
             {
                 synchronized (motor.odometry)
                 {
@@ -266,7 +289,7 @@ public abstract class TrcMotor implements TrcMotorController
                     double deltaTime = motor.odometry.currTimestamp - motor.odometry.prevTimestamp;
                     if (deltaTime > 0.0)
                     {
-                        motor.odometry.velocity = (motor.odometry.currPos - motor.odometry.prevPos)/deltaTime;
+                        motor.odometry.velocity = (motor.odometry.currPos - motor.odometry.prevPos) / deltaTime;
                     }
 
                     if (debugEnabled)
@@ -287,7 +310,7 @@ public abstract class TrcMotor implements TrcMotorController
     /**
      * This method sets the motor controller to velocity mode with the specified maximum velocity.
      *
-     * @param maxVelocity specifies the maximum velocity the motor can run, in sensor units per second.
+     * @param maxVelocity     specifies the maximum velocity the motor can run, in sensor units per second.
      * @param pidCoefficients specifies the PID coefficients to use to compute a desired torque value for the motor.
      *                        E.g. these coefficients go from velocity error percent to desired stall torque percent.
      */
@@ -297,8 +320,8 @@ public abstract class TrcMotor implements TrcMotorController
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "maxVel=%f,pidCoef=%s",
-                    maxVelocity, pidCoefficients.toString());
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "maxVel=%f,pidCoef=%s", maxVelocity,
+                pidCoefficients.toString());
         }
 
         if (pidCoefficients == null)
@@ -353,7 +376,7 @@ public abstract class TrcMotor implements TrcMotorController
     private double getNormalizedVelocity()
     {
         final String funcName = "getNormalizedVelocity";
-        double normalizedVel = getVelocity()/maxMotorVelocity;
+        double normalizedVel = getVelocity() / maxMotorVelocity;
 
         if (debugEnabled)
         {
@@ -370,7 +393,7 @@ public abstract class TrcMotor implements TrcMotorController
      * to maintain the set speed if speed control mode is enabled.
      *
      * @param taskType specifies the type of task being run.
-     * @param runMode specifies the competition mode that is running.
+     * @param runMode  specifies the competition mode that is running.
      */
     public synchronized void velocityCtrlTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
@@ -390,8 +413,8 @@ public abstract class TrcMotor implements TrcMotorController
             if (debugEnabled)
             {
                 dbgTrace.traceInfo(instanceName,
-                        "targetSpeed=%.2f, currSpeed=%.2f, desiredStallTorque=%.2f, motorPower=%.2f",
-                        velocityPidCtrl.getTarget(), getVelocity(), desiredStallTorquePercentage, motorPower);
+                    "targetSpeed=%.2f, currSpeed=%.2f, desiredStallTorque=%.2f, motorPower=%.2f",
+                    velocityPidCtrl.getTarget(), getVelocity(), desiredStallTorquePercentage, motorPower);
             }
         }
 
@@ -425,14 +448,14 @@ public abstract class TrcMotor implements TrcMotorController
         // as motor speed increases.
         //
         final double currSpeedSensorUnitPerSec = Math.abs(getVelocity());
-        final double currNormalizedSpeed = currSpeedSensorUnitPerSec/maxMotorVelocity;
+        final double currNormalizedSpeed = currSpeedSensorUnitPerSec / maxMotorVelocity;
 
         // Max torque percentage declines proportionally to motor speed.
         final double percentMaxTorqueAvailable = 1 - currNormalizedSpeed;
 
         if (percentMaxTorqueAvailable > 0)
         {
-            power = desiredStallTorquePercentage/percentMaxTorqueAvailable;
+            power = desiredStallTorquePercentage / percentMaxTorqueAvailable;
         }
         else
         {
@@ -453,8 +476,9 @@ public abstract class TrcMotor implements TrcMotorController
      * reading when the digital input is triggered.
      *
      * @param digitalInput specifies the digital input sensor that will trigger a position reset.
+     * @param triggerHandler specifies an event callback if the trigger occurred, null if none specified.
      */
-    public void resetPositionOnDigitalInput(TrcDigitalInput digitalInput)
+    public void resetPositionOnDigitalInput(TrcDigitalInput digitalInput, DigitalTriggerHandler triggerHandler)
     {
         final String funcName = "resetPositionOnDigitalInput";
 
@@ -464,8 +488,20 @@ public abstract class TrcMotor implements TrcMotorController
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
+        digitalTriggerHandler = triggerHandler;
         digitalTrigger = new TrcDigitalTrigger(instanceName, digitalInput, this::triggerEvent);
         digitalTrigger.setEnabled(true);
+    }   //resetPositionOnDigitalInput
+
+    /**
+     * This method creates a digital trigger on the given digital input sensor. It resets the position sensor
+     * reading when the digital input is triggered.
+     *
+     * @param digitalInput specifies the digital input sensor that will trigger a position reset.
+     */
+    public void resetPositionOnDigitalInput(TrcDigitalInput digitalInput)
+    {
+        resetPositionOnDigitalInput(digitalInput, null);
     }   //resetPositionOnDigitalInput
 
     /**
@@ -475,6 +511,35 @@ public abstract class TrcMotor implements TrcMotorController
     {
         resetPosition(false);
     }   //resetPosition
+
+    /**
+     * This method performs a zero calibration on the motor by slowly turning in reverse. When the lower limit switch
+     * is triggered, it stops the motor and resets the motor position.
+     *
+     * @param calibratePower specifies the motor power to perform zero calibration (must be positive value).
+     */
+    public void zeroCalibrate(double calibratePower)
+    {
+        //
+        // Only do this if there is a digital trigger.
+        //
+        if (digitalTrigger != null && digitalTrigger.isEnabled())
+        {
+            set(-Math.abs(calibratePower));
+            calibrating = true;
+        }
+    }   //zeroCalibrate
+
+    /**
+     * This method sets this motor to follow another motor. This method should be overridden by the subclass. If the
+     * subclass is not capable of following another motor, this method will be called instead and will throw an
+     * UnsupportedOperation exception.
+     */
+    public void follow(TrcMotor motor)
+    {
+        throw new UnsupportedOperationException(
+            String.format("This motor does not support following motors of type: %s!", motor.getClass().toString()));
+    }   //follow
 
     //
     // Implements the TrcMotorController interface.
@@ -560,6 +625,7 @@ public abstract class TrcMotor implements TrcMotorController
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "value=%f", value);
         }
 
+        calibrating = false;
         if (velocityPidCtrl != null)
         {
             velocityPidCtrl.setTarget(value);
@@ -590,11 +656,27 @@ public abstract class TrcMotor implements TrcMotorController
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.CALLBK,
-                    "trigger=%s,active=%s", digitalTrigger, Boolean.toString(active));
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.CALLBK, "trigger=%s,active=%s", digitalTrigger,
+                Boolean.toString(active));
+        }
+
+        TrcDbgTrace.getGlobalTracer()
+            .traceInfo("triggerEvent", "TrcMotor encoder reset! motor=%s,pos=%.2f", instanceName, getMotorPosition());
+
+        if (calibrating)
+        {
+            //
+            // set(0.0) will turn off calibration mode.
+            //
+            set(0.0);
         }
 
         resetPosition(false);
+
+        if (digitalTriggerHandler != null)
+        {
+            digitalTriggerHandler.digitalTriggerEvent(active);
+        }
 
         if (debugEnabled)
         {

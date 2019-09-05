@@ -76,6 +76,8 @@ public class TrcMecanumDriveBase extends TrcSimpleDriveBase
      * controls how fast the robot will go in the y direction. Rotation controls how fast the robot rotates and
      * gyroAngle specifies the heading the robot should maintain.
      *
+     * @param owner specifies the ID string of the caller for checking ownership, can be null if caller is not
+     *              ownership aware.
      * @param x specifies the x power.
      * @param y specifies the y power.
      * @param rotation specifies the rotating power.
@@ -83,72 +85,76 @@ public class TrcMecanumDriveBase extends TrcSimpleDriveBase
      * @param gyroAngle specifies the gyro angle to maintain.
      */
     @Override
-    protected void holonomicDrive(double x, double y, double rotation, boolean inverted, double gyroAngle)
+    protected void holonomicDrive(String owner, double x, double y, double rotation, boolean inverted, double gyroAngle)
     {
         final String funcName = "holonomicDrive";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "x=%f,y=%f,rot=%f,inverted=%s,angle=%f",
-                                x, y, rotation, Boolean.toString(inverted), gyroAngle);
+            dbgTrace.traceEnter(
+                funcName, TrcDbgTrace.TraceLevel.API, "owner=%s,x=%f,y=%f,rot=%f,inverted=%s,angle=%f",
+                owner, x, y, rotation, Boolean.toString(inverted), gyroAngle);
         }
 
-        x = TrcUtil.clipRange(x);
-        y = TrcUtil.clipRange(y);
-        rotation = TrcUtil.clipRange(rotation);
-
-        if (inverted)
+        if (validateOwnership(owner))
         {
-            x = -x;
-            y = -y;
+            x = TrcUtil.clipRange(x);
+            y = TrcUtil.clipRange(y);
+            rotation = TrcUtil.clipRange(rotation);
+
+            if (inverted)
+            {
+                x = -x;
+                y = -y;
+            }
+
+            double cosA = Math.cos(Math.toRadians(gyroAngle));
+            double sinA = Math.sin(Math.toRadians(gyroAngle));
+            double x1 = x*cosA - y*sinA;
+            double y1 = x*sinA + y*cosA;
+
+            if (isGyroAssistEnabled())
+            {
+                rotation += getGyroAssistPower(rotation);
+            }
+
+            double[] wheelPowers = new double[4];
+            wheelPowers[MotorType.LEFT_FRONT.value] = x1 + y1 + rotation;
+            wheelPowers[MotorType.RIGHT_FRONT.value] = -x1 + y1 - rotation;
+            wheelPowers[MotorType.LEFT_REAR.value] = -x1 + y1 + rotation;
+            wheelPowers[MotorType.RIGHT_REAR.value] = x1 + y1 - rotation;
+            TrcUtil.normalizeInPlace(wheelPowers);
+
+            double wheelPower;
+
+            wheelPower = wheelPowers[MotorType.LEFT_FRONT.value];
+            if (motorPowerMapper != null)
+            {
+                wheelPower = motorPowerMapper.translateMotorPower(wheelPower, leftFrontMotor.getVelocity());
+            }
+            leftFrontMotor.set(wheelPower);
+
+            wheelPower = wheelPowers[MotorType.RIGHT_FRONT.value];
+            if (motorPowerMapper != null)
+            {
+                wheelPower = motorPowerMapper.translateMotorPower(wheelPower, rightFrontMotor.getVelocity());
+            }
+            rightFrontMotor.set(wheelPower);
+
+            wheelPower = wheelPowers[MotorType.LEFT_REAR.value];
+            if (motorPowerMapper != null)
+            {
+                wheelPower = motorPowerMapper.translateMotorPower(wheelPower, leftRearMotor.getVelocity());
+            }
+            leftRearMotor.set(wheelPower);
+
+            wheelPower = wheelPowers[MotorType.RIGHT_REAR.value];
+            if (motorPowerMapper != null)
+            {
+                wheelPower = motorPowerMapper.translateMotorPower(wheelPower, rightRearMotor.getVelocity());
+            }
+            rightRearMotor.set(wheelPower);
         }
-
-        double cosA = Math.cos(Math.toRadians(gyroAngle));
-        double sinA = Math.sin(Math.toRadians(gyroAngle));
-        double x1 = x*cosA - y*sinA;
-        double y1 = x*sinA + y*cosA;
-
-        if (isGyroAssistEnabled())
-        {
-            rotation += getGyroAssistPower(rotation);
-        }
-
-        double wheelPowers[] = new double[4];
-        wheelPowers[MotorType.LEFT_FRONT.value] = x1 + y1 + rotation;
-        wheelPowers[MotorType.RIGHT_FRONT.value] = -x1 + y1 - rotation;
-        wheelPowers[MotorType.LEFT_REAR.value] = -x1 + y1 + rotation;
-        wheelPowers[MotorType.RIGHT_REAR.value] = x1 + y1 - rotation;
-        TrcUtil.normalizeInPlace(wheelPowers);
-
-        double wheelPower;
-
-        wheelPower = wheelPowers[MotorType.LEFT_FRONT.value];
-        if (motorPowerMapper != null)
-        {
-            wheelPower = motorPowerMapper.translateMotorPower(wheelPower, leftFrontMotor.getVelocity());
-        }
-        leftFrontMotor.set(wheelPower);
-
-        wheelPower = wheelPowers[MotorType.RIGHT_FRONT.value];
-        if (motorPowerMapper != null)
-        {
-            wheelPower = motorPowerMapper.translateMotorPower(wheelPower, rightFrontMotor.getVelocity());
-        }
-        rightFrontMotor.set(wheelPower);
-
-        wheelPower = wheelPowers[MotorType.LEFT_REAR.value];
-        if (motorPowerMapper != null)
-        {
-            wheelPower = motorPowerMapper.translateMotorPower(wheelPower, leftRearMotor.getVelocity());
-        }
-        leftRearMotor.set(wheelPower);
-
-        wheelPower = wheelPowers[MotorType.RIGHT_REAR.value];
-        if (motorPowerMapper != null)
-        {
-            wheelPower = motorPowerMapper.translateMotorPower(wheelPower, rightRearMotor.getVelocity());
-        }
-        rightRearMotor.set(wheelPower);
 
         if (debugEnabled)
         {
@@ -157,45 +163,32 @@ public class TrcMecanumDriveBase extends TrcSimpleDriveBase
     }   //holonomicDrive
 
     /**
-     * This method is called periodically to monitor the position sensors to update the odometry data. It assumes the
-     * caller has the odometry lock.
+     * This method is called periodically to monitor the position sensors to update the odometry data.
      *
-     * @param odometry specifies the odometry object to be updated.
+     * @param motorsState specifies the state information of the drivebase motors for calculating pose.
+     * @return a TrcPose2D object describing the change in position since the last update.
      */
     @Override
-    protected void updateOdometry(Odometry odometry)
+    protected TrcPose2D updateOdometry(MotorsState motorsState)
     {
         //
-        // Call super class to update Y and rotation odometry.
+        // Call super class to get Y and turn data.
         //
-        super.updateOdometry(odometry);
-        //
-        // According to RobotDrive.mecanumDrive_Cartesian in WPILib:
-        //
-        // LF =  x + y + rot    RF = -x + y - rot
-        // LR = -x + y + rot    RR =  x + y - rot
-        //
-        // (LF + RR) - (RF + LR) = (2x + 2y) - (-2x + 2y)
-        // => (LF + RR) - (RF + LR) = 4x
-        // => x = ((LF + RR) - (RF + LR))/4
-        //
-        // LF + RF + LR + RR = 4y
-        // => y = (LF + RF + LR + RR)/4
-        //
-        // (LF + LR) - (RF + RR) = (2y + 2rot) - (2y - 2rot)
-        // => (LF + LR) - (RF + RR) = 4rot
-        // => rot = ((LF + LR) - (RF + RR))/4
-        //
-        odometry.xRawPos = TrcUtil.average(
-                odometry.currPositions[MotorType.LEFT_FRONT.value],
-                odometry.currPositions[MotorType.RIGHT_REAR.value],
-                -odometry.currPositions[MotorType.RIGHT_FRONT.value],
-                -odometry.currPositions[MotorType.LEFT_REAR.value]);
-        odometry.xRawVel = TrcUtil.average(
-                odometry.currVelocities[MotorType.LEFT_FRONT.value],
-                odometry.currVelocities[MotorType.RIGHT_REAR.value],
-                -odometry.currVelocities[MotorType.RIGHT_FRONT.value],
-                -odometry.currVelocities[MotorType.LEFT_REAR.value]);
+        TrcPose2D odometry = super.updateOdometry(motorsState);
+
+        odometry.x = xScale * TrcUtil.average(
+                motorsState.motorPosDiffs[MotorType.LEFT_FRONT.value],
+                motorsState.motorPosDiffs[MotorType.RIGHT_REAR.value],
+                -motorsState.motorPosDiffs[MotorType.RIGHT_FRONT.value],
+                -motorsState.motorPosDiffs[MotorType.LEFT_REAR.value]);
+
+        odometry.xVel = xScale * TrcUtil.average(
+                motorsState.currVelocities[MotorType.LEFT_FRONT.value],
+                motorsState.currVelocities[MotorType.RIGHT_REAR.value],
+                -motorsState.currVelocities[MotorType.RIGHT_FRONT.value],
+                -motorsState.currVelocities[MotorType.LEFT_REAR.value]);
+
+        return odometry;
     }   //updateOdometry
 
 }   //class TrcMecanumDriveBase

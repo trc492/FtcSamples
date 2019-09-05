@@ -71,6 +71,7 @@ public class TrcStateMachine<T>
      *
      * @return instance name.
      */
+    @Override
     public String toString()
     {
         return instanceName;

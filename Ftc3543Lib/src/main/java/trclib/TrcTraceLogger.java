@@ -71,6 +71,7 @@ public class TrcTraceLogger
      *
      * @return trace log name, "None" if no log file opened.
      */
+    @Override
     public String toString()
     {
         return traceLogName;

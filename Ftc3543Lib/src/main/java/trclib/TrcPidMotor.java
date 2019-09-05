@@ -78,7 +78,7 @@ public class TrcPidMotor
     private final TrcTaskMgr.TaskObject pidMotorTaskObj;
     private final TrcTaskMgr.TaskObject stopMotorTaskObj;
     private boolean active = false;
-    private double syncGain = 0.0;
+    private double syncGain;
     private double positionScale = 1.0;
     private double positionOffset = 0.0;
     private boolean holdTarget = false;
@@ -235,6 +235,7 @@ public class TrcPidMotor
      *
      * @return instance name.
      */
+    @Override
     public String toString()
     {
         return instanceName;
@@ -963,6 +964,33 @@ public class TrcPidMotor
     }   //setTaskEnabled
 
     /**
+     * This method is called by the calibration task to zero calibrate of a motor.
+     *
+     * @param motor specifies the motor being calibrated.
+     * @return true if calibration is done, false otherwise.
+     */
+    private boolean zeroCalibratingMotor(TrcMotor motor)
+    {
+        boolean done = motor.isLowerLimitSwitchActive();
+
+        if (done)
+        {
+            //
+            // Done with zero calibration of the motor. Call the motor directly to stop, do not call any of
+            // the setPower or setMotorPower because they do not handle zero calibration mode.
+            //
+            motor.set(0.0);
+            motor.resetPosition(false);
+        }
+        else
+        {
+            motor.set(calPower);
+        }
+
+        return done;
+    }   //zeroCalibratingMotor
+
+    /**
      * This method is called periodically to perform the PID motor task. The PID motor task can be in one of two
      * modes: zero calibration mode and normal mode. In zero calibration mode, it will drive the motor with the
      * specified calibration power until it hits the lower limit switch. Then it will stop the motor and reset the
@@ -988,38 +1016,12 @@ public class TrcPidMotor
             //
             if (!motor1ZeroCalDone)
             {
-                if (motor1.isLowerLimitSwitchActive())
-                {
-                    //
-                    // Done with motor 1 zero calibration. Call the motor directly to stop, do not call any of
-                    // the setPower or setMotorPower because they do not handle zero calibration mode.
-                    //
-                    motor1.resetPosition(false);
-                    motor1ZeroCalDone = true;
-                    motor1.set(0.0);
-                }
-                else
-                {
-                    motor1.set(calPower);
-                }
+                motor1ZeroCalDone = zeroCalibratingMotor(motor1);
             }
 
             if (!motor2ZeroCalDone)
             {
-                if (motor2.isLowerLimitSwitchActive())
-                {
-                    //
-                    // Done with motor 2 zero calibration. Call the motor directly to stop, do not call any of
-                    // the setPower or setMotorPower because they do not handle zero calibration mode.
-                    //
-                    motor2.resetPosition(false);
-                    motor2ZeroCalDone = true;
-                    motor2.set(0.0);
-                }
-                else
-                {
-                    motor2.set(calPower);
-                }
+                motor2ZeroCalDone = zeroCalibratingMotor(motor2);
             }
 
             if (motor1ZeroCalDone && motor2ZeroCalDone)

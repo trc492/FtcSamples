@@ -50,10 +50,12 @@ public class FtcI2cDevice extends TrcSerialBusDevice
      * @param instanceName specifies the instance name.
      * @param i2cAddress specifies the I2C address of the device.
      * @param addressIs7Bit specifies true if the I2C address is a 7-bit address, false if it is 8-bit.
+     * @param useRequestQueue specifies true to use a request queue, false otherwise.
      */
-    public FtcI2cDevice(HardwareMap hardwareMap, final String instanceName, int i2cAddress, boolean addressIs7Bit)
+    public FtcI2cDevice(HardwareMap hardwareMap, final String instanceName, int i2cAddress, boolean addressIs7Bit,
+                        boolean useRequestQueue)
     {
-        super(instanceName);
+        super(instanceName, useRequestQueue);
 
         if (debugEnabled)
         {
@@ -70,10 +72,23 @@ public class FtcI2cDevice extends TrcSerialBusDevice
      * @param hardwareMap specifies the global hardware map.
      * @param instanceName specifies the instance name.
      * @param i2cAddress specifies the I2C address of the device.
+     * @param addressIs7Bit specifies true if the I2C address is a 7-bit address, false if it is 8-bit.
+     */
+    public FtcI2cDevice(HardwareMap hardwareMap, final String instanceName, int i2cAddress, boolean addressIs7Bit)
+    {
+        this(hardwareMap, instanceName, i2cAddress, addressIs7Bit, true);
+    }   //FtcI2cDevice
+
+    /**
+     * Constructor: Creates an instance of the object.
+     *
+     * @param hardwareMap specifies the global hardware map.
+     * @param instanceName specifies the instance name.
+     * @param i2cAddress specifies the I2C address of the device.
      */
     public FtcI2cDevice(HardwareMap hardwareMap, final String instanceName, int i2cAddress)
     {
-        this(hardwareMap, instanceName, i2cAddress, false);
+        this(hardwareMap, instanceName, i2cAddress, false, true);
     }   //FtcI2cDevice
 
     /**
@@ -85,7 +100,7 @@ public class FtcI2cDevice extends TrcSerialBusDevice
      */
     public FtcI2cDevice(final String instanceName, int i2cAddress, boolean addressIs7Bit)
     {
-        this(FtcOpMode.getInstance().hardwareMap, instanceName, i2cAddress, addressIs7Bit);
+        this(FtcOpMode.getInstance().hardwareMap, instanceName, i2cAddress, addressIs7Bit, true);
     }   //FtcI2cDevice
 
     /**
@@ -96,7 +111,7 @@ public class FtcI2cDevice extends TrcSerialBusDevice
      */
     public FtcI2cDevice(final String instanceName, int i2cAddress)
     {
-        this(FtcOpMode.getInstance().hardwareMap, instanceName, i2cAddress, false);
+        this(FtcOpMode.getInstance().hardwareMap, instanceName, i2cAddress, false, true);
     }   //FtcI2cDevice
 
     //

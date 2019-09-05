@@ -102,6 +102,7 @@ public class TrcPidDrive
     private boolean turnOnly = false;
     private boolean maintainHeading = false;
     private boolean canceled = false;
+    private String owner = null;
 
     /**
      * Constructor: Create an instance of the object.
@@ -143,6 +144,7 @@ public class TrcPidDrive
      *
      * @return instance name.
      */
+    @Override
     public String toString()
     {
         return instanceName;
@@ -332,7 +334,7 @@ public class TrcPidDrive
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
-                                "beep=%s,freq=%.0f,duration=%.3f", beepDevice.toString(), beepFrequency, beepDuration);
+                    "beep=%s,freq=%.0f,duration=%.3f", beepDevice.toString(), beepFrequency, beepDuration);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
@@ -374,6 +376,7 @@ public class TrcPidDrive
     /**
      * This method starts a PID operation by setting the PID targets.
      *
+     * @param owner specifies the ID string of the caller requesting exclusive access.
      * @param xTarget specifies the X target position.
      * @param yTarget specifies the Y target position.
      * @param turnTarget specifies the target heading.
@@ -383,8 +386,8 @@ public class TrcPidDrive
      *                timeout, the operation will be canceled and the event will be signaled. If no timeout is
      *                specified, it should be set to zero.
      */
-    public synchronized void setTarget(
-            double xTarget, double yTarget, double turnTarget, boolean holdTarget, TrcEvent event, double timeout)
+    public synchronized void setTarget(String owner, double xTarget, double yTarget, double turnTarget,
+        boolean holdTarget, TrcEvent event, double timeout)
     {
         final String funcName = "setTarget";
 
@@ -395,43 +398,73 @@ public class TrcPidDrive
                     xTarget, yTarget, turnTarget, Boolean.toString(holdTarget), event.toString(), timeout);
         }
 
-        if (xPidCtrl != null)
+        if (driveBase.validateOwnership(owner))
         {
-            xPidCtrl.setTarget(xTarget);
+            this.owner = owner;
+            double xError = 0.0, yError = 0.0, turnError = 0.0;
+
+            if (xPidCtrl != null)
+            {
+                xPidCtrl.setTarget(xTarget);
+                xError = xPidCtrl.getError();
+            }
+
+            if (yPidCtrl != null)
+            {
+                yPidCtrl.setTarget(yTarget);
+                yError = yPidCtrl.getError();
+            }
+
+            if (turnPidCtrl != null)
+            {
+                turnPidCtrl.setTarget(turnTarget, warpSpaceEnabled? warpSpace: null);
+                turnError = turnPidCtrl.getError();
+            }
+
+            if (event != null)
+            {
+                event.clear();
+            }
+            this.notifyEvent = event;
+
+            this.expiredTime = timeout;
+            if (timeout != 0)
+            {
+                this.expiredTime += TrcUtil.getCurrentTime();
+            }
+
+            this.holdTarget = holdTarget;
+            this.turnOnly = xError == 0.0 && yError == 0.0 && turnError != 0.0;
+            driveBase.resetStallTimer();
+
+            //CodeReview: do you need to clear the reference pose at the end of PidDrive???
+            driveBase.setReferencePose();
+
+            setTaskEnabled(true);
         }
-
-        if (yPidCtrl != null)
-        {
-            yPidCtrl.setTarget(yTarget);
-        }
-
-        if (turnPidCtrl != null)
-        {
-            turnPidCtrl.setTarget(turnTarget, warpSpaceEnabled? warpSpace: null);
-        }
-
-        if (event != null)
-        {
-            event.clear();
-        }
-        this.notifyEvent = event;
-
-        this.expiredTime = timeout;
-        if (timeout != 0)
-        {
-            this.expiredTime += TrcUtil.getCurrentTime();
-        }
-
-        this.holdTarget = holdTarget;
-        this.turnOnly = xTarget == 0.0 && yTarget == 0.0 && turnTarget != 0.0;
-        driveBase.resetStallTimer();
-
-        setTaskEnabled(true);
 
         if (debugEnabled)
         {
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
+    }   //setTarget
+
+    /**
+     * This method starts a PID operation by setting the PID targets.
+     *
+     * @param xTarget    specifies the X target position.
+     * @param yTarget    specifies the Y target position.
+     * @param turnTarget specifies the target heading.
+     * @param holdTarget specifies true for holding the target position at the end, false otherwise.
+     * @param event      specifies an event object to signal when done.
+     * @param timeout    specifies a timeout value in seconds. If the operation is not completed without the specified
+     *                   timeout, the operation will be canceled and the event will be signaled. If no timeout is
+     *                   specified, it should be set to zero.
+     */
+    public synchronized void setTarget(double xTarget, double yTarget, double turnTarget, boolean holdTarget,
+                                       TrcEvent event, double timeout)
+    {
+        setTarget(null, xTarget, yTarget, turnTarget, holdTarget, event, timeout);
     }   //setTarget
 
     /**
@@ -491,7 +524,7 @@ public class TrcPidDrive
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
-                                "xPower=%f,yPower=%f,heading=%f", xPower, yPower, headingTarget);
+                    "xPower=%f,yPower=%f,heading=%f", xPower, yPower, headingTarget);
         }
 
         if (xPidCtrl != null)
@@ -531,7 +564,7 @@ public class TrcPidDrive
     }   //isActive
 
     /**
-     * This method cancels an active PID drive operation.
+     * This method cancels an active PID drive operation and stops all motors.
      */
     public synchronized void cancel()
     {
@@ -542,7 +575,7 @@ public class TrcPidDrive
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        if (active)
+        if (active && driveBase.validateOwnership(owner))
         {
             stopPid();
             canceled = true;
@@ -590,7 +623,7 @@ public class TrcPidDrive
         }
 
         setTaskEnabled(false);
-        driveBase.stop();
+        driveBase.stop(owner);
 
         if (xPidCtrl != null)
         {
@@ -676,6 +709,13 @@ public class TrcPidDrive
         boolean turnOnTarget = turnPidCtrl == null || turnPidCtrl.isOnTarget();
         boolean onTarget = turnOnTarget && (turnOnly || xOnTarget && yOnTarget);
 
+        // Since non-holonomic drive bases can't drive in multiple axes, use the robot local reference pose.
+        if (!driveBase.supportsHolonomicDrive())
+        {
+            //CodeReview: do you need to clear reference pose when you are done???
+            driveBase.setReferencePose();
+        }
+
         if (stuckWheelHandler != null)
         {
             for (int i = 0; i < driveBase.getNumMotors(); i++)
@@ -702,11 +742,11 @@ public class TrcPidDrive
 
         if (maintainHeading && driveBase.supportsHolonomicDrive())
         {
-            driveBase.holonomicDrive(manualX, manualY, turnPower, false, 0.0);
+            driveBase.holonomicDrive(owner, manualX, manualY, turnPower, false, 0.0);
         }
         else if (expired || stalled || onTarget)
         {
-            if (expired || stalled || onTarget && !holdTarget)
+            if (expired || stalled || !holdTarget)
             {
                 stopPid();
                 if (notifyEvent != null)
@@ -719,54 +759,56 @@ public class TrcPidDrive
             // We will stop the drive base but not stopping PID.
             else
             {
-                driveBase.stop();
+                driveBase.stop(owner);
             }
         }
         // If we come here, we are not on target yet, keep driving.
+        else if (xPidCtrl != null && driveBase.supportsHolonomicDrive())
+        {
+            double heading = driveBase.getHeading();
+            double savedHeading = driveBase.getReferencePose().heading;
+            driveBase.holonomicDrive(owner, xPower, yPower, turnPower, heading - savedHeading);
+        }
         else if (turnOnly)
         {
             switch (turnMode)
             {
                 case IN_PLACE:
-                    driveBase.arcadeDrive(0.0, turnPower);
+                    driveBase.arcadeDrive(owner, 0.0, turnPower, false);
                     break;
 
                 case PIVOT_FORWARD:
                 case CURVE:
                     if (turnPower < 0.0)
                     {
-                        driveBase.tankDrive(0.0, -turnPower);
+                        driveBase.tankDrive(owner, 0.0, -turnPower);
                     }
                     else
                     {
-                        driveBase.tankDrive(turnPower, 0.0);
+                        driveBase.tankDrive(owner, turnPower, 0.0);
                     }
                     break;
 
                 case PIVOT_BACKWARD:
                     if (turnPower < 0.0)
                     {
-                        driveBase.tankDrive(turnPower, 0.0);
+                        driveBase.tankDrive(owner, turnPower, 0.0);
                     }
                     else
                     {
-                        driveBase.tankDrive(0.0, -turnPower);
+                        driveBase.tankDrive(owner, 0.0, -turnPower);
                     }
                     break;
             }
         }
-        else if (xPidCtrl != null)
-        {
-            driveBase.holonomicDrive(xPower, yPower, turnPower, false, 0.0);
-        }
         else if (turnMode == TurnMode.IN_PLACE)
         {
             // We are still in an in-place turn.
-            driveBase.arcadeDrive(yPower, turnPower);
+            driveBase.arcadeDrive(owner, yPower, turnPower, false);
         }
         else
         {
-            driveBase.curveDrive(yPower, turnPower);
+            driveBase.curveDrive(owner, yPower, turnPower, false);
         }
 
         if (msgTracer != null && tracePidInfo)

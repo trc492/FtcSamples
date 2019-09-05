@@ -27,21 +27,21 @@ import java.util.Arrays;
 /**
  * This class implements the Lidar Lite v3 Laser Ranging sensor.
  */
-public class TrcLidarLite implements TrcNotifier.Receiver
+public class TrcLidarLite
 {
     private static final String moduleName = "TrcLidarLite";
-    private static final boolean debugEnabled = true;
+    private static final boolean debugEnabled = false;
     private static final boolean tracingEnabled = false;
     private static final boolean useGlobalTracer = true;
     private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
     private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
 
-    public static enum RequestTag
+    public enum RequestId
     {
         READ_DISTANCE,
         GET_DISTANCE
-    }   //enum RequestTag
+    }   //enum RequestId
 
     public static final int DEF_I2C_ADDRESS_7BIT        = 0x62;
 
@@ -203,7 +203,7 @@ public class TrcLidarLite implements TrcNotifier.Receiver
          dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "command=0x%02x", command);
      }
 
-     RequestTag requestTag;
+     RequestId requestId;
      byte[] data = new byte[1];
      data[0] = command;
 
@@ -211,17 +211,17 @@ public class TrcLidarLite implements TrcNotifier.Receiver
      {
          case ACQCMD_DISTANCE_NO_BIAS:
          case ACQCMD_DISTANCE_WITH_BIAS:
-             requestTag = RequestTag.READ_DISTANCE;
+             requestId = RequestId.READ_DISTANCE;
              break;
 
          case ACQCMD_RESET:
          default:
-             requestTag = null;
+             requestId = null;
              break;
      }
 
-     dbgTrace.traceInfo(funcName, "tag=%s,data=%s", requestTag, Arrays.toString(data));
-     device.asyncWrite(requestTag, REG_ACQ_COMMAND, data, data.length, null, this);
+     dbgTrace.traceInfo(funcName, "Id=%s,data=%s", requestId, Arrays.toString(data));
+     device.asyncWrite(requestId, REG_ACQ_COMMAND, data, data.length, null, this::notify);
 
      if (debugEnabled)
      {
@@ -551,21 +551,21 @@ public class TrcLidarLite implements TrcNotifier.Receiver
 //    /**
 //     * This method processes the data from the read completion handler.
 //     *
-//     * @param requestTag specifies the tag to identify the request. Can be null if none was provided.
+//     * @param requestId specifies the ID to identify the request. Can be null if none was provided.
 //     * @param data specifies the data read.
 //     * @param length specifies the number of bytes read.
 //     */
-//    private void processData(RequestTag requestTag, byte[] data, int length)
+//    private void processData(RequestId requestId, byte[] data, int length)
 //    {
 //        final String funcName = "processData";
 //        int word;
 //
 //        if (debugEnabled)
 //        {
-//            dbgTrace.traceVerbose(funcName, "tag=%s,data=%s,len=%d", requestTag, Arrays.toString(data), length);
+//            dbgTrace.traceVerbose(funcName, "Id=%s,data=%s,len=%d", requestId, Arrays.toString(data), length);
 //        }
 //
-//        switch (requestTag)
+//        switch (requestId)
 //        {
 //            case STATUS:
 //                break;
@@ -574,20 +574,15 @@ public class TrcLidarLite implements TrcNotifier.Receiver
 //                //
 //                // We should never come here. Let's throw an exception to catch this unlikely scenario.
 //                //
-//                throw new IllegalStateException(String.format("Unexpected request tag %s.", requestTag));
+//                throw new IllegalStateException(String.format("Unexpected request ID %s.", requestId));
 //        }
 //    }   //processData
-
-    //
-    // Implements TrcNotifier.Receiver interface.
-    //
 
     /**
      * This method is called when the read request is completed.
      *
      * @param context specifies the read request.
      */
-    @Override
     public void notify(Object context)
     {
         final String funcName = "notify";
@@ -600,19 +595,19 @@ public class TrcLidarLite implements TrcNotifier.Receiver
 
         if (request.readRequest)
         {
-            if (!request.error && !request.canceled && request.buffer != null)
+            if (request.buffer != null)
             {
-                switch ((RequestTag)request.requestCtxt)
+                switch ((RequestId)request.requestId)
                 {
                     case READ_DISTANCE:
                         if ((request.buffer[0] & 0x1) == 0x1)
                         {
                             // Not ready yet, read status again.
-                            device.asyncRead(request.requestCtxt, REG_STATUS, 1, null, this);
+                            device.asyncRead(request.requestId, REG_STATUS, 1, null, this::notify);
                         }
                         else
                         {
-                            device.asyncRead(RequestTag.GET_DISTANCE, REG_FULL_DELAY_HIGH, 2, null, this);
+                            device.asyncRead(RequestId.GET_DISTANCE, REG_FULL_DELAY_HIGH, 2, null, this::notify);
                         }
                         break;
 
@@ -628,10 +623,10 @@ public class TrcLidarLite implements TrcNotifier.Receiver
         }
         else
         {
-            switch ((RequestTag)request.requestCtxt)
+            switch ((RequestId)request.requestId)
             {
                 case READ_DISTANCE:
-                    device.asyncRead(request.requestCtxt, REG_STATUS, 1, null, this);
+                    device.asyncRead(request.requestId, REG_STATUS, 1, null, this::notify);
                     break;
 
                 default:

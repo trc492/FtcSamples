@@ -113,6 +113,17 @@ public abstract class TrcGameController
     }   //TrcGameController
 
     /**
+     * This method returns the instance name.
+     *
+     * @return instance name.
+     */
+    @Override
+    public String toString()
+    {
+        return instanceName;
+    }   //toString
+
+    /**
      * This method initializes the game controller. This is done separate from the constructor because the getButtons
      * method may not be accessible when the object is constructed.
      */
@@ -120,16 +131,6 @@ public abstract class TrcGameController
     {
         prevButtons = getButtons();
     }   //init
-
-    /**
-     * This method returns the instance name.
-     *
-     * @return instance name.
-     */
-    public String toString()
-    {
-        return instanceName;
-    }   //toString
 
     /**
      * This method sets the exponential value for raising analog control values.

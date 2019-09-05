@@ -154,7 +154,7 @@ public class TrcSong
     }   //class Section
 
     private final String songName;
-    private double startVolume = 1.0;
+    private double startVolume;
     private ArrayList<Section> sections = new ArrayList<>();
     private String[] sequence = null;
     private int sequenceIndex = 0;
@@ -234,6 +234,7 @@ public class TrcSong
      *
      * @return instance name.
      */
+    @Override
     public String toString()
     {
         return songName;

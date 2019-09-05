@@ -68,6 +68,7 @@ public class TrcIIRFilter extends TrcFilter
      *
      * @return instance name.
      */
+    @Override
     public String toString()
     {
         return instanceName;

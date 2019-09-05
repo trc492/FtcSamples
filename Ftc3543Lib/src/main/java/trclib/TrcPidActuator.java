@@ -38,9 +38,39 @@ package trclib;
  */
 public class TrcPidActuator extends TrcPidMotor
 {
-    private double minPos = 0.0;
-    private double maxPos = 0.0;
+    private double minPos;
+    private double maxPos;
     private boolean manualOverride = false;
+
+    /**
+     * Constructor: Create an instance of the object.
+     *
+     * @param instanceName specifies the instance name.
+     * @param motor1 specifies the primary motor in the actuator.
+     * @param motor2 specifies the secondary motor in the actuator.
+     * @param syncGain specifies the sync gain between the primary and secondary motors (i.e. Kp).
+     * @param lowerLimitSwitch specifies the optional lower limit switch. Required only for auto zero calibration
+     *        whenever it is active.
+     * @param pidCtrl specifies the PID controller for PID controlled movement.
+     * @param calPower specifies the motor power for the calibration.
+     * @param minPos specifies the minimum position of the actuator range.
+     * @param maxPos specifies the maximum position of the actuator range.
+     * @param powerCompensation specifies the object that implements the PowerCompensation interface, null if none
+     *                          provided.
+     */
+    public TrcPidActuator(
+            String instanceName, TrcMotor motor1, TrcMotor motor2, double syncGain, TrcDigitalInput lowerLimitSwitch, TrcPidController pidCtrl, double calPower, double minPos, double maxPos,
+            PowerCompensation powerCompensation)
+    {
+        super(instanceName, motor1, motor2, syncGain, pidCtrl, calPower, powerCompensation);
+        this.minPos = minPos;
+        this.maxPos = maxPos;
+        if (lowerLimitSwitch != null)
+        {
+            motor1.resetPositionOnDigitalInput(lowerLimitSwitch);
+        }
+        pidCtrl.setAbsoluteSetPoint(true);
+    }   //TrcPidActuator
 
     /**
      * Constructor: Create an instance of the object.
@@ -60,14 +90,7 @@ public class TrcPidActuator extends TrcPidMotor
             String instanceName, TrcMotor motor, TrcDigitalInput lowerLimitSwitch, TrcPidController pidCtrl,
             double calPower, double minPos, double maxPos, PowerCompensation powerCompensation)
     {
-        super(instanceName, motor, pidCtrl, calPower, powerCompensation);
-        this.minPos = minPos;
-        this.maxPos = maxPos;
-        if (lowerLimitSwitch != null)
-        {
-            motor.resetPositionOnDigitalInput(lowerLimitSwitch);
-        }
-        pidCtrl.setAbsoluteSetPoint(true);
+        this(instanceName, motor, null, 0.0, lowerLimitSwitch, pidCtrl, calPower, minPos, maxPos, powerCompensation);
     }   //TrcPidActuator
 
     /**
@@ -86,7 +109,7 @@ public class TrcPidActuator extends TrcPidMotor
             String instanceName, TrcMotor motor, TrcDigitalInput lowerLimitSwitch, TrcPidController pidCtrl,
             double calPower, double minPos, double maxPos)
     {
-        this(instanceName, motor, lowerLimitSwitch, pidCtrl, calPower, minPos, maxPos, null);
+        this(instanceName, motor, null, 0.0, lowerLimitSwitch, pidCtrl, calPower, minPos, maxPos, null);
     }   //TrcPidActuator
 
     /**
@@ -103,7 +126,7 @@ public class TrcPidActuator extends TrcPidMotor
             String instanceName, TrcMotor motor, TrcDigitalInput lowerLimitSwitch, TrcPidController pidCtrl,
             double calPower)
     {
-        this(instanceName, motor, lowerLimitSwitch, pidCtrl, calPower, 0.0, 0.0, null);
+        this(instanceName, motor, null, 0.0, lowerLimitSwitch, pidCtrl, calPower, 0.0, 0.0, null);
     }   //TrcPidActuator
 
     /**
@@ -122,7 +145,7 @@ public class TrcPidActuator extends TrcPidMotor
             String instanceName, TrcMotor motor, TrcPidController pidCtrl, double calPower, double minPos,
             double maxPos, PowerCompensation powerCompensation)
     {
-        this(instanceName, motor, null, pidCtrl, calPower, minPos, maxPos, powerCompensation);
+        this(instanceName, motor, null, 0.0, null, pidCtrl, calPower, minPos, maxPos, powerCompensation);
     }   //TrcPidActuator
 
     /**
@@ -139,7 +162,7 @@ public class TrcPidActuator extends TrcPidMotor
             String instanceName, TrcMotor motor, TrcPidController pidCtrl, double calPower, double minPos,
             double maxPos)
     {
-        this(instanceName, motor, null, pidCtrl, calPower, minPos, maxPos, null);
+        this(instanceName, motor, null, 0.0, null, pidCtrl, calPower, minPos, maxPos, null);
     }   //TrcPidActuator
 
     /**
@@ -153,7 +176,7 @@ public class TrcPidActuator extends TrcPidMotor
     public TrcPidActuator(
             String instanceName, TrcMotor motor, TrcPidController pidCtrl, double calPower)
     {
-        this(instanceName, motor, null, pidCtrl, calPower, 0.0, 0.0, null);
+        this(instanceName, motor, null, 0.0, null, pidCtrl, calPower, 0.0, 0.0, null);
     }   //TrcPidActuator
 
     /**
@@ -214,6 +237,7 @@ public class TrcPidActuator extends TrcPidMotor
 
         if (manualOverride || minPos == 0.0 && maxPos == 0.0)
         {
+            cancel();
             super.setPower(power);
         }
         else

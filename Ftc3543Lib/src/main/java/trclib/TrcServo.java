@@ -106,6 +106,7 @@ public abstract class TrcServo
      *
      * @return instance name.
      */
+    @Override
     public String toString()
     {
         return instanceName;

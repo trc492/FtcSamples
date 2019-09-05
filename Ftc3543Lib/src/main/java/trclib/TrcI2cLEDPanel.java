@@ -72,6 +72,7 @@ public abstract class TrcI2cLEDPanel
      *
      * @return instance name.
      */
+    @Override
     public String toString()
     {
         return instanceName;

@@ -84,6 +84,7 @@ public abstract class TrcTankMotionProfileFollower
      *
      * @return instance name.
      */
+    @Override
     public String toString()
     {
         return instanceName;

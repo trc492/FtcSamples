@@ -206,6 +206,7 @@ public class TrcPeriodicThread<T>
      *
      * @return instance name.
      */
+    @Override
     public String toString()
     {
         return instanceName;
@@ -371,7 +372,7 @@ public class TrcPeriodicThread<T>
         while (!Thread.interrupted())
         {
             long startNanoTime = TrcUtil.getCurrentTimeNanos();
-            long elapsedNanoTime = 0;
+            long elapsedNanoTime;
 
             if (taskState.isTaskEnabled())
             {

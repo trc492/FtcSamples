@@ -41,7 +41,6 @@ public class TrcDataIntegrator<D>
     private final String instanceName;
     private final TrcSensor<D> sensor;
     private final D dataType;
-    private final int numAxes;
     private final TrcTaskMgr.TaskObject integratorTaskObj;
     private final TrcSensor.SensorData<Double>[] inputData;
     private final TrcSensor.SensorData<Double>[] integratedData;
@@ -72,10 +71,11 @@ public class TrcDataIntegrator<D>
             throw new NullPointerException("sensor cannot be null.");
         }
 
+        int numAxes = sensor.getNumAxes();
+
         this.instanceName = instanceName;
         this.sensor = sensor;
         this.dataType = dataType;
-        numAxes = sensor.getNumAxes();
         integratorTaskObj = TrcTaskMgr.getInstance().createTask(
                 instanceName + ".integratorTask", this::integratorTask);
 
@@ -112,6 +112,7 @@ public class TrcDataIntegrator<D>
      *
      * @return instance name.
      */
+    @Override
     public String toString()
     {
         return instanceName;
@@ -206,8 +207,7 @@ public class TrcDataIntegrator<D>
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
-                               "=(timestamp=%.3f,value=%f",
-                               data != null? data.timestamp: 0.0, data != null? data.value: 0.0);
+                    "=(timestamp=%.3f,value=%f", data.timestamp, data.value);
         }
 
         return data;
@@ -229,8 +229,7 @@ public class TrcDataIntegrator<D>
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
-                               "=(timestamp=%.3f,value=%f",
-                               data != null? data.timestamp: 0.0, data != null? data.value: 0.0);
+                               "=(timestamp=%.3f,value=%f", data.timestamp, data.value);
         }
 
         return data;
@@ -251,9 +250,9 @@ public class TrcDataIntegrator<D>
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
-                               "=(timestamp=%.3f,value=%f",
-                               data != null? data.timestamp: 0.0, data != null? data.value: 0.0);
+            dbgTrace.traceExit(
+                    funcName, TrcDbgTrace.TraceLevel.API,
+                    "=(timestamp=%.3f,value=%f", data.timestamp, data.value);
         }
 
         return data;

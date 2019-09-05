@@ -75,6 +75,7 @@ public class TrcSongPlayer
      *
      * @return instance name.
      */
+    @Override
     public String toString()
     {
         return instanceName;
@@ -183,8 +184,8 @@ public class TrcSongPlayer
      * @param receiver specifies the notification receiver on song completion.
      */
     private synchronized void playSongWorker(
-            TrcSong song, double barDuration, boolean repeat, boolean pause,
-            TrcEvent event, TrcNotifier.Receiver receiver)
+            TrcSong song, double barDuration, boolean repeat, boolean pause, TrcEvent event,
+            TrcNotifier.Receiver receiver)
     {
         final String funcName = "playSongWorker";
 

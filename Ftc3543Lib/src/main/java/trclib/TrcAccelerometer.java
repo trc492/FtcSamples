@@ -162,6 +162,7 @@ public abstract class TrcAccelerometer extends TrcSensor<TrcAccelerometer.DataTy
      *
      * @return instance name.
      */
+    @Override
     public String toString()
     {
         return instanceName;
@@ -641,8 +642,10 @@ public abstract class TrcAccelerometer extends TrcSensor<TrcAccelerometer.DataTy
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.CALLBK, "index=%d", index);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.CALLBK,
-                               "=(timestamp=%.3f,value=%f", data.timestamp, data.value);
+            dbgTrace.traceExit(
+                    funcName, TrcDbgTrace.TraceLevel.CALLBK,
+                    "=(timestamp=%.3f,value=%f",
+                    data != null? data.timestamp: 0.0, data != null? data.value: 0.0);
         }
 
         return data;

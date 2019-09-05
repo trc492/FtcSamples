@@ -22,10 +22,11 @@
 
 package trclib;
 
-import java.util.EmptyStackException;
-import java.util.Stack;
-
 import hallib.HalDashboard;
+
+import java.util.EmptyStackException;
+import java.util.Locale;
+import java.util.Stack;
 
 /**
  * This class implements a PID controller. A PID controller takes a target set point and an input from a feedback
@@ -47,10 +48,10 @@ public class TrcPidController
      */
     public static class PidCoefficients
     {
-        public double kP = 0.0;
-        public double kI = 0.0;
-        public double kD = 0.0;
-        public double kF = 0.0;
+        public double kP;
+        public double kI;
+        public double kD;
+        public double kF;
 
         /**
          * Constructor: Create an instance of the object.
@@ -103,6 +104,7 @@ public class TrcPidController
          *
          * @return PID coefficients string.
          */
+        @Override
         public String toString()
         {
             return String.format("(%f,%f,%f,%f)", kP, kI, kD, kF);
@@ -143,6 +145,7 @@ public class TrcPidController
     private double minOutput = -1.0;
     private double maxOutput = 1.0;
     private double outputLimit = 1.0;
+    private Double rampRate = null;
     private Stack<Double> outputLimitStack = new Stack<>();
 
     private double prevTime = 0.0;
@@ -153,6 +156,7 @@ public class TrcPidController
     private double setPointSign = 1.0;
     private double input = 0.0;
     private double output = 0.0;
+    private double prevOutputTime = 0.0; // time that getOutput() was called last. Used for ramp rates.
 
     private TrcDbgTrace debugTracer = null;
     private double pTerm;
@@ -163,23 +167,19 @@ public class TrcPidController
     /**
      * Constructor: Create an instance of the object.
      *
-     * @param instanceName specifies the instance name.
+     * @param instanceName    specifies the instance name.
      * @param pidCoefficients specifies the PID constants.
-     * @param tolerance specifies the target tolerance.
-     * @param settlingTime specifies the minimum on target settling time.
-     * @param pidInput specifies the input provider.
+     * @param tolerance       specifies the target tolerance.
+     * @param settlingTime    specifies the minimum on target settling time.
+     * @param pidInput        specifies the input provider.
      */
-    public TrcPidController(
-            final String instanceName,
-            PidCoefficients pidCoefficients,
-            double tolerance,
-            double settlingTime,
-            PidInput pidInput)
+    public TrcPidController(final String instanceName, PidCoefficients pidCoefficients, double tolerance,
+        double settlingTime, PidInput pidInput)
     {
         if (debugEnabled)
         {
-            dbgTrace = useGlobalTracer?
-                TrcDbgTrace.getGlobalTracer():
+            dbgTrace = useGlobalTracer ?
+                TrcDbgTrace.getGlobalTracer() :
                 new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
         }
 
@@ -197,16 +197,13 @@ public class TrcPidController
      * constructor (Java won't allow it). Instead, we provide another protected method setPidInput so it can
      * set the PidInput outside of the super() call.
      *
-     * @param instanceName specifies the instance name.
+     * @param instanceName    specifies the instance name.
      * @param pidCoefficients specifies the PID constants.
-     * @param tolerance specifies the target tolerance.
-     * @param pidInput specifies the input provider.
+     * @param tolerance       specifies the target tolerance.
+     * @param pidInput        specifies the input provider.
      */
-    public TrcPidController(
-            final String instanceName,
-            PidCoefficients pidCoefficients,
-            double tolerance,
-            PidInput pidInput)
+    public TrcPidController(final String instanceName, PidCoefficients pidCoefficients, double tolerance,
+        PidInput pidInput)
     {
         this(instanceName, pidCoefficients, tolerance, DEF_SETTLING_TIME, pidInput);
     }   //TrcPidController
@@ -216,6 +213,7 @@ public class TrcPidController
      *
      * @return instance name.
      */
+    @Override
     public String toString()
     {
         return instanceName;
@@ -239,9 +237,9 @@ public class TrcPidController
      * This method prints the PID information to the tracer console. If no tracer is provided, it will attempt to
      * use the debug tracer in this module but if the debug tracer is not enabled, no output will be produced.
      *
-     * @param tracer specifies the tracer object to print the PID info to.
+     * @param tracer    specifies the tracer object to print the PID info to.
      * @param timestamp specifies the timestamp to be printed.
-     * @param battery specifies the battery object to get battery info, can be null if not provided.
+     * @param battery   specifies the battery object to get battery info, can be null if not provided.
      */
     public void printPidInfo(TrcDbgTrace tracer, double timestamp, TrcRobotBattery battery)
     {
@@ -254,17 +252,16 @@ public class TrcPidController
 
         if (tracer != null)
         {
-            String msg = timestamp != 0.0? String.format("[%.3f] ", timestamp): "";
+            String msg = timestamp != 0.0 ? String.format(Locale.US, "[%.3f] ", timestamp) : "";
 
-            msg += String.format(
-                "%s: Target=%6.1f, Input=%6.1f, Error=%6.1f, " +
-                "PIDTerms=%6.3f/%6.3f/%6.3f/%6.3f, Output=%6.3f(%6.3f/%5.3f)",
-                instanceName, setPoint, input, currError,
-                pTerm, iTerm, dTerm, fTerm, output, minOutput, maxOutput);
+            msg += String.format(Locale.US, "%s: Target=%6.1f, Input=%6.1f, Error=%6.1f, "
+                    + "PIDTerms=%6.3f/%6.3f/%6.3f/%6.3f, Output=%6.3f(%6.3f/%5.3f)", instanceName, setPoint, input,
+                currError, pTerm, iTerm, dTerm, fTerm, output, minOutput, maxOutput);
 
             if (battery != null)
             {
-                msg += String.format(", Volt=%.1f(%.1f)", battery.getVoltage(), battery.getLowestVoltage());
+                msg += String.format(Locale.US, ", Volt=%.1f(%.1f)",
+                        battery.getVoltage(), battery.getLowestVoltage());
             }
 
             tracer.traceInfo(funcName, msg);
@@ -275,7 +272,7 @@ public class TrcPidController
      * This method prints the PID information to the tracer console. If no tracer is provided, it will attempt to
      * use the debug tracer in this module but if the debug tracer is not enabled, no output will be produced.
      *
-     * @param tracer specifies the tracer object to print the PID info to.
+     * @param tracer    specifies the tracer object to print the PID info to.
      * @param timestamp specifies the timestamp to be printed.
      */
     public void printPidInfo(TrcDbgTrace tracer, double timestamp)
@@ -306,12 +303,12 @@ public class TrcPidController
      * This method allows the caller to dynamically enable/disable debug tracing of the output calculation. It is
      * very useful for debugging or tuning PID control.
      *
-     * @param tracer specifies the tracer to be used for debug tracing.
+     * @param tracer  specifies the tracer to be used for debug tracing.
      * @param enabled specifies true to enable the debug tracer, false to disable.
      */
     public synchronized void setDebugTraceEnabled(TrcDbgTrace tracer, boolean enabled)
     {
-        debugTracer = enabled? tracer: null;
+        debugTracer = enabled ? tracer : null;
     }   //setDebugTraceEnabled
 
     /**
@@ -408,8 +405,8 @@ public class TrcPidController
         if (debugEnabled)
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API,
-                    "=(%f,%f,%f,%f)", pidCoefficients.kP, pidCoefficients.kI, pidCoefficients.kD, pidCoefficients.kF);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=(%f,%f,%f,%f)", pidCoefficients.kP,
+                pidCoefficients.kI, pidCoefficients.kD, pidCoefficients.kF);
         }
 
         return pidCoefficients;
@@ -426,14 +423,25 @@ public class TrcPidController
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
-                    "Kp=%f,Ki=%f,Kd=%f,Kf=%f",
-                    pidCoefficients.kP, pidCoefficients.kI, pidCoefficients.kD, pidCoefficients.kF);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "Kp=%f,Ki=%f,Kd=%f,Kf=%f", pidCoefficients.kP,
+                pidCoefficients.kI, pidCoefficients.kD, pidCoefficients.kF);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
         this.pidCoefficients = pidCoefficients;
     }   //setPidCoefficients
+
+    /**
+     * This method sets the ramp rate of the PID controller output. It is sometimes useful to limit the acceleration
+     * of the output of the PID controller. For example, the strafing PID controller on a mecanum drive base may
+     * benefit from a lower acceleration to minimize wheel slipperage.
+     *
+     * @param rampRate specifies the ramp rate in percent power per second.
+     */
+    public synchronized void setRampRate(Double rampRate)
+    {
+        this.rampRate = rampRate;
+    }   //setRampRate
 
     /**
      * This method sets a new target tolerance.
@@ -620,7 +628,7 @@ public class TrcPidController
     /**
      * This methods sets the target set point.
      *
-     * @param target specifies the target set point.
+     * @param target    specifies the target set point.
      * @param warpSpace specifies the warp space object if the target is in one, null if not.
      */
     public void setTarget(double target, TrcWarpSpace warpSpace)
@@ -653,7 +661,8 @@ public class TrcPidController
                 // Set point is absolute, use as is but optimize it if it is in warp space.
                 //
                 setPoint = target;
-                if (warpSpace != null) {
+                if (warpSpace != null)
+                {
                     setPoint = warpSpace.getOptimizedTarget(setPoint, input);
                 }
                 currError = setPoint - input;
@@ -682,6 +691,12 @@ public class TrcPidController
 
             totalError = 0.0;
             prevTime = settlingStartTime = TrcUtil.getCurrentTime();
+            // Only init the prevOutputTime if this setTarget is called after a reset()
+            // If it's called mid-operation, we don't want to reset the prevOutputTime clock
+            if (prevOutputTime == 0.0)
+            {
+                prevOutputTime = prevTime;
+            }
         }
 
         if (debugEnabled)
@@ -733,6 +748,7 @@ public class TrcPidController
 
         currError = 0.0;
         prevTime = 0.0;
+        prevOutputTime = 0.0;
         totalError = 0.0;
         setPoint = 0.0;
         setPointSign = 1.0;
@@ -766,7 +782,7 @@ public class TrcPidController
             // If setPointSign is negative, it means the target is "backward". So if -currError <= tolerance,
             // it means we are either within tolerance or have passed the target.
             //
-            if (currError*setPointSign <= tolerance)
+            if (currError * setPointSign <= tolerance)
             {
                 onTarget = true;
             }
@@ -817,7 +833,8 @@ public class TrcPidController
             prevTime = currTime;
             input = currentInputValue;
             currError = setPoint - input;
-            if (inverted) {
+            if (inverted)
+            {
                 currError = -currError;
             }
 
@@ -830,10 +847,12 @@ public class TrcPidController
                 if (potentialGain >= maxOutput)
                 {
                     totalError = maxOutput / pidCoefficients.kI;
-                } else if (potentialGain > minOutput)
+                }
+                else if (potentialGain > minOutput)
                 {
                     totalError += currError * deltaTime;
-                } else
+                }
+                else
                 {
                     totalError = minOutput / pidCoefficients.kI;
                 }
@@ -843,15 +862,22 @@ public class TrcPidController
             iTerm = pidCoefficients.kI * totalError;
             dTerm = deltaTime > 0.0 ? pidCoefficients.kD * (currError - prevError) / deltaTime : 0.0;
             fTerm = pidCoefficients.kF * setPoint;
+            double lastOutput = output;
             output = pTerm + iTerm + dTerm + fTerm;
 
-            if (output > maxOutput)
+            output = TrcUtil.clipRange(output, minOutput, maxOutput);
+
+            if (rampRate != null)
             {
-                output = maxOutput;
-            }
-            else if (output < minOutput)
-            {
-                output = minOutput;
+                if (prevOutputTime != 0.0)
+                {
+                    double dt = currTime - prevOutputTime;
+                    double maxChange = rampRate * dt;
+                    double change = output - lastOutput;
+                    change = TrcUtil.clipRange(change, -maxChange, maxChange);
+                    output = lastOutput + change;
+                }
+                prevOutputTime = currTime;
             }
 
             if (debugTracer != null)

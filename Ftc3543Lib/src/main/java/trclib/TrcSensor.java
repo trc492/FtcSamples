@@ -180,6 +180,7 @@ public abstract class TrcSensor<D>
      *
      * @return instance name.
      */
+    @Override
     public String toString()
     {
         return instanceName;
@@ -311,7 +312,7 @@ public abstract class TrcSensor<D>
 
         if (data != null)
         {
-            double value = (double)data.value;
+            double value = data.value;
 
             if (debugEnabled) dbgTrace.traceInfo(funcName, "raw=%.3f", value);
             if (filters[index] != null)

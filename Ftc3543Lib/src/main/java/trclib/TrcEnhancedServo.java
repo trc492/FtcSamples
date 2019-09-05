@@ -228,6 +228,7 @@ public class TrcEnhancedServo
      *
      * @return instance name.
      */
+    @Override
     public String toString()
     {
         return instanceName;

@@ -118,6 +118,7 @@ public abstract class TrcAnalogInput extends TrcSensor<TrcAnalogInput.DataType>
      *
      * @return instance name.
      */
+    @Override
     public String toString()
     {
         return instanceName;
@@ -209,7 +210,7 @@ public abstract class TrcAnalogInput extends TrcSensor<TrcAnalogInput.DataType>
     public TrcSensor.SensorData<Double> getData(int index)
     {
         final String funcName = "getData";
-        TrcSensor.SensorData<Double> data = getProcessedData(index, DataType.INPUT_DATA);;
+        TrcSensor.SensorData<Double> data = getProcessedData(index, DataType.INPUT_DATA);
 
         if (debugEnabled)
         {
@@ -230,7 +231,7 @@ public abstract class TrcAnalogInput extends TrcSensor<TrcAnalogInput.DataType>
     public TrcSensor.SensorData<Double> getNormalizedData(int index)
     {
         final String funcName = "getNormalizedData";
-        TrcSensor.SensorData<Double> data = getProcessedData(index, DataType.NORMALIZED_DATA);;
+        TrcSensor.SensorData<Double> data = getProcessedData(index, DataType.NORMALIZED_DATA);
 
         if (debugEnabled)
         {

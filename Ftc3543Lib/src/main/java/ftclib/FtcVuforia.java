@@ -24,7 +24,6 @@
 package ftclib;
 
 import android.graphics.Bitmap;
-import android.support.annotation.NonNull;
 
 import com.vuforia.CameraDevice;
 import com.vuforia.HINT;
@@ -76,7 +75,7 @@ public class FtcVuforia implements TrcVideoSource<Mat>
          * @param isObjectTarget specifies true if target is an object, false if target is an image.
          * @param locationOnField specifies the target location on field.
          */
-        public TargetInfo(int index, @NonNull String name, boolean isObjectTarget, OpenGLMatrix locationOnField)
+        public TargetInfo(int index, String name, boolean isObjectTarget, OpenGLMatrix locationOnField)
         {
             this.index = index;
             this.name = name;
@@ -148,7 +147,7 @@ public class FtcVuforia implements TrcVideoSource<Mat>
         return localizer;
     }   //getLocalizer
 
-    public void addTargetList(@NonNull String trackablesFile, TargetInfo[] targets, OpenGLMatrix phoneLocationOnRobot)
+    public void addTargetList(String trackablesFile, TargetInfo[] targets, OpenGLMatrix phoneLocationOnRobot)
     {
         VuforiaTrackables targetList = localizer.loadTrackablesFromAsset(trackablesFile);
 

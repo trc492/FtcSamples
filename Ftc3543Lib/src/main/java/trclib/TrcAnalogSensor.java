@@ -76,7 +76,7 @@ public class TrcAnalogSensor extends TrcAnalogInput
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "index=%d,type=%s", index, dataType);
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=(%.3f,%s)",
-                data.timestamp, data == null? "null": "" + data.value);
+                data != null? data.timestamp: 0.0, data == null? "null": "" + data.value);
         }
 
         return data ;

@@ -71,7 +71,7 @@ public class TrcDiagnostics<T> implements Iterable<TrcDiagnostics.Test<T>>
         private final String testName;
         private T testGroup;
         private TrcUtil.DataSupplier<Boolean> conditional;
-        private boolean defStatus = false;
+        private boolean defStatus;
         private boolean testPassed = true;
         private String testError = null;
 

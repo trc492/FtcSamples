@@ -68,6 +68,7 @@ public abstract class TrcFilter
      *
      * @return instance name.
      */
+    @Override
     public String toString()
     {
         return instanceName;

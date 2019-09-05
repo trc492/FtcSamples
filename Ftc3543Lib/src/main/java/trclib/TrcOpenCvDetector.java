@@ -82,7 +82,7 @@ public abstract class TrcOpenCvDetector<O> implements TrcVisionTask.VisionProces
 
         if (USE_VISIONTASK)
         {
-            visionTask = new TrcVisionTask<Mat, O>(instanceName, this, imageBuffers, detectedObjectBuffers);
+            visionTask = new TrcVisionTask<>(instanceName, this, imageBuffers, detectedObjectBuffers);
         }
     }   //TrcOpenCvDetector
 
@@ -91,6 +91,7 @@ public abstract class TrcOpenCvDetector<O> implements TrcVisionTask.VisionProces
      *
      * @return instance name.
      */
+    @Override
     public String toString()
     {
         return instanceName;
@@ -184,7 +185,7 @@ public abstract class TrcOpenCvDetector<O> implements TrcVisionTask.VisionProces
     @Override
     public boolean grabFrame(Mat image)
     {
-        boolean success = false;
+        boolean success;
 
         synchronized (image)
         {

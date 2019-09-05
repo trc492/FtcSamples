@@ -42,7 +42,7 @@ public class TrcTaskMgr
     private static TrcDbgTrace dbgTrace = null;
 
     private static final long INPUT_THREAD_INTERVAL = 50;       // in msec
-    private static final long OUTPUT_THREAD_INTERVAL = 50;      // in msec
+    private static final long OUTPUT_THREAD_INTERVAL = 10;      // in msec
     private static final long defTaskTimeThreshold = 50000000;  // 50 msec
 
     /**
@@ -83,13 +83,13 @@ public class TrcTaskMgr
         POSTCONTINUOUS_TASK(5),
 
         /**
-         * INPUT_TASK is called periodically at a rate about 50Hz on its own thread. Typically, it runs code that
+         * INPUT_TASK is called periodically at a rate about 20Hz on its own thread. Typically, it runs code that
          * reads sensor input.
          */
         INPUT_TASK(6),
 
         /**
-         * OUTPUT_TASK is called periodically at a rate about 50Hz on its own thread. Typically, it runs code that
+         * OUTPUT_TASK is called periodically at a rate about 100Hz on its own thread. Typically, it runs code that
          * updates the state of actuators.
          */
         OUTPUT_TASK(7),
@@ -207,6 +207,7 @@ public class TrcTaskMgr
          *
          * @return instance name of the class.
          */
+        @Override
         public String toString()
         {
             return taskName;
@@ -303,6 +304,57 @@ public class TrcTaskMgr
 
             return taskTypes.remove(type);
         }   //unregisterTask
+
+        /**
+         * This method unregisters the given task object from all task types.
+         *
+         * @return true if successfully removed from any task type, false otherwise.
+         */
+        public synchronized boolean unregisterTask()
+        {
+            boolean removed = false;
+
+            for (TaskType taskType : TaskType.values())
+            {
+                if (unregisterTask(taskType))
+                {
+                    removed = true;
+                }
+            }
+            return removed;
+        }   //unregisterTask
+
+        /**
+         * This method checks if the given task type is registered with this task object.
+         *
+         * @param type specifies the task type to be checked against.
+         * @return true if this task is registered with the given type, false otherwise.
+         */
+        public synchronized boolean isRegistered(TaskType type)
+        {
+            return hasType(type);
+        }   //isRegistered
+
+        /**
+         * This method checks if this task object is registered for any task type.
+         *
+         * @return true if this task is registered with any type, false otherwise.
+         */
+        public synchronized boolean isRegistered()
+        {
+            boolean registered = false;
+
+            for (TaskType taskType : TaskType.values())
+            {
+                if (isRegistered(taskType))
+                {
+                    registered = true;
+                    break;
+                }
+            }
+
+            return registered;
+        }   //isRegistered
 
         /**
          * This method checks if the given task type is registered with this task object.
@@ -418,7 +470,9 @@ public class TrcTaskMgr
          */
         private synchronized double getAverageTaskElapsedTime(TaskType taskType)
         {
-            return taskTotalNanoTimes[taskType.value]/taskTimeSlotCounts[taskType.value]/1000000000.0;
+            int slotCount = taskTimeSlotCounts[taskType.value];
+
+            return slotCount == 0 ? 0.0 : (double)taskTotalNanoTimes[taskType.value]/slotCount/1000000000.0;
         } //getAverageTaskElapsedTime
 
     }   //class TaskObject
