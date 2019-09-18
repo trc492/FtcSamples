@@ -100,4 +100,4 @@ public class FtcTeleOpGrabber extends FtcOpMode implements TrcGameController.But
         }
     }   //buttonEvent
 
-}   //class FtcGrabber
+}   //class FtcTeleOpGrabber

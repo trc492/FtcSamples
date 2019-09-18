@@ -48,7 +48,7 @@ public class FtcAutoK9PidSeekIr extends FtcOpMode
     // Event and state machine.
     //
     private TrcEvent event;
-    private TrcStateMachine sm;
+    private TrcStateMachine<State> sm;
 
     //
     // Implements FtcOpMode abstract methods.
@@ -57,7 +57,7 @@ public class FtcAutoK9PidSeekIr extends FtcOpMode
     @Override
     public void initRobot()
     {
-        robot = new K9Robot(TrcRobot.RunMode.AUTO_MODE);
+        robot = new K9Robot();
         //
         // State machine.
         //
@@ -72,7 +72,7 @@ public class FtcAutoK9PidSeekIr extends FtcOpMode
     @Override
     public void startMode(TrcRobot.RunMode prevMode, TrcRobot.RunMode nextMode)
     {
-        robot.startMode(TrcRobot.RunMode.AUTO_MODE);
+        robot.startMode();
         //
         // Start state machine at state FIND_LINE.
         //
@@ -82,21 +82,22 @@ public class FtcAutoK9PidSeekIr extends FtcOpMode
     @Override
     public void stopMode(TrcRobot.RunMode prevMode, TrcRobot.RunMode nextMode)
     {
-        robot.stopMode(TrcRobot.RunMode.AUTO_MODE);
+        robot.stopMode();
     }   //stopMode
 
     @Override
     public void runContinuous(double elapsedTime)
     {
-        robot.irDrivePidCtrl.displayPidInfo(1);
-        robot.irTurnPidCtrl.displayPidInfo(3);
-        //
-        // Run state machine.
-        //
-        if (sm.isReady())
+        State state = sm.checkReadyAndGetState();
+
+        if (state == null)
         {
-            State state = (State)sm.getState();
-            robot.dashboard.displayPrintf(5, "State: %s", state.toString());
+            robot.dashboard.displayPrintf(1, "State: Disabled");
+        }
+        else
+        {
+            robot.dashboard.displayPrintf(1, "State: %s", state);
+
             switch (state)
             {
                 case SEEK_IR:
@@ -104,8 +105,7 @@ public class FtcAutoK9PidSeekIr extends FtcOpMode
                     // Go towards IR beacon until IR strength reaches 0.8.
                     //
                     robot.pidSeekIr.setTarget(0.8, 0.0, false, event);
-                    sm.addEvent(event);
-                    sm.waitForEvents(State.DONE);
+                    sm.waitForSingleEvent(event, State.DONE);
                     break;
 
                 case DONE:
@@ -116,6 +116,9 @@ public class FtcAutoK9PidSeekIr extends FtcOpMode
                     sm.stop();
                     break;
             }
+
+            robot.irDrivePidCtrl.displayPidInfo(8);
+            robot.irTurnPidCtrl.displayPidInfo(10);
         }
     }   //runContinuous
 

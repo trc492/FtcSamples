@@ -42,7 +42,7 @@ public class FtcAutoK9LineFollow extends FtcOpMode
     @Override
     public void initRobot()
     {
-        robot = new K9Robot(TrcRobot.RunMode.AUTO_MODE);
+        robot = new K9Robot();
     }   //initRobot
 
     //
@@ -52,13 +52,13 @@ public class FtcAutoK9LineFollow extends FtcOpMode
     @Override
     public void startMode(TrcRobot.RunMode prevMode, TrcRobot.RunMode nextMode)
     {
-        robot.startMode(TrcRobot.RunMode.AUTO_MODE);
+        robot.startMode();
     }   //startMode
 
     @Override
     public void stopMode(TrcRobot.RunMode prevMode, TrcRobot.RunMode nextMode)
     {
-        robot.stopMode(TrcRobot.RunMode.AUTO_MODE);
+        robot.stopMode();
     }   //stopMode
 
     @Override

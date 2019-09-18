@@ -26,10 +26,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
 import ftclib.FtcOpMode;
-import trclib.TrcAnalogTrigger;
 import trclib.TrcEvent;
-import trclib.TrcPidController;
-import trclib.TrcPidDrive;
 import trclib.TrcRobot;
 import trclib.TrcStateMachine;
 
@@ -53,7 +50,7 @@ public class FtcAutoK9PidLineFollow extends FtcOpMode
     // Event and state machine.
     //
     private TrcEvent event;
-    private TrcStateMachine sm;
+    private TrcStateMachine<State> sm;
 
     //
     // Implements FtcOpMode abstract methods.
@@ -62,7 +59,7 @@ public class FtcAutoK9PidLineFollow extends FtcOpMode
     @Override
     public void initRobot()
     {
-        robot = new K9Robot(TrcRobot.RunMode.AUTO_MODE);
+        robot = new K9Robot();
         //
         // State machine.
         //
@@ -77,7 +74,7 @@ public class FtcAutoK9PidLineFollow extends FtcOpMode
     @Override
     public void startMode(TrcRobot.RunMode prevMode, TrcRobot.RunMode nextMode)
     {
-        robot.startMode(TrcRobot.RunMode.AUTO_MODE);
+        robot.startMode();
         //
         // Start state machine at state FIND_LINE.
         //
@@ -87,22 +84,22 @@ public class FtcAutoK9PidLineFollow extends FtcOpMode
     @Override
     public void stopMode(TrcRobot.RunMode prevMode, TrcRobot.RunMode nextMode)
     {
-        robot.stopMode(TrcRobot.RunMode.AUTO_MODE);
+        robot.stopMode();
     }   //stopMode
 
     @Override
     public void runContinuous(double elapsedTime)
     {
-        robot.drivePidCtrl.displayPidInfo(1);
-        robot.turnPidCtrl.displayPidInfo(3);
-        robot.lightPidCtrl.displayPidInfo(5);
-        //
-        // Run state machine.
-        //
-        if (sm.isReady())
+        State state = sm.checkReadyAndGetState();
+
+        if (state == null)
         {
-            State state = (State)sm.getState();
-            robot.dashboard.displayPrintf(7, "State: %s", state.toString());
+            robot.dashboard.displayPrintf(1, "State: Disabled");
+        }
+        else
+        {
+            robot.dashboard.displayPrintf(1, "State: %s", state);
+
             switch (state)
             {
                 case FIND_LINE:
@@ -110,35 +107,37 @@ public class FtcAutoK9PidLineFollow extends FtcOpMode
                     // Go forward slowly for 3 ft to find the line.
                     // If line is detected, PID drive will be interrupted.
                     //
-                    robot.lightTrigger.setEnabled(true);
-                    robot.drivePidCtrl.setOutputRange(-0.5, 0.5);
-                    robot.pidDrive.setTarget(36.0, 0.0, false, event);
-                    sm.addEvent(event);
-                    sm.waitForEvents(State.TURN_TO_LINE);
+                    robot.colorTrigger.setEnabled(true);
+                    // Drive slowly, limit to half power.
+                    robot.encoderYPidCtrl.setOutputRange(-0.5, 0.5);
+                    robot.pidDrive.setTarget(36.0, robot.targetHeading, false, event);
+                    sm.waitForSingleEvent(event, State.TURN_TO_LINE);
                     break;
 
                 case TURN_TO_LINE:
                     //
-                    // We have past the line slightly, so turn right 90 degree
+                    // We have past the line slightly, so turn left or right 90 degree
                     // slowly to find the edge of the line. If the line is detected,
                     // PID turn will be interrupted.
                     //
-                    robot.turnPidCtrl.setOutputRange(-0.5, 0.5);
-                    robot.pidDrive.setTarget(0.0, 90.0, false, event);
-                    sm.addEvent(event);
-                    sm.waitForEvents(State.FOLLOW_LINE);
+                    robot.gyroPidCtrl.setOutputRange(-0.5, 0.5);
+                    robot.pidDrive.setTarget(0.0,90.0, false, event);
+                    sm.waitForSingleEvent(event, State.FOLLOW_LINE);
                     break;
 
                 case FOLLOW_LINE:
                     //
-                    // Follow the line for 5 ft.
+                    // Slowly follow the line for 5 ft.
                     //
-                    robot.lightTrigger.setEnabled(false);
-                    robot.drivePidCtrl.setOutputRange(-0.3, 0.3);
-                    robot.lightPidCtrl.setOutputRange(-0.3, 0.3);
+                    robot.colorTrigger.setEnabled(false);
+                    robot.encoderYPidCtrl.setOutputRange(-0.3, 0.3);
+                    robot.colorPidCtrl.setOutputRange(-0.3, 0.3);
+                    //
+                    // Follow right edge if red alliance.
+                    // Follow left edge if blue alliance.
+                    //
                     robot.lineFollowDrive.setTarget(60.0, K9Robot.LIGHT_THRESHOLD, false, event);
-                    sm.addEvent(event);
-                    sm.waitForEvents(State.DONE);
+                    sm.waitForSingleEvent(event, State.DONE);
                     break;
 
                 case DONE:
@@ -146,12 +145,16 @@ public class FtcAutoK9PidLineFollow extends FtcOpMode
                     //
                     // We are done, restore everything and stop!
                     //
-                    robot.drivePidCtrl.setOutputRange(-1.0, 1.0);
-                    robot.turnPidCtrl.setOutputRange(-1.0, 1.0);
+                    robot.encoderYPidCtrl.setOutputRange(-1.0, 1.0);
+                    robot.gyroPidCtrl.setOutputRange(-1.0, 1.0);
                     robot.lightPidCtrl.setOutputRange(-1.0, 1.0);
                     sm.stop();
                     break;
             }
+
+            robot.encoderYPidCtrl.displayPidInfo(8);
+            robot.gyroPidCtrl.displayPidInfo(10);
+            robot.lightPidCtrl.displayPidInfo(12);
         }
     }   //runContinuous
 

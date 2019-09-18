@@ -22,29 +22,29 @@
 
 package samples;
 
-import android.widget.TextView;
-
-import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.IrSeekerSensor;
 
 import org.firstinspires.ftc.robotcontroller.internal.FtcRobotControllerActivity;
 
+import ftclib.FtcBNO055Imu;
 import ftclib.FtcDcMotor;
 import ftclib.FtcMRColorSensor;
-import ftclib.FtcMRGyro;
 import ftclib.FtcOpMode;
 import ftclib.FtcOpticalDistanceSensor;
+import ftclib.FtcRobotBattery;
 import ftclib.FtcServo;
 import hallib.HalDashboard;
 import trclib.TrcAnalogTrigger;
+import trclib.TrcDbgTrace;
 import trclib.TrcEnhancedServo;
+import trclib.TrcGyro;
 import trclib.TrcPidController;
 import trclib.TrcPidDrive;
-import trclib.TrcRobot;
 import trclib.TrcSimpleDriveBase;
 
 public class K9Robot
 {
+    private static final String moduleName = "K9Robot";
     //
     // PID drive constants.
     //
@@ -101,23 +101,25 @@ public class K9Robot
     private static final double IRTURN_KD               = 0.0;
     private static final double IRTURN_TOLERANCE        = 1.0;
 
-    public static final double ARM_MIN_RANGE            = 0.2;
-    public static final double ARM_MAX_RANGE            = 0.9;
-    public static final double CLAW_MIN_RANGE           = 0.2;
-    public static final double CLAW_MAX_RANGE           = 0.7;
+    public static final double ARM_RANGE_MIN            = 0.2;
+    public static final double ARM_RANGE_MAX            = 0.9;
+    public static final double CLAW_RANGE_MIN           = 0.2;
+    public static final double CLAW_RANGE_MAX           = 0.7;
     public static final double SERVO_STEPRATE           = 2.0;
 
     //
     // Global objects.
     //
-    public FtcOpMode opmode;
-    public HardwareMap hardwareMap;
+    public FtcOpMode opMode;
     public HalDashboard dashboard;
-    public FtcRobotControllerActivity activity;
+    public TrcDbgTrace globalTracer;
+    public FtcRobotBattery battery = null;  //don't use battery monitor.
     //
     // Sensors.
     //
-    public FtcMRGyro gyro;
+    public FtcBNO055Imu imu;
+    public TrcGyro gyro;
+    public double targetHeading = 0.0;
     public FtcMRColorSensor colorSensor;
     public FtcOpticalDistanceSensor lightSensor;
     public IrSeekerSensor irSeeker;
@@ -132,9 +134,11 @@ public class K9Robot
     //
     // PID drive.
     //
-    public TrcPidController drivePidCtrl;
-    public TrcPidController turnPidCtrl;
+    public TrcPidController encoderXPidCtrl = null; //K9Robot doesn't support holonomic drive, so there is no X.
+    public TrcPidController encoderYPidCtrl;
+    public TrcPidController gyroPidCtrl;
     public TrcPidDrive pidDrive;
+    public TrcPidController.PidCoefficients tunePidCoeff = new TrcPidController.PidCoefficients();
     //
     // PID line follow using color sensor.
     //
@@ -161,67 +165,64 @@ public class K9Robot
     public FtcServo clawServo;
     public TrcEnhancedServo claw;
 
-    public K9Robot(TrcRobot.RunMode runMode)
+    public K9Robot()
     {
         //
         // Initialize global objects.
         //
-        opmode = FtcOpMode.getInstance();
-        hardwareMap = opmode.hardwareMap;
+        opMode = FtcOpMode.getInstance();
+        opMode.hardwareMap.logDevices();
         dashboard = HalDashboard.getInstance();
-        activity = (FtcRobotControllerActivity) hardwareMap.appContext;
-        hardwareMap.logDevices();
-        dashboard.setTextView((TextView) activity.findViewById(FtcSampleCode.R.id.textOpMode));
+        globalTracer = FtcOpMode.getGlobalTracer();
+        dashboard.setTextView(
+                ((FtcRobotControllerActivity)opMode.hardwareMap.appContext).findViewById(
+                        FtcSampleCode.R.id.textOpMode));
         //
         // Initialize sensors.
         //
-        gyro = new FtcMRGyro("gyro_sensor");
-        gyro.calibrate();
+        imu = new FtcBNO055Imu("imu");
+        gyro = imu.gyro;
+
         colorSensor = new FtcMRColorSensor("colorSensor");
         lightSensor = new FtcOpticalDistanceSensor("light_sensor");
-        irSeeker = hardwareMap.irSeekerSensor.get("irSeeker");
+        irSeeker = opMode.hardwareMap.irSeekerSensor.get("irSeeker");
         //
         // DriveBase subsystem.
         //
         motorLeft = new FtcDcMotor("motor_1");
         motorRight = new FtcDcMotor("motor_2");
+        motorLeft.setOdometryEnabled(true);
+        motorRight.setOdometryEnabled(true);
         motorLeft.setInverted(true);
+
         driveBase = new TrcSimpleDriveBase(motorLeft, motorRight, gyro);
         driveBase.setPositionScales(DRIVE_INCHES_PER_COUNT);
         //
         // PID drive.
         //
-        drivePidCtrl = new TrcPidController(
-                "drivePid",
+        encoderYPidCtrl = new TrcPidController(
+                "encoderYPid",
                 new TrcPidController.PidCoefficients(DRIVE_KP, DRIVE_KI, DRIVE_KD),
                 DRIVE_TOLERANCE, driveBase::getYPosition);
-        turnPidCtrl = new TrcPidController(
-                "turnPid",
+        gyroPidCtrl = new TrcPidController(
+                "gyroPid",
                 new TrcPidController.PidCoefficients(TURN_KP, TURN_KI, TURN_KD),
                 TURN_TOLERANCE, driveBase::getHeading);
-        pidDrive = new TrcPidDrive("pidDrive", driveBase, null, drivePidCtrl, turnPidCtrl);
+        gyroPidCtrl.setAbsoluteSetPoint(true);
+        pidDrive = new TrcPidDrive("pidDrive", driveBase, null, encoderYPidCtrl, gyroPidCtrl);
         //
         // PID line follow using color sensor.
         //
         colorPidCtrl = new TrcPidController(
-                "lightPid",
+                "colorPid",
                 new TrcPidController.PidCoefficients(COLOR_KP, COLOR_KI, COLOR_KD),
-                COLOR_TOLERANCE,
-                () ->
-                {
-                    double input = colorSensor.sensor.alpha();
-                    //
-                    // Give it a deadband to minimize fish tailing.
-                    //
-                    if (Math.abs(input - COLOR_LINE_EDGE_LEVEL) < COLOR_LINE_EDGE_DEADBAND)
-                    {
-                        input = COLOR_LINE_EDGE_LEVEL;
-                    }
-                    return input;
-                });
+                COLOR_TOLERANCE, this::getColorValue);
         colorPidCtrl.setAbsoluteSetPoint(true);
         pidLineFollow = new TrcPidDrive(
-                "lineFollow", driveBase, null, drivePidCtrl, colorPidCtrl);
+                "colorLineFollow", driveBase, null, encoderYPidCtrl, colorPidCtrl);
+        // In order to line follow, we need to first find the line. We will first use pidDrive to keep the robot
+        // moving forward for a set distance. Then colorTrigger will interrupt pidDrive once the line is detected.
+        // Then we can use pidLineFollow to follow the line.
         colorTrigger = new TrcAnalogTrigger<>(
                 "colorTrigger", colorSensor, 0, FtcMRColorSensor.DataType.WHITE,
                 new double[]{COLOR_BLACK, COLOR_WHITE}, this::triggerEvent);
@@ -234,8 +235,10 @@ public class K9Robot
                 LIGHT_TOLERANCE, lightSensor.sensor::getRawLightDetected);
         lightPidCtrl.setAbsoluteSetPoint(true);
         lineFollowDrive = new TrcPidDrive(
-                "lineFollow", driveBase, null, drivePidCtrl, lightPidCtrl);
-
+                "lightLineFollow", driveBase, null, encoderYPidCtrl, lightPidCtrl);
+        // In order to line follow, we need to first find the line. We will first use pidDrive to keep the robot
+        // moving forward for a set distance. Then lightTrigger will interrupt pidDrive once the line is detected.
+        // Then we can use lineFollowDrive to follow the line.
         lightTrigger = new TrcAnalogTrigger<>(
                 "lightTrigger", lightSensor, 0, FtcOpticalDistanceSensor.DataType.RAW_LIGHT_DETECTED,
                 new double[]{LIGHT_DARK_LEVEL, LIGHT_WHITE_LEVEL}, this::triggerEvent);
@@ -245,46 +248,12 @@ public class K9Robot
         irDrivePidCtrl = new TrcPidController(
                 "irDrivePid",
                 new TrcPidController.PidCoefficients(IRDRIVE_KP, IRDRIVE_KI, IRDRIVE_KD),
-                IRDRIVE_TOLERANCE,
-                () ->
-                {
-                    double input;
-                    //
-                    // Get the IR strength.
-                    //
-                    if (irSeeker.signalDetected())
-                    {
-                        input = irSeeker.getStrength();
-                        prevIrStrength = input;
-                    }
-                    else
-                    {
-                        input = prevIrStrength;
-                    }
-                    return input;
-                });
+                IRDRIVE_TOLERANCE, this::getIrStrength);
         irDrivePidCtrl.setAbsoluteSetPoint(true);
         irTurnPidCtrl = new TrcPidController(
                 "irTurnPid",
                 new TrcPidController.PidCoefficients(IRTURN_KP, IRTURN_KI, IRTURN_KD),
-                IRTURN_TOLERANCE,
-                () ->
-                {
-                    double input;
-                    //
-                    // Get the IR direction.
-                    //
-                    if (irSeeker.signalDetected())
-                    {
-                        input = irSeeker.getAngle();
-                        prevIrAngle = input;
-                    }
-                    else
-                    {
-                        input = prevIrAngle;
-                    }
-                    return input;
-                });
+                IRTURN_TOLERANCE, this::getIrAngle);
         irDrivePidCtrl.setAbsoluteSetPoint(true);
         pidSeekIr = new TrcPidDrive(
                 "seekIr", driveBase, null, irDrivePidCtrl, irTurnPidCtrl);
@@ -292,30 +261,32 @@ public class K9Robot
         // Arm subsystem.
         //
         armServo = new FtcServo("servo_1");
-        armServo.setLogicalRange(ARM_MIN_RANGE, ARM_MAX_RANGE);
+        armServo.setLogicalRange(ARM_RANGE_MIN, ARM_RANGE_MAX);
         arm = new TrcEnhancedServo("arm", armServo);
-        arm.setPosition(ARM_MIN_RANGE);
+        arm.setPosition(ARM_RANGE_MIN);
         //
         // Claw subsystem.
         //
         clawServo = new FtcServo("servo_6");
-        clawServo.setLogicalRange(CLAW_MIN_RANGE, CLAW_MAX_RANGE);
+        clawServo.setLogicalRange(CLAW_RANGE_MIN, CLAW_RANGE_MAX);
         claw = new TrcEnhancedServo("claw", clawServo);
-        claw.setPosition(CLAW_MIN_RANGE);
+        claw.setPosition(CLAW_RANGE_MIN);
     }   //K9Robot
 
-    public void startMode(TrcRobot.RunMode runMode)
+    public void startMode()
     {
         dashboard.clearDisplay();
         gyro.setEnabled(true);
+        targetHeading = 0.0;
+        driveBase.setOdometryEnabled(true);
         colorSensor.sensor.enableLed(true);
-        driveBase.resetOdometry();
     }   //startMode
 
-    public void stopMode(TrcRobot.RunMode runMode)
+    public void stopMode()
     {
         gyro.setEnabled(false);
         colorSensor.sensor.enableLed(false);
+        driveBase.setOdometryEnabled(false);
     }   //stopMode
 
     /**
@@ -325,12 +296,89 @@ public class K9Robot
      * @param prevZone specifies the zone it is coming out of.
      * @param zoneValue specifies the actual sensor value.
      */
-    public void triggerEvent(int currZone, int prevZone, double zoneValue)
+    private void triggerEvent(int currZone, int prevZone, double zoneValue)
     {
         if (pidDrive.isActive() && currZone > 0)
         {
             pidDrive.cancel();
         }
     }   //triggerEvent
+
+    /**
+     * This method reads and returns the color sensor value.
+     *
+     * @return color sensor value.
+     */
+    private double getColorValue()
+    {
+        double input = colorSensor.sensor.alpha();
+        //
+        // Give it a deadband to minimize fish tailing.
+        //
+        if (Math.abs(input - COLOR_LINE_EDGE_LEVEL) < COLOR_LINE_EDGE_DEADBAND)
+        {
+            input = COLOR_LINE_EDGE_LEVEL;
+        }
+
+        return input;
+    }   //getColorValue
+
+    /**
+     * This method reads and returns the IR strength value.
+     *
+     * @return IR strength value.
+     */
+    private double getIrStrength()
+    {
+        double input;
+        //
+        // Get the IR strength.
+        //
+        if (irSeeker.signalDetected())
+        {
+            input = irSeeker.getStrength();
+            prevIrStrength = input;
+        }
+        else
+        {
+            input = prevIrStrength;
+        }
+
+        return input;
+    }   //getIrStrength
+
+    /**
+     * This method reads and returns the IR angle value.
+     *
+     * @return IR angle value.
+     */
+    private double getIrAngle()
+    {
+        double input;
+        //
+        // Get the IR direction.
+        //
+        if (irSeeker.signalDetected())
+        {
+            input = irSeeker.getAngle();
+            prevIrAngle = input;
+        }
+        else
+        {
+            input = prevIrAngle;
+        }
+
+        return input;
+    }   //getIrAngle
+
+    public void traceStateInfo(double elapsedTime, String stateName, double xDistance, double yDistance, double heading)
+    {
+        globalTracer.traceInfo(
+                moduleName,
+                "[%5.3f] >>>>> %s: xPos=%6.2f/%6.2f,yPos=%6.2f/%6.2f,heading=%6.1f/%6.1f",
+                elapsedTime, stateName,
+                driveBase.getXPosition(), xDistance, driveBase.getYPosition(), yDistance, driveBase.getHeading(),
+                heading);
+    }   //traceStateInfo
 
 }   //class K9Robot

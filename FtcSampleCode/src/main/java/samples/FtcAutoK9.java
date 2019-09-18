@@ -29,74 +29,36 @@ import ftclib.FtcChoiceMenu;
 import ftclib.FtcMenu;
 import ftclib.FtcOpMode;
 import ftclib.FtcValueMenu;
-import trclib.TrcEvent;
 import trclib.TrcRobot;
-import trclib.TrcStateMachine;
-import trclib.TrcTimer;
 
 @Autonomous(name="Auto: K9Bot Various Autonomous", group="3543AutoSamples")
 @Disabled
 public class FtcAutoK9 extends FtcOpMode implements FtcMenu.MenuButtons
 {
-    private enum AutoStrategy
-    {
-        DO_NOTHING,
-        TIMED_DRIVE,
-        DRIVE_AND_TURN,
-        FOLLOW_LINE,
-        SEEK_IR
-    }   //enum AutoStrategy
-
-    private enum Alliance
+    public enum Alliance
     {
         RED_ALLIANCE,
         BLUE_ALLIANCE
     }   //enum Alliance
 
-    private enum TimedDriveState
+    private enum AutoStrategy
     {
-        DELAY,
-        DRIVE,
-        DONE
-    }   //enum TimedDriveState
-
-    private enum DriveAndTurnState
-    {
-        DELAY,
-        DRIVE,
-        TURN,
-        DONE
-    }   //enum DriveAndTurnState
-
-    private enum LineFollowState
-    {
-        DELAY,
-        FIND_LINE,
-        TURN_TO_LINE,
+        TIMED_DRIVE,
+        DRIVE_AND_TURN,
         FOLLOW_LINE,
-        DONE
-    }   //enum LineFollowState
-
-    private enum SeekIrState
-    {
-        DELAY,
         SEEK_IR,
-        DONE
-    }   //enum SeekIrState
+        DO_NOTHING
+    }   //enum AutoStrategy
 
     private K9Robot robot;
-    //
-    // State machine.
-    //
-    private TrcEvent event;
-    private TrcTimer timer;
-    private TrcStateMachine sm;
+    private TrcRobot.RobotCommand autoCommand;
     //
     // Menu choices.
     //
     private double delay = 0.0;
-    private AutoStrategy autoStrategy = AutoStrategy.DO_NOTHING;
+    private AutoStrategy strategy = AutoStrategy.DO_NOTHING;
     private double driveTime = 0.0;
+    private double drivePower = 0.0;
     private double driveDistance = 0.0;
     private double turnDegrees = 0.0;
     private Alliance alliance = Alliance.RED_ALLIANCE;
@@ -108,17 +70,40 @@ public class FtcAutoK9 extends FtcOpMode implements FtcMenu.MenuButtons
     @Override
     public void initRobot()
     {
-        robot = new K9Robot(TrcRobot.RunMode.AUTO_MODE);
         //
-        // State machine.
+        // Create the robot.
         //
-        event = new TrcEvent("autoEvent");
-        timer = new TrcTimer("autoTimer");
-        sm = new TrcStateMachine("autoSM");
+        robot = new K9Robot();
         //
         // Choice menus.
         //
         doMenus();
+        //
+        // Creates the robot command for the chosen strategy.
+        //
+        switch (strategy)
+        {
+            case TIMED_DRIVE:
+                autoCommand = new CmdTimedDrive(robot, delay, driveTime, 0.0, drivePower, 0.0);
+                break;
+
+            case DRIVE_AND_TURN:
+                autoCommand = new CmdDriveAndTurn(robot, delay, driveDistance*12.0, turnDegrees);
+                break;
+
+            case FOLLOW_LINE:
+                autoCommand = new CmdFollowLine(robot, delay, alliance);
+                break;
+
+            case SEEK_IR:
+                autoCommand = new CmdSeekIR(robot, delay, alliance);
+                break;
+
+            case DO_NOTHING:
+            default:
+                autoCommand = null;
+                break;
+        }
     }   //initRobot
 
     //
@@ -128,287 +113,23 @@ public class FtcAutoK9 extends FtcOpMode implements FtcMenu.MenuButtons
     @Override
     public void startMode(TrcRobot.RunMode prevMode, TrcRobot.RunMode nextMode)
     {
-        robot.startMode(TrcRobot.RunMode.AUTO_MODE);
-        //
-        // Start the state machine according to the auto strategy.
-        //
-        switch (autoStrategy)
-        {
-            case TIMED_DRIVE:
-                sm.start(TimedDriveState.DELAY);
-                break;
-
-            case DRIVE_AND_TURN:
-                sm.start(DriveAndTurnState.DELAY);
-                break;
-
-            case FOLLOW_LINE:
-                sm.start(LineFollowState.DELAY);
-                break;
-
-            case SEEK_IR:
-                sm.start(SeekIrState.DELAY);
-                break;
-        }
+        robot.startMode();
     }   //startMode
 
     @Override
     public void stopMode(TrcRobot.RunMode prevMode, TrcRobot.RunMode nextMode)
     {
-        robot.startMode(TrcRobot.RunMode.AUTO_MODE);
+        robot.stopMode();
     }   //stopMode
 
     @Override
     public void runContinuous(double elapsedTime)
     {
-        switch (autoStrategy)
+        if (autoCommand != null)
         {
-            case TIMED_DRIVE:
-                doTimedDrive(delay, driveTime);
-                break;
-
-            case DRIVE_AND_TURN:
-                doDriveAndTurn(delay, driveDistance, turnDegrees);
-                break;
-
-            case FOLLOW_LINE:
-                doLineFollow(delay, alliance);
-                break;
-
-            case SEEK_IR:
-                doIrSeek(delay);
-                break;
+            autoCommand.cmdPeriodic(elapsedTime);
         }
     }   //runContinuous
-
-    //
-    // Autonomous strategies.
-    //
-
-    private void doTimedDrive(double delay, double driveTime)
-    {
-        if (sm.isReady())
-        {
-            TimedDriveState state = (TimedDriveState)sm.getState();
-            robot.dashboard.displayPrintf(1, "State: %s", state.toString());
-            switch (state)
-            {
-                case DELAY:
-                    //
-                    // Do delay if necessary.
-                    //
-                    if (delay == 0.0)
-                    {
-                        sm.setState(TimedDriveState.DRIVE);
-                    }
-                    else
-                    {
-                        timer.set(delay, event);
-                        sm.addEvent(event);
-                        sm.waitForEvents(TimedDriveState.DRIVE);
-                    }
-                    break;
-
-                case DRIVE:
-                    //
-                    // Drive the given distance.
-                    //
-                    robot.driveBase.tankDrive(0.5, 0.5);
-                    timer.set(driveTime, event);
-                    sm.addEvent(event);
-                    sm.waitForEvents(TimedDriveState.DONE);
-                    break;
-
-                case DONE:
-                default:
-                    //
-                    // We are done.
-                    //
-                    robot.driveBase.stop();
-                    sm.stop();
-                    break;
-            }
-        }
-    }   //doTimeDrive
-
-    private void doDriveAndTurn(double delay, double distance, double degrees)
-    {
-        if (sm.isReady())
-        {
-            DriveAndTurnState state = (DriveAndTurnState)sm.getState();
-            robot.dashboard.displayPrintf(1, "State: %s", state.toString());
-            switch (state)
-            {
-                case DELAY:
-                    //
-                    // Do delay if necessary.
-                    //
-                    if (delay == 0.0)
-                    {
-                        sm.setState(DriveAndTurnState.DRIVE);
-                    }
-                    else
-                    {
-                        timer.set(delay, event);
-                        sm.addEvent(event);
-                        sm.waitForEvents(DriveAndTurnState.DRIVE);
-                    }
-                    break;
-
-                case DRIVE:
-                    //
-                    // Drive the given distance in feet.
-                    //
-                    robot.pidDrive.setTarget(distance*12.0, 0.0, false, event);
-                    sm.addEvent(event);
-                    sm.waitForEvents(DriveAndTurnState.TURN);
-                    break;
-
-                case TURN:
-                    //
-                    // Turn the given degrees.
-                    //
-                    robot.pidDrive.setTarget(0.0, degrees, false, event);
-                    sm.addEvent(event);
-                    sm.waitForEvents(DriveAndTurnState.DONE);
-                    break;
-
-                case DONE:
-                default:
-                    //
-                    // We are done.
-                    //
-                    sm.stop();
-                    break;
-            }
-        }
-    }   //doDriveAndTurn
-
-    private void doLineFollow(double delay, Alliance alliance)
-    {
-        if (sm.isReady())
-        {
-            LineFollowState state = (LineFollowState)sm.getState();
-            robot.dashboard.displayPrintf(1, "State: %s", state.toString());
-            switch (state)
-            {
-                case DELAY:
-                    //
-                    // Do delay if necessary.
-                    //
-                    if (delay == 0.0)
-                    {
-                        sm.setState(LineFollowState.FIND_LINE);
-                    }
-                    else
-                    {
-                        timer.set(delay, event);
-                        sm.addEvent(event);
-                        sm.waitForEvents(LineFollowState.FIND_LINE);
-                    }
-                    break;
-
-                case FIND_LINE:
-                    //
-                    // Go forward slowly for 3 ft to find the line.
-                    // If line is detected, PID drive will be interrupted.
-                    //
-                    robot.colorTrigger.setEnabled(true);
-                    robot.drivePidCtrl.setOutputRange(-0.5, 0.5);
-                    robot.pidDrive.setTarget(36.0, 0.0, false, event);
-                    sm.addEvent(event);
-                    sm.waitForEvents(LineFollowState.TURN_TO_LINE);
-                    break;
-
-                case TURN_TO_LINE:
-                    //
-                    // We have past the line slightly, so turn left or right 90 degree
-                    // slowly to find the edge of the line. If the line is detected,
-                    // PID turn will be interrupted.
-                    //
-                    robot.turnPidCtrl.setOutputRange(-0.5, 0.5);
-                    robot.pidDrive.setTarget(
-                            0.0,
-                            alliance == FtcAutoK9.Alliance.RED_ALLIANCE? -90.0: 90.0,
-                            false, event);
-                    sm.addEvent(event);
-                    sm.waitForEvents(LineFollowState.FOLLOW_LINE);
-                    break;
-
-                case FOLLOW_LINE:
-                    //
-                    // Follow the line for 5 ft.
-                    //
-                    robot.colorTrigger.setEnabled(false);
-                    robot.drivePidCtrl.setOutputRange(-0.3, 0.3);
-                    robot.colorPidCtrl.setOutputRange(-0.3, 0.3);
-                    //
-                    // Follow right edge if red alliance.
-                    // Follow left edge if blue alliance.
-                    //
-                    robot.colorPidCtrl.setInverted(alliance == Alliance.RED_ALLIANCE);
-                    robot.pidLineFollow.setTarget(60.0, K9Robot.COLOR_LINE_EDGE_DEADBAND, false, event);
-                    sm.addEvent(event);
-                    sm.waitForEvents(LineFollowState.DONE);
-                    break;
-
-                case DONE:
-                default:
-                    //
-                    // We are done, restore everything and stop!
-                    //
-                    robot.drivePidCtrl.setOutputRange(-1.0, 1.0);
-                    robot.turnPidCtrl.setOutputRange(-1.0, 1.0);
-                    robot.colorPidCtrl.setOutputRange(-1.0, 1.0);
-                    sm.stop();
-                    break;
-            }
-        }
-    }   //doLineFollow
-
-    private void doIrSeek(double delay)
-    {
-        if (sm.isReady())
-        {
-            SeekIrState state = (SeekIrState)sm.getState();
-            robot.dashboard.displayPrintf(1, "State: %s", state.toString());
-            switch (state)
-            {
-                case DELAY:
-                    //
-                    // Do delay if necessary.
-                    //
-                    if (delay == 0.0)
-                    {
-                        sm.setState(SeekIrState.SEEK_IR);
-                    }
-                    else
-                    {
-                        timer.set(delay, event);
-                        sm.addEvent(event);
-                        sm.waitForEvents(SeekIrState.SEEK_IR);
-                    }
-                    break;
-
-                case SEEK_IR:
-                    //
-                    // Go towards IR beacon until IR strength reaches 0.8.
-                    //
-                    robot.pidSeekIr.setTarget(0.8, 0.0, false, event);
-                    sm.addEvent(event);
-                    sm.waitForEvents(SeekIrState.DONE);
-                    break;
-
-                case DONE:
-                default:
-                    //
-                    // We are done, stop!
-                    //
-                    sm.stop();
-                    break;
-            }
-        }
-    }   //doIrSeek
 
     private void doMenus()
     {
@@ -420,6 +141,8 @@ public class FtcAutoK9 extends FtcOpMode implements FtcMenu.MenuButtons
         FtcChoiceMenu<AutoStrategy> strategyMenu = new FtcChoiceMenu<>("Auto Strategies:", delayMenu, this);
         FtcValueMenu driveTimeMenu = new FtcValueMenu("Drive time:", strategyMenu, this,
                 0.0, 10.0, 1.0, 4.0, "%.0f sec");
+        FtcValueMenu drivePowerMenu = new FtcValueMenu("Drive power:", driveTimeMenu, this,
+                -1.0, 1.0, 0.1, 0.5, "%.1f");
         FtcValueMenu distanceMenu = new FtcValueMenu("Drive distance:", strategyMenu, this,
                 1.0, 8.0, 1.0, 1.0, "%.0f ft");
         FtcValueMenu degreesMenu = new FtcValueMenu("Turn degrees", strategyMenu, this,
@@ -427,6 +150,7 @@ public class FtcAutoK9 extends FtcOpMode implements FtcMenu.MenuButtons
         FtcChoiceMenu<Alliance> allianceMenu = new FtcChoiceMenu<>("Alliance:", strategyMenu, this);
 
         delayMenu.setChildMenu(strategyMenu);
+        driveTimeMenu.setChildMenu(drivePowerMenu);
 
         strategyMenu.addChoice("Do nothing", AutoStrategy.DO_NOTHING, true);
         strategyMenu.addChoice("Timed drive", AutoStrategy.TIMED_DRIVE, false, driveTimeMenu);
@@ -446,11 +170,12 @@ public class FtcAutoK9 extends FtcOpMode implements FtcMenu.MenuButtons
         // Set choices variables.
         //
         delay = delayMenu.getCurrentValue();
-        autoStrategy = (AutoStrategy)strategyMenu.getCurrentChoiceObject();
+        strategy = strategyMenu.getCurrentChoiceObject();
         driveTime = driveTimeMenu.getCurrentValue();
+        drivePower = drivePowerMenu.getCurrentValue();
         driveDistance = distanceMenu.getCurrentValue();
         turnDegrees = degreesMenu.getCurrentValue();
-        alliance = (Alliance)allianceMenu.getCurrentChoiceObject();
+        alliance = allianceMenu.getCurrentChoiceObject();
 
         robot.dashboard.displayPrintf(0, "Auto Strategy: %s", strategyMenu.getCurrentChoiceText());
     }   //doMenus

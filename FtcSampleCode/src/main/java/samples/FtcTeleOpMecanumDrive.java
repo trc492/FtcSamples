@@ -79,8 +79,7 @@ public class FtcTeleOpMecanumDrive extends FtcOpMode implements TrcGameControlle
         rrWheel = new FtcDcMotor("rrWheel");
         rfWheel.setInverted(true);
         rrWheel.setInverted(true);
-        driveBase = new TrcMecanumDriveBase(
-                lfWheel, lrWheel, rfWheel, rrWheel, null);
+        driveBase = new TrcMecanumDriveBase(lfWheel, lrWheel, rfWheel, rrWheel, null);
     }   //initRobot
 
     //

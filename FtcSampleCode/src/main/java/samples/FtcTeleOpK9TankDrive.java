@@ -45,7 +45,7 @@ public class FtcTeleOpK9TankDrive extends FtcOpMode implements TrcGameController
     @Override
     public void initRobot()
     {
-        robot = new K9Robot(TrcRobot.RunMode.TELEOP_MODE);
+        robot = new K9Robot();
         //
         // Initializing Gamepads.
         //
@@ -60,13 +60,13 @@ public class FtcTeleOpK9TankDrive extends FtcOpMode implements TrcGameController
     @Override
     public void startMode(TrcRobot.RunMode prevMode, TrcRobot.RunMode nextMode)
     {
-        robot.startMode(TrcRobot.RunMode.TELEOP_MODE);
+        robot.startMode();
     }   //startMode
 
     @Override
     public void stopMode(TrcRobot.RunMode prevMode, TrcRobot.RunMode nextMode)
     {
-        robot.stopMode(TrcRobot.RunMode.TELEOP_MODE);
+        robot.stopMode();
     }   //stopMode
 
     @Override
@@ -101,7 +101,7 @@ public class FtcTeleOpK9TankDrive extends FtcOpMode implements TrcGameController
                 case FtcGamepad.GAMEPAD_A:
                     if (pressed)
                     {
-                        robot.arm.setPosition(K9Robot.ARM_MAX_RANGE, K9Robot.SERVO_STEPRATE);
+                        robot.arm.setPosition(K9Robot.ARM_RANGE_MAX, K9Robot.SERVO_STEPRATE);
                     }
                     else
                     {
@@ -112,7 +112,7 @@ public class FtcTeleOpK9TankDrive extends FtcOpMode implements TrcGameController
                 case FtcGamepad.GAMEPAD_Y:
                     if (pressed)
                     {
-                        robot.arm.setPosition(K9Robot.ARM_MIN_RANGE, K9Robot.SERVO_STEPRATE);
+                        robot.arm.setPosition(K9Robot.ARM_RANGE_MIN, K9Robot.SERVO_STEPRATE);
                     }
                     else
                     {
@@ -123,7 +123,7 @@ public class FtcTeleOpK9TankDrive extends FtcOpMode implements TrcGameController
                 case FtcGamepad.GAMEPAD_X:
                     if (pressed)
                     {
-                        robot.claw.setPosition(K9Robot.CLAW_MAX_RANGE, K9Robot.SERVO_STEPRATE);
+                        robot.claw.setPosition(K9Robot.CLAW_RANGE_MAX, K9Robot.SERVO_STEPRATE);
                     }
                     else
                     {
@@ -134,7 +134,7 @@ public class FtcTeleOpK9TankDrive extends FtcOpMode implements TrcGameController
                 case FtcGamepad.GAMEPAD_B:
                     if (pressed)
                     {
-                        robot.claw.setPosition(K9Robot.CLAW_MIN_RANGE, K9Robot.SERVO_STEPRATE);
+                        robot.claw.setPosition(K9Robot.CLAW_RANGE_MIN, K9Robot.SERVO_STEPRATE);
                     }
                     else
                     {
