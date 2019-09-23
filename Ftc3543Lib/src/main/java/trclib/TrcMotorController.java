@@ -138,4 +138,16 @@ public interface TrcMotorController
      */
     void setSoftUpperLimit(double position);
 
+    /**
+     * This method checks if the motor controller is connected to the robot. Note that this does NOT guarantee the
+     * connection status of the motor to the motor controller. If detecting the motor presence is impossible (i.e. the
+     * motor controller is connected via PWM) this method will always return true.
+     *
+     * @return True if the motor is connected or if it's impossible to know, false otherwise.
+     */
+    default boolean isConnected()
+    {
+        return true;
+    }   //isConnected
+
 }   //interface TrcMotorController
