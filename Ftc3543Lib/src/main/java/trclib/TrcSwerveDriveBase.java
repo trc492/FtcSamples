@@ -374,15 +374,16 @@ public class TrcSwerveDriveBase extends TrcSimpleDriveBase
     }   //holonomicDrive
 
     /**
-     * This method is called periodically to monitor the position sensors to update the odometry data.
+     * This method is called periodically to monitor the position sensors for calculating the delta from the previous
+     * position.
      *
-     * @param motorsState specifies the state information of the drivebase motors for calculating pose.
-     * @return a TrcPose2D object describing the change in position since the last update.
+     * @param motorsState specifies the state information of the drivebase motors for calculating pose delta.
+     * @return a TrcPose2D object describing the change in position since the last call.
      */
     @Override
-    protected TrcPose2D updateOdometry(MotorsState motorsState)
+    protected TrcPose2D getPoseDelta(MotorsState motorsState)
     {
-        final String funcName = "updateOdometry";
+        final String funcName = "getPoseDelta";
 
         if (debugEnabled)
         {
@@ -416,13 +417,13 @@ public class TrcSwerveDriveBase extends TrcSimpleDriveBase
         posSum.mapMultiplyToSelf(0.25);
         velSum.mapMultiplyToSelf(0.25);
 
-        TrcPose2D odometry = new TrcPose2D();
+        TrcPose2D poseDelta = new TrcPose2D();
 
-        odometry.x = posSum.getEntry(0);
-        odometry.y = posSum.getEntry(1);
+        poseDelta.x = posSum.getEntry(0);
+        poseDelta.y = posSum.getEntry(1);
 
-        odometry.xVel = velSum.getEntry(0);
-        odometry.yVel = velSum.getEntry(1);
+        poseDelta.xVel = velSum.getEntry(0);
+        poseDelta.yVel = velSum.getEntry(1);
 
         double x = wheelBaseWidth / 2;
         double y = wheelBaseLength / 2;
@@ -434,7 +435,7 @@ public class TrcSwerveDriveBase extends TrcSimpleDriveBase
 
         dRot /= 4 * Math.pow(wheelBaseDiagonal, 2);
         dRot = Math.toDegrees(dRot);
-        odometry.heading = dRot;
+        poseDelta.heading = dRot;
 
         double rotVel = x * (wheelVelocities[0].getEntry(1) + wheelVelocities[2].getEntry(1) -
                              wheelVelocities[1].getEntry(1) - wheelVelocities[3].getEntry(1)) +
@@ -442,14 +443,14 @@ public class TrcSwerveDriveBase extends TrcSimpleDriveBase
                              wheelVelocities[2].getEntry(0) - wheelVelocities[3].getEntry(0));
         rotVel /= 4 * Math.pow(wheelBaseDiagonal, 2);
         rotVel = Math.toDegrees(rotVel);
-        odometry.turnRate = rotVel;
+        poseDelta.turnRate = rotVel;
 
         if (debugEnabled)
         {
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
         }
 
-        return odometry;
-    }   //updateOdometry
+        return poseDelta;
+    }   //getPoseDelta
 
 }   //class TrcSwerveDriveBase

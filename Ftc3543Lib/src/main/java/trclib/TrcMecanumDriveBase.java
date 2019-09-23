@@ -163,32 +163,33 @@ public class TrcMecanumDriveBase extends TrcSimpleDriveBase
     }   //holonomicDrive
 
     /**
-     * This method is called periodically to monitor the position sensors to update the odometry data.
+     * This method is called periodically to monitor the position sensors for calculating the delta from the previous
+     * position.
      *
-     * @param motorsState specifies the state information of the drivebase motors for calculating pose.
-     * @return a TrcPose2D object describing the change in position since the last update.
+     * @param motorsState specifies the state information of the drivebase motors for calculating pose delta.
+     * @return a TrcPose2D object describing the change in position since the last call.
      */
     @Override
-    protected TrcPose2D updateOdometry(MotorsState motorsState)
+    protected TrcPose2D getPoseDelta(MotorsState motorsState)
     {
         //
         // Call super class to get Y and turn data.
         //
-        TrcPose2D odometry = super.updateOdometry(motorsState);
+        TrcPose2D poseDelta = super.getPoseDelta(motorsState);
 
-        odometry.x = xScale * TrcUtil.average(
+        poseDelta.x = xScale * TrcUtil.average(
                 motorsState.motorPosDiffs[MotorType.LEFT_FRONT.value],
                 motorsState.motorPosDiffs[MotorType.RIGHT_REAR.value],
                 -motorsState.motorPosDiffs[MotorType.RIGHT_FRONT.value],
                 -motorsState.motorPosDiffs[MotorType.LEFT_REAR.value]);
 
-        odometry.xVel = xScale * TrcUtil.average(
+        poseDelta.xVel = xScale * TrcUtil.average(
                 motorsState.currVelocities[MotorType.LEFT_FRONT.value],
                 motorsState.currVelocities[MotorType.RIGHT_REAR.value],
                 -motorsState.currVelocities[MotorType.RIGHT_FRONT.value],
                 -motorsState.currVelocities[MotorType.LEFT_REAR.value]);
 
-        return odometry;
-    }   //updateOdometry
+        return poseDelta;
+    }   //getPoseDelta
 
 }   //class TrcMecanumDriveBase

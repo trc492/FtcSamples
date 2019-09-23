@@ -22,62 +22,89 @@
 
 package trclib;
 
+/**
+ * This class implements a path. A path is consists of an array of waypoints, and can be used for path following,
+ * such as motion profiling, pure pursuit, etc. Since heading could be in degrees or radians, each path object specifies
+ * the units of its heading value, and can be converted. If the timesteps are not specified, velocity and position data
+ * can be used to infer approximate timesteps. Paths can be read from CSV files.
+ */
 public class TrcPath
 {
-    public static TrcPath loadPathFromCsv(String path, boolean degrees, boolean loadFromResources)
-    {
-        return new TrcPath(degrees, TrcWaypoint.loadPointsFromCsv(path, loadFromResources));
-    }
-
     private TrcWaypoint[] waypoints;
-    private boolean degrees;
+    private boolean inDegrees;
 
     /**
-     * Create a new TrcPath object. Must supply at least 2 entries.
+     * Constructor: Create a new TrcPath object. Must supply at least 2 entries.
      *
-     * @param degrees If true, the heading values will be treated as degrees. Otherwise, they are assumed to be radians.
-     * @param waypoints The array of points that will constitute this path. Cannot be null, and must have at least 2 waypoint.
+     * @param inDegrees specifies true if the heading values are in degrees, false if they are radians.
+     * @param waypoints specifies the array of points that will constitute this path. Cannot be null, and must have
+     *                  at least 2 waypoints.
      */
-    public TrcPath(boolean degrees, TrcWaypoint... waypoints)
+    public TrcPath(boolean inDegrees, TrcWaypoint... waypoints)
     {
         if (waypoints == null || waypoints.length <= 1)
         {
             throw new IllegalArgumentException("Waypoints cannot be null or have less than 2 entries!");
         }
-        this.degrees = degrees;
+
+        this.inDegrees = inDegrees;
         this.waypoints = waypoints;
-    }
+    }   //TrcPath
 
     /**
-     * Get the waypoint at index i.
+     * Constructor: Create a new TrcPath object. Must supply at least 2 entries.
      *
-     * @param index The index to get.
-     * @return The waypoint at index i.
+     * @param waypoints specifies the array of points that will constitute this path. Cannot be null, and must have
+     *                  at least 2 waypoints.
+     */
+    public TrcPath(TrcWaypoint... waypoints)
+    {
+        this(true, waypoints);
+    }   //TrcPath
+
+    /**
+     * This method loads waypoints from a CSV file and create a path with them.
+     *
+     * @param path specifies the file path or the resource name where we load the waypoints.
+     * @param inDegrees specifies true if the heading values are in degrees, false if they are radians.
+     * @param loadFromResources specifies true if waypoints are loaded from resources, false if from file path.
+     * @return created path with the loaded waypoints.
+     */
+    public static TrcPath loadPathFromCsv(String path, boolean inDegrees, boolean loadFromResources)
+    {
+        return new TrcPath(inDegrees, TrcWaypoint.loadPointsFromCsv(path, loadFromResources));
+    }   //loadPathFromCsv
+
+    /**
+     * This method returns the waypoint at the given index of the path.
+     *
+     * @param index specifies the index to the path array.
+     * @return the waypoint at the given index.
      */
     public TrcWaypoint getWaypoint(int index)
     {
         return waypoints[index];
-    }
+    }   //getWaypoint
 
     /**
-     * Get the number of waypoints in this path.
+     * This method returns the number of waypoints in this path.
      *
-     * @return The number of waypoints in this path.
+     * @return the number of waypoints in this path.
      */
     public int getSize()
     {
         return waypoints.length;
-    }
+    }   //getSize
 
     /**
-     * Return the underlying array of waypoints.
+     * This method returns the array of waypoints of the path.
      *
-     * @return The waypoint array. This is the same instance, so modifying it will affect other users of this path.
+     * @return the waypoint array. This is the same instance, so modifying it will affect other users of this path.
      */
     public TrcWaypoint[] getAllWaypoints()
     {
         return waypoints;
-    }
+    }   //getAllWaypoints
 
     /**
      * Create a new path identical to this one, except the heading values are in degrees. If this path's headings are
@@ -92,7 +119,7 @@ public class TrcPath
         {
             TrcWaypoint waypoint = new TrcWaypoint(this.waypoints[i]);
             // If already in degree mode, don't convert again.
-            waypoint.heading = degrees ? waypoint.heading : Math.toDegrees(waypoint.heading);
+            waypoint.heading = inDegrees ? waypoint.heading : Math.toDegrees(waypoint.heading);
             waypoints[i] = waypoint;
         }
         return new TrcPath(true, waypoints);
@@ -111,7 +138,7 @@ public class TrcPath
         {
             TrcWaypoint waypoint = new TrcWaypoint(this.waypoints[i]);
             // If already in degree mode, don't convert again.
-            waypoint.heading = degrees ? Math.toRadians(waypoint.heading) : waypoint.heading;
+            waypoint.heading = inDegrees ? Math.toRadians(waypoint.heading) : waypoint.heading;
             waypoints[i] = waypoint;
         }
         return new TrcPath(true, waypoints);
@@ -122,9 +149,9 @@ public class TrcPath
      */
     public void mapSelfToDegrees()
     {
-        if (!degrees)
+        if (!inDegrees)
         {
-            degrees = true;
+            inDegrees = true;
             for (TrcWaypoint waypoint : waypoints)
             {
                 waypoint.heading = Math.toDegrees(waypoint.heading);
@@ -137,9 +164,9 @@ public class TrcPath
      */
     public void mapSelfToRadians()
     {
-        if (degrees)
+        if (inDegrees)
         {
-            degrees = false;
+            inDegrees = false;
             for (TrcWaypoint waypoint : waypoints)
             {
                 waypoint.heading = Math.toRadians(waypoint.heading);

@@ -60,10 +60,6 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
      */
     public abstract void initRobot();
 
-    private final static String OPMODE_AUTO     = "FtcAuto";
-    private final static String OPMODE_TELEOP   = "FtcTeleOp";
-    private final static String OPMODE_TEST     = "FtcTest";
-
     protected final static int NUM_DASHBOARD_LINES = 16;
     private final static long LOOP_PERIOD_NANO = 50000000;
     private static FtcOpMode instance = null;

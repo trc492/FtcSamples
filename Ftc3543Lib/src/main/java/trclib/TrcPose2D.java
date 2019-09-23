@@ -93,20 +93,20 @@ public class TrcPose2D
      *
      * @return a copy of this pose.
      */
-    public static TrcPose2D duplicate(TrcPose2D pose)
+    public static TrcPose2D copyOf(TrcPose2D pose)
     {
         return new TrcPose2D(pose.x, pose.y, pose.heading, pose.xVel, pose.yVel, pose.turnRate);
-    }   //duplicate
+    }   //copyOf
 
     /**
      * This method creates and returns a copy of this pose.
      *
      * @return a copy of this pose.
      */
-    public TrcPose2D duplicate()
+    public TrcPose2D clone()
     {
-        return TrcPose2D.duplicate(this);
-    }   //duplicate
+        return TrcPose2D.copyOf(this);
+    }   //clone
 
     /**
      * This method returns the position in vector form.
@@ -134,10 +134,10 @@ public class TrcPose2D
      * @param pose specifies the pose to be subtracted from this one.
      * @return relative pose from the given pose.
      */
-    public TrcPose2D minus(TrcPose2D pose)
+    public TrcPose2D poseDistance(TrcPose2D pose)
     {
         return new TrcPose2D(x - pose.x, y - pose.y, heading, xVel, yVel, turnRate);
-    }   //minus
+    }   //poseDistance
 
     /**
      * This method returns a transformed pose relative to the given pose.
@@ -147,7 +147,7 @@ public class TrcPose2D
      */
     public TrcPose2D relativeTo(TrcPose2D pose)
     {
-        TrcPose2D transformed = this.minus(pose);
+        TrcPose2D transformed = poseDistance(pose);
         RealVector newPos = TrcUtil.rotateCCW(transformed.getPositionVector(), pose.heading);
         RealVector newVel = TrcUtil.rotateCCW(transformed.getVelocityVector(), pose.heading);
 

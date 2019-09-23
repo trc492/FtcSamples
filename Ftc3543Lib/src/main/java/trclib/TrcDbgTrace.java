@@ -202,6 +202,16 @@ public class TrcDbgTrace
     }   //closeTraceLog
 
     /**
+     * This method checks if the tracer log is opened.
+     *
+     * @return true if tracer log is opened, false otherwise.
+     */
+    public boolean tracerLogIsOpened()
+    {
+        return traceLogger != null;
+    }   //tracerLogIsOpened
+
+    /**
      * This method returns the trace log file name if one is active.
      *
      * @return trace log file name if one is active, null if none.

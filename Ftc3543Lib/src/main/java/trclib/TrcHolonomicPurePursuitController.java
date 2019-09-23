@@ -26,10 +26,27 @@ import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.linear.RealVector;
 
 /**
- * CodeReview: explain what it is!!! Also give reference to paper.
- * This class implements a platform independent Pure Pursuit controller. A pure pursuit controller navigates the
- * robot following a given path. A path is an array of waypoints that specifies points on the path at different
- * timestamps and at a specified velocity....
+ * This class implements a platform independent Pure Pursuit controller for holonomic robots.
+ * Essentially, a pure pursuit controller navigates the robot to chase a point along the path. The point to chase
+ * is chosen by intersecting a circle centered on the robot with a specific radius with the path, and chasing the
+ * "furthest" intersection. The smaller the radius is, the more "tightly" the robot will follow a path, but it will be
+ * more prone to oscillation and sharp turns. A larger radius will tend to smooth out turns and corners. Note that the
+ * error tolerance must be less than the following distance, so choose them accordingly.
+ *
+ * A path consists of an array of waypoints, specifying position, velocity, and optionally heading. All other properties
+ * of the TrcWaypoint object may be ignored.The path may be low resolution, as this automatically interpolates between
+ * waypoints. If you want the robot to maintain heading, call setMaintainHeading(true) and it will ignore all the
+ * heading values. Otherwise, call setMaintainHeading(false), ensure that the heading tolerance and pid coefficients
+ * are set, and it will follow the heading values specified by the path.
+ *
+ * A somewhat similar idea is here:
+ * https://www.chiefdelphi.com/t/paper-implementation-of-the-adaptive-pure-pursuit-controller/166552 or
+ * https://www.ri.cmu.edu/pub_files/pub3/coulter_r_craig_1992_1/coulter_r_craig_1992_1.pdf
+ *
+ * Note that this paper is for non-holonomic robots. This means that all the turning radius stuff isn't very relevant.
+ * Technically, we could impose limits on the turning radius as a function of robot velocity and max rot vel, but that's
+ * unnecessarily complicated, in my view. Additionally, it does point injection instead of interpolation, and path
+ * smoothing, which we don't do, since a nonzero following distance will naturally smooth it anyway.
  */
 public class TrcHolonomicPurePursuitController
 {

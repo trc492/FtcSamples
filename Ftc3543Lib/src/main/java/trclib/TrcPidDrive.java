@@ -45,6 +45,7 @@ public class TrcPidDrive
     private TrcDbgTrace msgTracer = null;
     private TrcRobotBattery battery = null;
     private boolean tracePidInfo = false;
+    private TrcPose2D oldReferenceFrame = null;
 
     /**
      * This interface provides a stuck wheel notification handler. It is useful for detecting drive base motor
@@ -437,7 +438,8 @@ public class TrcPidDrive
             this.turnOnly = xError == 0.0 && yError == 0.0 && turnError != 0.0;
             driveBase.resetStallTimer();
 
-            //CodeReview: do you need to clear the reference pose at the end of PidDrive???
+            // Cache the reference pose to reset it after the pid operation
+            oldReferenceFrame = driveBase.getReferencePose();
             driveBase.setReferencePose();
 
             setTaskEnabled(true);
@@ -640,6 +642,9 @@ public class TrcPidDrive
             turnPidCtrl.reset();
         }
 
+        // reset the reference pose
+        driveBase.setReferencePose(oldReferenceFrame);
+
         holdTarget = false;
         turnOnly = false;
         maintainHeading = false;
@@ -709,13 +714,6 @@ public class TrcPidDrive
         boolean turnOnTarget = turnPidCtrl == null || turnPidCtrl.isOnTarget();
         boolean onTarget = turnOnTarget && (turnOnly || xOnTarget && yOnTarget);
 
-        // Since non-holonomic drive bases can't drive in multiple axes, use the robot local reference pose.
-        if (!driveBase.supportsHolonomicDrive())
-        {
-            //CodeReview: do you need to clear reference pose when you are done???
-            driveBase.setReferencePose();
-        }
-
         if (stuckWheelHandler != null)
         {
             for (int i = 0; i < driveBase.getNumMotors(); i++)
@@ -765,9 +763,7 @@ public class TrcPidDrive
         // If we come here, we are not on target yet, keep driving.
         else if (xPidCtrl != null && driveBase.supportsHolonomicDrive())
         {
-            double heading = driveBase.getHeading();
-            double savedHeading = driveBase.getReferencePose().heading;
-            driveBase.holonomicDrive(owner, xPower, yPower, turnPower, heading - savedHeading);
+            driveBase.holonomicDrive(owner, xPower, yPower, turnPower);
         }
         else if (turnOnly)
         {
