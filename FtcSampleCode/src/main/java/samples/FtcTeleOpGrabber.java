@@ -31,7 +31,7 @@ import ftclib.FtcServo;
 import trclib.TrcEnhancedServo;
 import trclib.TrcGameController;
 
-@TeleOp(name="TeleOp: Dual Servo Grabber", group="3543TeleOpSamples")
+@TeleOp(name="TeleOp: Dual Servo Grabber", group="FtcTeleOpSamples")
 @Disabled
 public class FtcTeleOpGrabber extends FtcOpMode implements TrcGameController.ButtonHandler
 {

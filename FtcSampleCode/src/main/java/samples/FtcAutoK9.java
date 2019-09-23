@@ -31,7 +31,7 @@ import ftclib.FtcOpMode;
 import ftclib.FtcValueMenu;
 import trclib.TrcRobot;
 
-@Autonomous(name="Auto: K9Bot Various Autonomous", group="3543AutoSamples")
+@Autonomous(name="Auto: K9Bot Various Autonomous", group="FtcAutoSamples")
 @Disabled
 public class FtcAutoK9 extends FtcOpMode implements FtcMenu.MenuButtons
 {

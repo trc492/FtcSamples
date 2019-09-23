@@ -26,35 +26,30 @@ package samples;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
-import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
+import org.firstinspires.ftc.robotcontroller.internal.FtcRobotControllerActivity;
+import org.opencv.android.BaseLoaderCallback;
+import org.opencv.android.CameraBridgeViewBase;
+import org.opencv.android.LoaderCallbackInterface;
+import org.opencv.android.OpenCVLoader;
+import org.opencv.core.Mat;
 import org.opencv.core.Rect;
 
+import FtcSampleCode.R;
 import ftclib.FtcOpMode;
-import ftclib.FtcVuforia;
 import hallib.HalDashboard;
 import trclib.TrcRobot;
+import trclib.TrcVideoSource;
 
-@TeleOp(name="Test: Grip Vision", group="3543TestSamples")
+@TeleOp(name="Test: Grip Vision", group="FtcTestSamples")
 @Disabled
 public class FtcTestGripVision extends FtcOpMode
+        implements CameraBridgeViewBase.CvCameraViewListener2, TrcVideoSource<Mat>
 {
-    private static final int IMAGE_WIDTH = 640;
-    private static final int IMAGE_HEIGHT = 480;
-    private static final int FRAME_QUEUE_CAPACITY = 2;
-
-    //
-    // If you copy our code, please register your own account and generate your own free license key at this site:
-    // https://developer.vuforia.com/license-manager
-    //
-    private static final String VUFORIA_LICENSE_KEY =
-            "AdCwzDH/////AAAAGeDkDS3ukU9+lIXc19LMh+cKk29caNhOl8UqmZOymRGwVwT1ZN8uaPdE3Q+zceDu9AKNsqL9qLblSFV" +
-            "/x8Y3jfOZdjMFs0CQSQOEyWv3xfJsdSmevXDQDQr+4KI31HY2YSf/KB/kyxfuRMk4Pi+vWS+oLl65o7sWPiyFgzoM74ENyb" +
-            "j4FgteD/2b6B+UFuwkHWKBNpp18wrpkaiFfr/FCbRFcdWP5mrjlEZM6eOj171dybw97HPeZbGihnnxOeeUv075O7P167AVq" +
-            "aiPy2eRK7OCubR32KXOqQKoyF6AXp+qu2cOTApXS5dqOOseEm+HE4eMF0S2Pld3i5AWBIR+JlPXDuc9LwoH2Q8iDwUK1+4g";
-    private static final VuforiaLocalizer.CameraDirection CAMERA_DIR = VuforiaLocalizer.CameraDirection.BACK;
-
     private HalDashboard dashboard;
-    private FtcVuforia vuforia = null;
+    private FtcRobotControllerActivity activity;
+    private BaseLoaderCallback loaderCallback;
+    private CameraBridgeViewBase cameraView;
+    private Mat image = null;
     private GripVision gripVision = null;
     private Rect[] targetRects = new Rect[2];
 
@@ -67,14 +62,41 @@ public class FtcTestGripVision extends FtcOpMode
     {
         hardwareMap.logDevices();
         dashboard = HalDashboard.getInstance();
+        //
+        // Initialize OpenCV.
+        //
+        activity = (FtcRobotControllerActivity)hardwareMap.appContext;
+        loaderCallback = new BaseLoaderCallback(activity)
+        {
+            /**
+             * This method is called when the OpenCV manager is connected. It loads the
+             * OpenCV library.
+             *
+             * @param status specifies the OpenCV connection status.
+             */
+            @Override
+            public void onManagerConnected(int status)
+            {
+                switch (status)
+                {
+                    case LoaderCallbackInterface.SUCCESS:
+                        System.loadLibrary("opencv_java3");
+                        cameraView.enableView();
+                        break;
 
-        int cameraViewId = hardwareMap.appContext.getResources().getIdentifier(
-                "cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
-        vuforia = new FtcVuforia(VUFORIA_LICENSE_KEY, cameraViewId, CAMERA_DIR);
-        vuforia.configVideoSource(IMAGE_WIDTH, IMAGE_HEIGHT, FRAME_QUEUE_CAPACITY);
+                    default:
+                        super.onManagerConnected(status);
+                        break;
+                }
+            }   //onManagerConnected
+        };
+
+        cameraView = (CameraBridgeViewBase)activity.findViewById(R.id.ImageView01);
+        cameraView.setCameraIndex(1);   //use front camera
+        cameraView.setCvCameraViewListener(this);
 
         targetRects = new Rect[2];
-        gripVision = new GripVision("gripVision", vuforia);
+        gripVision = new GripVision("gripVision", this);
         gripVision.setVideoOutEnabled(false);
     }   //initRobot
 
@@ -86,13 +108,15 @@ public class FtcTestGripVision extends FtcOpMode
     public void startMode(TrcRobot.RunMode prevMode, TrcRobot.RunMode nextMode)
     {
         dashboard.clearDisplay();
-//        gripVision.setEnabled(true);
+        startCamera();
+        gripVision.setEnabled(true);
     }   //startMode
 
     @Override
     public void stopMode(TrcRobot.RunMode prevMode, TrcRobot.RunMode nextMode)
     {
-//        gripVision.setEnabled(false);
+        gripVision.setEnabled(false);
+        stopCamera();
     }   //stopMode
 
     @Override
@@ -107,5 +131,115 @@ public class FtcTestGripVision extends FtcOpMode
             }
         }
     }   //runPeriodic
+
+    //
+    // Implements the CameraBridgeViewBase.CvCameraViewListener2 interface.
+    //
+
+    /**
+     * This method is called when the camera view is started. It will allocate and initialize
+     * some global resources.
+     *
+     * @param width specifies the width of the camera view.
+     * @param height specifies the height of the camera view.
+     */
+    @Override
+    public void onCameraViewStarted(int width, int height)
+    {
+    }   //onCameraViewStarted
+
+    /**
+     * This method is called when the camera view is stopped. It will clean up the allocated
+     * global resources.
+     */
+    @Override
+    public void onCameraViewStopped()
+    {
+        if (image != null) image.release();
+    }   //onCameraViewStopped
+
+    /**
+     * This method is called on every captured camera frame. It will do face detection on the
+     * captured frame.
+     *
+     * @param inputFrame specifies the captured frame object.
+     */
+    @Override
+    public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame)
+    {
+        //
+        // Get rid of the old unconsumed image if any.
+        //
+        if (image != null)
+        {
+            image.release();
+            image = null;
+        }
+        //
+        // Get a fresh image.
+        //
+        image = inputFrame.rgba();
+
+        return image;
+    }   //onCameraViewFrame
+
+    //
+    // Implements TrcVideoSource<Mat> interface.
+    //
+
+    /**
+     * This method gets a frame from the frame queue and returns the image that matches the format specified by the
+     * configVideoSource method.
+     *
+     * @param frame specifies the frame object to hold image.
+     * @return true if success, false otherwise.
+     */
+    @Override
+    public boolean getFrame(Mat frame)
+    {
+        boolean success;
+
+        if (image != null)
+        {
+            // Consume and return the image.
+            image.copyTo(frame);
+            image.release();
+            image = null;
+            success = true;
+        }
+        else
+        {
+            success = false;
+        }
+
+        return success;
+    }   //getFrame
+
+    /**
+     * This method draws the given image frame to the display surface.
+     *
+     * @param frame specifies the image frame to be displayed.
+     */
+    @Override
+    public void putFrame(Mat frame)
+    {
+    }   //putFrame
+
+    private void startCamera()
+    {
+        if (!OpenCVLoader.initDebug())
+        {
+            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_0_0, activity, loaderCallback);
+        }
+        else
+        {
+            loaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
+        }
+    }   //startCamera
+
+    private void stopCamera()
+    {
+        cameraView.disableView();
+    }   //stopCamera
 
 }   //class FtcTestGripVision

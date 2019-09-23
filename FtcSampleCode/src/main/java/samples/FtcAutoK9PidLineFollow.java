@@ -30,7 +30,7 @@ import trclib.TrcEvent;
 import trclib.TrcRobot;
 import trclib.TrcStateMachine;
 
-@Autonomous(name="Auto: K9Bot PID Line Following", group="3543AutoSamples")
+@Autonomous(name="Auto: K9Bot PID Line Following", group="FtcAutoSamples")
 @Disabled
 public class FtcAutoK9PidLineFollow extends FtcOpMode
 {

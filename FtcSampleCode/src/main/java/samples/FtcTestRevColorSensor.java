@@ -34,7 +34,7 @@ import ftclib.FtcOpMode;
 import hallib.HalDashboard;
 import trclib.TrcRobot;
 
-@TeleOp(name="Test: REV Color Sensor", group="3543TestSamples")
+@TeleOp(name="Test: REV Color Sensor", group="FtcTestSamples")
 @Disabled
 public class FtcTestRevColorSensor extends FtcOpMode
 {

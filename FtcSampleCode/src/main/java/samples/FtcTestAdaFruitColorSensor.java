@@ -36,7 +36,7 @@ import hallib.HalDashboard;
 import trclib.TrcRobot;
 import trclib.TrcSensor;
 
-@TeleOp(name="Test: AdaFruit Color Sensor", group="3543TestSamples")
+@TeleOp(name="Test: AdaFruit Color Sensor", group="FtcTestSamples")
 @Disabled
 public class FtcTestAdaFruitColorSensor extends FtcOpMode
 {

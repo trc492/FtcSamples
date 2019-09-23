@@ -40,7 +40,7 @@ import ftclib.FtcOpMode;
 import hallib.HalDashboard;
 import trclib.TrcRobot;
 
-@TeleOp(name="Test: Android Sensors", group="3543TestSamples")
+@TeleOp(name="Test: Android Sensors", group="FtcTestSamples")
 @Disabled
 public class FtcTestAndroidSensors extends FtcOpMode
 {

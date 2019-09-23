@@ -28,7 +28,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import ftclib.FtcOpMode;
 import trclib.TrcRobot;
 
-@Autonomous(name="Auto: K9Bot Line Following", group="3543AutoSamples")
+@Autonomous(name="Auto: K9Bot Line Following", group="FtcAutoSamples")
 @Disabled
 public class FtcAutoK9LineFollow extends FtcOpMode
 {

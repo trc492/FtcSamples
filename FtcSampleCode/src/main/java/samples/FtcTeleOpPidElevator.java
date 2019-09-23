@@ -31,7 +31,7 @@ import hallib.HalDashboard;
 import trclib.TrcGameController;
 import trclib.TrcRobot;
 
-@TeleOp(name="TeleOp: PID Elevator", group="3543TeleOpSamples")
+@TeleOp(name="TeleOp: PID Elevator", group="FtcTeleOpSamples")
 @Disabled
 public class FtcTeleOpPidElevator extends FtcOpMode implements TrcGameController.ButtonHandler
 {

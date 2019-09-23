@@ -47,7 +47,7 @@ import trclib.TrcSimpleDriveBase;
 import trclib.TrcSong;
 import trclib.TrcSongPlayer;
 
-@TeleOp(name="TeleOp: Wild Thumper", group="3543TeleOpSamples")
+@TeleOp(name="TeleOp: Wild Thumper", group="FtcTeleOpSamples")
 @Disabled
 public class FtcTeleOpWildThumper extends FtcOpMode implements TrcGameController.ButtonHandler
 {

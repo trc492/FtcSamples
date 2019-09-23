@@ -40,7 +40,7 @@ import ftclib.FtcServo;
 import trclib.TrcGameController;
 import trclib.TrcRobot;
 
-@TeleOp(name="Test: REV Expansion Hub", group="3543TestSamples")
+@TeleOp(name="Test: REV Expansion Hub", group="FtcTestSamples")
 @Disabled
 public class FtcTestRevHub extends FtcOpMode
 {

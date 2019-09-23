@@ -50,7 +50,7 @@ import static org.firstinspires.ftc.robotcore.external.navigation.AxesOrder.YZX;
 import static org.firstinspires.ftc.robotcore.external.navigation.AxesReference.EXTRINSIC;
 import static org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer.CameraDirection.FRONT;
 
-@TeleOp(name="Test: Vuforia Targets Tracking", group="3543TestSamples")
+@TeleOp(name="Test: Vuforia Targets Tracking", group="FtcTestSamples")
 @Disabled
 public class FtcTestVuforia extends FtcOpMode
 {

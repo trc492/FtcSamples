@@ -58,7 +58,7 @@ import trclib.TrcRobot;
 /**
  * This class implements an OpenCV view for Face Detection.
  */
-@TeleOp(name="Test: OpenCV Face Detection", group="3543TestSamples")
+@TeleOp(name="Test: OpenCV Face Detection", group="FtcTestSamples")
 @Disabled
 public class FtcTestOpenCv extends FtcOpMode implements CameraBridgeViewBase.CvCameraViewListener2
 {

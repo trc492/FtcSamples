@@ -10,7 +10,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 
 import java.util.Locale;
 
-@TeleOp(name="Test: Simple Sensor Sample Time", group="3543TestSamples")
+@TeleOp(name="Test: Simple Sensor Sample Time", group="FtcTestSamples")
 @Disabled
 public class SensorSampleTimeTest extends LinearOpMode
 {

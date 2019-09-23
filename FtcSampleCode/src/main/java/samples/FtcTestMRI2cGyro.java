@@ -36,7 +36,7 @@ import hallib.HalDashboard;
 import trclib.TrcRobot;
 import trclib.TrcSensor;
 
-@TeleOp(name="Test: Modern Robotics I2C Gyro", group="3543TestSamples")
+@TeleOp(name="Test: Modern Robotics I2C Gyro", group="FtcTestSamples")
 @Disabled
 public class FtcTestMRI2cGyro extends FtcOpMode
 {

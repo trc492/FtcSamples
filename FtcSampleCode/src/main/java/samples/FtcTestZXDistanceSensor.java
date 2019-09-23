@@ -36,7 +36,7 @@ import hallib.HalDashboard;
 import trclib.TrcRobot;
 import trclib.TrcSensor;
 
-@TeleOp(name="Test: ZX Distance Sensor", group="3543TestSamples")
+@TeleOp(name="Test: ZX Distance Sensor", group="FtcTestSamples")
 @Disabled
 public class FtcTestZXDistanceSensor extends FtcOpMode
 {

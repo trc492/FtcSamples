@@ -30,7 +30,7 @@ import ftclib.FtcOpMode;
 import trclib.TrcGameController;
 import trclib.TrcRobot;
 
-@TeleOp(name="TeleOp: K9Bot Arcade Drive", group="3543TeleOpSamples")
+@TeleOp(name="TeleOp: K9Bot Arcade Drive", group="FtcTeleOpSamples")
 @Disabled
 public class FtcTeleOpK9ArcadeDrive extends FtcOpMode implements TrcGameController.ButtonHandler
 {

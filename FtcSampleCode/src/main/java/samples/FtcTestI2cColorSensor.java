@@ -37,7 +37,7 @@ import hallib.HalDashboard;
 import trclib.TrcRobot;
 import trclib.TrcSensor;
 
-@TeleOp(name="Test: I2C Color Sensor", group="3543TestSamples")
+@TeleOp(name="Test: I2C Color Sensor", group="FtcTestSamples")
 @Disabled
 public class FtcTestI2cColorSensor extends FtcOpMode
 {

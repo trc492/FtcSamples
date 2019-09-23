@@ -329,7 +329,7 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
             opModeName = getOpmodeTypeName(TeleOp.class);
             if (opModeName != null)
             {
-                if (getOpmodeTypeGroup(TeleOp.class).equals("FtcTest"))
+                if (getOpmodeTypeGroup(TeleOp.class).startsWith("FtcTest"))
                 {
                     runMode = TrcRobot.RunMode.TEST_MODE;
                 }

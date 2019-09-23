@@ -38,7 +38,7 @@ import hallib.HalDashboard;
 import trclib.TrcRobot;
 import trclib.TrcSensor;
 
-@TeleOp(name="Test: MR Range Sensor", group="3543TestSamples")
+@TeleOp(name="Test: MR Range Sensor", group="FtcTestSamples")
 @Disabled
 public class FtcTestMRRangeSensor extends FtcOpMode
 {

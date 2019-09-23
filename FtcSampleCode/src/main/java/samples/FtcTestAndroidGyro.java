@@ -36,7 +36,7 @@ import hallib.HalDashboard;
 import trclib.TrcGyro;
 import trclib.TrcRobot;
 
-@TeleOp(name="Test: Android Gyro", group="3543TestSamples")
+@TeleOp(name="Test: Android Gyro", group="FtcTestSamples")
 @Disabled
 public class FtcTestAndroidGyro extends FtcOpMode
 {

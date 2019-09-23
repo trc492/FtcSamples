@@ -38,7 +38,7 @@ import trclib.TrcAccelerometer;
 import trclib.TrcIIRFilter;
 import trclib.TrcRobot;
 
-@TeleOp(name="Test: Android Accelerometer", group="3543TestSamples")
+@TeleOp(name="Test: Android Accelerometer", group="FtcTestSamples")
 @Disabled
 public class FtcTestAndroidAccel extends FtcOpMode
 {

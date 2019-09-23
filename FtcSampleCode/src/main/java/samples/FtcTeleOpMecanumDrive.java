@@ -38,7 +38,7 @@ import trclib.TrcGameController;
 import trclib.TrcMecanumDriveBase;
 import trclib.TrcRobot;
 
-@TeleOp(name="TeleOp: Mecanum Drive", group="3543TeleOpSamples")
+@TeleOp(name="TeleOp: Mecanum Drive", group="FtcTeleOpSamples")
 @Disabled
 public class FtcTeleOpMecanumDrive extends FtcOpMode implements TrcGameController.ButtonHandler
 {

@@ -32,7 +32,7 @@ import hallib.HalDashboard;
 import trclib.TrcEnhancedServo;
 import trclib.TrcRobot;
 
-@TeleOp(name="TeleOp: Variable Speed Servo", group="3543TeleOpSamples")
+@TeleOp(name="TeleOp: Variable Speed Servo", group="FtcTeleOpSamples")
 @Disabled
 public class FtcTeleOpVariableSpeedServo extends FtcOpMode
 {
