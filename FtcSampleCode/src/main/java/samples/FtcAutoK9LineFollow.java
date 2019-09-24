@@ -64,7 +64,6 @@ public class FtcAutoK9LineFollow extends FtcOpMode
     @Override
     public void runContinuous(double elapsedTime)
     {
-        final int LABEL_WIDTH = 200;
         double left = 0.0;
         double right = 0.0;
         double lightValue = robot.lightSensor.sensor.getRawLightDetected();
@@ -89,10 +88,10 @@ public class FtcAutoK9LineFollow extends FtcOpMode
         }
         robot.driveBase.tankDrive(left, right);
 
-        robot.dashboard.displayPrintf(1, LABEL_WIDTH, "Text: ", "*** Robot Data ***");
-        robot.dashboard.displayPrintf(2, LABEL_WIDTH, "light: ", "%.2f", lightValue);
-        robot.dashboard.displayPrintf(3, LABEL_WIDTH, "left power: ", "%.2f", left);
-        robot.dashboard.displayPrintf(4, LABEL_WIDTH, "right power: ", "%.2f", right);
+        robot.dashboard.displayPrintf(1, "Text: *** Robot Data ***");
+        robot.dashboard.displayPrintf(2, "light: %.2f", lightValue);
+        robot.dashboard.displayPrintf(3, "left power: %.2f", left);
+        robot.dashboard.displayPrintf(4, "right power: %.2f", right);
     }   //runContinuous
 
 }   //class FtcAutoK9LineFollow

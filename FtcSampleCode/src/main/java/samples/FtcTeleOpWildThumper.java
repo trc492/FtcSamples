@@ -103,7 +103,6 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements TrcGameController
         hardwareMap.logDevices();
         dashboard = HalDashboard.getInstance();
         FtcRobotControllerActivity activity = (FtcRobotControllerActivity)hardwareMap.appContext;
-        dashboard.setTextView((TextView)activity.findViewById(R.id.textOpMode));
         //
         // Initializing Gamepads.
         //
@@ -240,12 +239,10 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements TrcGameController
         double right = gamepad.getRightStickY(true);
         driveBase.tankDrive(left, right);
 
-        final int LABEL_WIDTH = 180;
-        dashboard.displayPrintf(1, LABEL_WIDTH, "Power(L/R) = ", "%.2f/%.2f", left, right);
-        dashboard.displayPrintf(2, LABEL_WIDTH, "GyroHeading = ", "%.2f", gyro.getZHeading().value);
-        dashboard.displayPrintf(3, LABEL_WIDTH, "SoundEnvelope = ", "%s", envelopeToggle.getState()? "ON": "OFF");
-        dashboard.displayPrintf(4, LABEL_WIDTH, "ToneDevice = ", "%s",
-                                analogToneToggle.getState()? "AnalogOut": "Android");
+        dashboard.displayPrintf(1, "Power(L/R) = %.2f/%.2f", left, right);
+        dashboard.displayPrintf(2, "GyroHeading = %.2f", gyro.getZHeading().value);
+        dashboard.displayPrintf(3, "SoundEnvelope = %s", envelopeToggle.getState()? "ON": "OFF");
+        dashboard.displayPrintf(4, "ToneDevice = %s", analogToneToggle.getState()? "AnalogOut": "Android");
     }   //runPeriodic
 
     //

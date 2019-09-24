@@ -148,6 +148,7 @@ public abstract class FtcMenu
     private static final int MENUBUTTON_ALT_DOWN        = (1 << 5);
 
     protected HalDashboard dashboard;
+    private FtcOpMode opMode;
     private String menuTitle;
     private FtcMenu parent;
     private MenuButtons menuButtons;
@@ -170,12 +171,13 @@ public abstract class FtcMenu
             dbgTrace = new TrcDbgTrace(moduleName + "." + menuTitle, tracingEnabled, traceLevel, msgLevel);
         }
 
-        if (menuButtons == null || menuTitle == null)
+        if (menuTitle == null)
         {
-            throw new NullPointerException("menuTitle/menuButtons cannot be null.");
+            throw new NullPointerException("menuTitle cannot be null.");
         }
 
         dashboard = HalDashboard.getInstance();
+        opMode = FtcOpMode.getInstance();
         this.menuTitle = menuTitle;
         this.parent = parent;
         this.menuButtons = menuButtons;
@@ -343,12 +345,27 @@ public abstract class FtcMenu
 
         int buttons = 0;
 
-        if (menuButtons.isMenuBackButton()) buttons |= MENUBUTTON_BACK;
-        if (menuButtons.isMenuEnterButton()) buttons |= MENUBUTTON_ENTER;
-        if (menuButtons.isMenuUpButton()) buttons |= MENUBUTTON_UP;
-        if (menuButtons.isMenuDownButton()) buttons |= MENUBUTTON_DOWN;
-        if (menuButtons.isMenuAltUpButton()) buttons |= MENUBUTTON_ALT_UP;
-        if (menuButtons.isMenuAltDownButton()) buttons |= MENUBUTTON_ALT_DOWN;
+        if (menuButtons != null)
+        {
+            if (menuButtons.isMenuBackButton()) buttons |= MENUBUTTON_BACK;
+            if (menuButtons.isMenuEnterButton()) buttons |= MENUBUTTON_ENTER;
+            if (menuButtons.isMenuUpButton()) buttons |= MENUBUTTON_UP;
+            if (menuButtons.isMenuDownButton()) buttons |= MENUBUTTON_DOWN;
+            if (menuButtons.isMenuAltUpButton()) buttons |= MENUBUTTON_ALT_UP;
+            if (menuButtons.isMenuAltDownButton()) buttons |= MENUBUTTON_ALT_DOWN;
+        }
+        else
+        {
+            //
+            // Caller did not provide MenuButton interface implementation, use our default mapping.
+            //
+            if (opMode.gamepad1.dpad_left) buttons |= MENUBUTTON_BACK;
+            if (opMode.gamepad1.dpad_right) buttons |= MENUBUTTON_ENTER;
+            if (opMode.gamepad1.dpad_up) buttons |= MENUBUTTON_UP;
+            if (opMode.gamepad1.dpad_down) buttons |= MENUBUTTON_DOWN;
+            if (opMode.gamepad1.left_bumper) buttons |= MENUBUTTON_ALT_UP;
+            if (opMode.gamepad1.right_bumper) buttons |= MENUBUTTON_ALT_DOWN;
+        }
 
         if (debugEnabled)
         {

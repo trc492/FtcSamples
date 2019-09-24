@@ -60,7 +60,6 @@ public class FtcTeleOpMecanumDrive extends FtcOpMode implements TrcGameControlle
         hardwareMap.logDevices();
         dashboard = HalDashboard.getInstance();
         FtcRobotControllerActivity activity = (FtcRobotControllerActivity)hardwareMap.appContext;
-        dashboard.setTextView((TextView)activity.findViewById(R.id.textOpMode));
         //
         // Initializing sensors.
         //
@@ -96,7 +95,6 @@ public class FtcTeleOpMecanumDrive extends FtcOpMode implements TrcGameControlle
     @Override
     public void runPeriodic(double elapsedTime)
     {
-        final int LABEL_WIDTH = 200;
         //
         // DriveBase subsystem.
         //
@@ -105,10 +103,10 @@ public class FtcTeleOpMecanumDrive extends FtcOpMode implements TrcGameControlle
         double rotation = gamepad.getRightTrigger(true) - gamepad.getLeftTrigger(true);
         driveBase.holonomicDrive(x, y, rotation, false);
 
-        dashboard.displayPrintf(1, LABEL_WIDTH, "Text: ", "*** Robot Data ***");
-        dashboard.displayPrintf(2, LABEL_WIDTH, "x: ", "%.2f", x);
-        dashboard.displayPrintf(3, LABEL_WIDTH, "y: ", "%.2f", y);
-        dashboard.displayPrintf(4, LABEL_WIDTH, "rotation: ", "%.2f", rotation);
+        dashboard.displayPrintf(1, "Text: *** Robot Data ***");
+        dashboard.displayPrintf(2, "x: %.2f", x);
+        dashboard.displayPrintf(3, "y: %.2f", y);
+        dashboard.displayPrintf(4, "rotation: %.2f", rotation);
     }   //runPeriodic
 
     //

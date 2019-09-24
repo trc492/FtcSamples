@@ -24,8 +24,6 @@ package samples;
 
 import com.qualcomm.robotcore.hardware.IrSeekerSensor;
 
-import org.firstinspires.ftc.robotcontroller.internal.FtcRobotControllerActivity;
-
 import ftclib.FtcBNO055Imu;
 import ftclib.FtcDcMotor;
 import ftclib.FtcMRColorSensor;
@@ -174,9 +172,6 @@ public class K9Robot
         opMode.hardwareMap.logDevices();
         dashboard = HalDashboard.getInstance();
         globalTracer = FtcOpMode.getGlobalTracer();
-        dashboard.setTextView(
-                ((FtcRobotControllerActivity)opMode.hardwareMap.appContext).findViewById(
-                        FtcSampleCode.R.id.textOpMode));
         //
         // Initialize sensors.
         //

@@ -72,7 +72,6 @@ public class FtcTeleOpK9TankDrive extends FtcOpMode implements TrcGameController
     @Override
     public void runPeriodic(double elapsedTime)
     {
-        final int LABEL_WIDTH = 200;
         //
         // DriveBase subsystem.
         //
@@ -80,11 +79,11 @@ public class FtcTeleOpK9TankDrive extends FtcOpMode implements TrcGameController
         double right = gamepad.getRightStickY(true);
         robot.driveBase.tankDrive(left, right);
 
-        robot.dashboard.displayPrintf(1, LABEL_WIDTH, "Text: ", "*** Robot Data ***");
-        robot.dashboard.displayPrintf(2, LABEL_WIDTH, "arm: ", "%.2f", robot.armServo.getPosition());
-        robot.dashboard.displayPrintf(3, LABEL_WIDTH, "claw: ", "%.2f", robot.clawServo.getPosition());
-        robot.dashboard.displayPrintf(4, LABEL_WIDTH, "left power: ", "%.2f", left);
-        robot.dashboard.displayPrintf(5, LABEL_WIDTH, "right power: ", "%.2f", right);
+        robot.dashboard.displayPrintf(1, "Text: *** Robot Data ***");
+        robot.dashboard.displayPrintf(2, "arm: %.2f", robot.armServo.getPosition());
+        robot.dashboard.displayPrintf(3, "claw: %.2f", robot.clawServo.getPosition());
+        robot.dashboard.displayPrintf(4, "left power: %.2f", left);
+        robot.dashboard.displayPrintf(5, "right power: %.2f", right);
     }   //runPeriodic
 
     //

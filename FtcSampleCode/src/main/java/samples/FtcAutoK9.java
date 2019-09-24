@@ -33,7 +33,7 @@ import trclib.TrcRobot;
 
 @Autonomous(name="Auto: K9Bot Various Autonomous", group="FtcAutoSamples")
 @Disabled
-public class FtcAutoK9 extends FtcOpMode implements FtcMenu.MenuButtons
+public class FtcAutoK9 extends FtcOpMode
 {
     public enum Alliance
     {
@@ -136,18 +136,23 @@ public class FtcAutoK9 extends FtcOpMode implements FtcMenu.MenuButtons
         //
         // Create the menus.
         //
-        FtcValueMenu delayMenu = new FtcValueMenu("Delay time:", null, this,
-                0.0, 10.0, 1.0, 0.0, "%.0f sec");
-        FtcChoiceMenu<AutoStrategy> strategyMenu = new FtcChoiceMenu<>("Auto Strategies:", delayMenu, this);
-        FtcValueMenu driveTimeMenu = new FtcValueMenu("Drive time:", strategyMenu, this,
-                0.0, 10.0, 1.0, 4.0, "%.0f sec");
-        FtcValueMenu drivePowerMenu = new FtcValueMenu("Drive power:", driveTimeMenu, this,
-                -1.0, 1.0, 0.1, 0.5, "%.1f");
-        FtcValueMenu distanceMenu = new FtcValueMenu("Drive distance:", strategyMenu, this,
-                1.0, 8.0, 1.0, 1.0, "%.0f ft");
-        FtcValueMenu degreesMenu = new FtcValueMenu("Turn degrees", strategyMenu, this,
-                -360.0, 360.0, 90.0, 360.0, "%.0f deg");
-        FtcChoiceMenu<Alliance> allianceMenu = new FtcChoiceMenu<>("Alliance:", strategyMenu, this);
+        FtcValueMenu delayMenu = new FtcValueMenu(
+                "Delay time:", null, 0.0, 10.0, 1.0, 0.0,
+                "%.0f sec");
+        FtcChoiceMenu<AutoStrategy> strategyMenu = new FtcChoiceMenu<>("Auto Strategies:", delayMenu);
+        FtcValueMenu driveTimeMenu = new FtcValueMenu(
+                "Drive time:", strategyMenu, 0.0, 10.0, 1.0, 4.0,
+                "%.0f sec");
+        FtcValueMenu drivePowerMenu = new FtcValueMenu(
+                "Drive power:", driveTimeMenu, -1.0, 1.0, 0.1, 0.5,
+                "%.1f");
+        FtcValueMenu distanceMenu = new FtcValueMenu(
+                "Drive distance:", strategyMenu, 1.0, 8.0, 1.0, 1.0,
+                "%.0f ft");
+        FtcValueMenu degreesMenu = new FtcValueMenu(
+                "Turn degrees", strategyMenu, -360.0, 360.0, 90.0, 360.0,
+                "%.0f deg");
+        FtcChoiceMenu<Alliance> allianceMenu = new FtcChoiceMenu<>("Alliance:", strategyMenu);
 
         delayMenu.setChildMenu(strategyMenu);
         driveTimeMenu.setChildMenu(drivePowerMenu);
@@ -179,45 +184,5 @@ public class FtcAutoK9 extends FtcOpMode implements FtcMenu.MenuButtons
 
         robot.dashboard.displayPrintf(0, "Auto Strategy: %s", strategyMenu.getCurrentChoiceText());
     }   //doMenus
-
-    //
-    // Implements FtcMenu.MenuButtons interface.
-    //
-
-    @Override
-    public boolean isMenuUpButton()
-    {
-        return gamepad1.dpad_up;
-    }   //isMenuUpButton
-
-    @Override
-    public boolean isMenuDownButton()
-    {
-        return gamepad1.dpad_down;
-    }   //isMenuDownButton
-
-    @Override
-    public boolean isMenuAltUpButton()
-    {
-        return gamepad1.left_bumper;
-    }   //isMenuAltUpButton
-
-    @Override
-    public boolean isMenuAltDownButton()
-    {
-        return gamepad1.right_bumper;
-    }   //isMenuAltDownButton
-
-    @Override
-    public boolean isMenuEnterButton()
-    {
-        return gamepad1.dpad_right;
-    }   //isMenuEnterButton
-
-    @Override
-    public boolean isMenuBackButton()
-    {
-        return gamepad1.dpad_left;
-    }   //isMenuBackButton
 
 }   //class FtcAutoK9

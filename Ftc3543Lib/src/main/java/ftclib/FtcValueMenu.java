@@ -65,6 +65,25 @@ public class FtcValueMenu extends FtcMenu
     }   //FtcValueMenu
 
     /**
+     * Constructor: Create an instance of the object.
+     *
+     * @param menuTitle specifies the title of the menu. The title will be displayed as the first line in the menu.
+     * @param parent specifies the parent menu to go back to if the BACK button is pressed. If this is the root menu,
+     *               it can be set to null.
+     * @param minValue specifies the minimum value of the value range.
+     * @param maxValue specifies the maximum value of the value range.
+     * @param valueStep specifies the value step.
+     * @param defaultValue specifies the default value.
+     * @param valueFormat specifies the format string for the value.
+     */
+    public FtcValueMenu(
+            String menuTitle, FtcMenu parent, double minValue, double maxValue, double valueStep, double defaultValue,
+            String valueFormat)
+    {
+        this(menuTitle, parent, null, minValue, maxValue, valueStep, defaultValue, valueFormat);
+    }   //FtcValueMenu
+
+    /**
      * This method sets the next menu to go to after pressing ENTER on the value menu.
      *
      * @param childMenu specifies the child menu.

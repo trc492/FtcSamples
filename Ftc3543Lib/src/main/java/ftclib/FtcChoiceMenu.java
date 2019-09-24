@@ -109,6 +109,18 @@ public class FtcChoiceMenu<T> extends FtcMenu
     }   //FtcChoiceMenu
 
     /**
+     * Constructor: Creates an instance of the object.
+     *
+     * @param menuTitle specifies the title of the menu. The title will be displayed as the first line in the menu.
+     * @param parent specifies the parent menu to go back to if the BACK button is pressed. If this is the root menu,
+     *               it can be set to null.
+     */
+    public FtcChoiceMenu(String menuTitle, FtcMenu parent)
+    {
+        this(menuTitle, parent, null);
+    }   //FtcChoiceMenu
+
+    /**
      * This method adds a choice to the menu. The choices will be displayed in the order of them being added.
      *
      * @param choiceText specifies the choice text that will be displayed on the dashboard.
