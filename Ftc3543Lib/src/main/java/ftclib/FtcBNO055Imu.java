@@ -215,7 +215,8 @@ public class FtcBNO055Imu
                 if (dataType == DataType.ROTATION_RATE)
                 {
                     value = gyroData.xRotationRate;
-                } else if (dataType == DataType.HEADING)
+                }
+                else if (dataType == DataType.HEADING)
                 {
                     value = gyroData.xAngle;
                 }
@@ -288,7 +289,8 @@ public class FtcBNO055Imu
                 if (dataType == DataType.ROTATION_RATE)
                 {
                     value = gyroData.zRotationRate;
-                } else if (dataType == DataType.HEADING)
+                }
+                else if (dataType == DataType.HEADING)
                 {
                     value = gyroData.zAngle;
                 }
@@ -439,10 +441,12 @@ public class FtcBNO055Imu
                 if (dataType == DataType.ACCELERATION)
                 {
                     value = accelData.xAccel;
-                } else if (dataType == DataType.VELOCITY)
+                }
+                else if (dataType == DataType.VELOCITY)
                 {
                     value = accelData.xVel;
-                } else if (dataType == DataType.DISTANCE)
+                }
+                else if (dataType == DataType.DISTANCE)
                 {
                     value = accelData.xPos;
                 }
