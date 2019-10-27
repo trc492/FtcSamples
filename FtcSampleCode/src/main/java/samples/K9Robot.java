@@ -32,7 +32,7 @@ import ftclib.FtcOpticalDistanceSensor;
 import ftclib.FtcRobotBattery;
 import ftclib.FtcServo;
 import hallib.HalDashboard;
-import trclib.TrcAnalogTrigger;
+import trclib.TrcAnalogSensorTrigger;
 import trclib.TrcDbgTrace;
 import trclib.TrcEnhancedServo;
 import trclib.TrcGyro;
@@ -43,6 +43,8 @@ import trclib.TrcSimpleDriveBase;
 public class K9Robot
 {
     private static final String moduleName = "K9Robot";
+    //
+    // NOTE: The following constants must be tuned/updated for your robot in order for it to work properly.
     //
     // PID drive constants.
     //
@@ -142,13 +144,13 @@ public class K9Robot
     //
     public TrcPidController colorPidCtrl;
     public TrcPidDrive pidLineFollow;
-    public TrcAnalogTrigger<FtcMRColorSensor.DataType> colorTrigger;
+    public TrcAnalogSensorTrigger<FtcMRColorSensor.DataType> colorTrigger;
     //
     // PID line follow using Optical Distance sensor.
     //
     public TrcPidController lightPidCtrl;
     public TrcPidDrive lineFollowDrive;
-    public TrcAnalogTrigger<FtcOpticalDistanceSensor.DataType> lightTrigger;
+    public TrcAnalogSensorTrigger<FtcOpticalDistanceSensor.DataType> lightTrigger;
     //
     // PID seek IR.
     //
@@ -218,7 +220,7 @@ public class K9Robot
         // In order to line follow, we need to first find the line. We will first use pidDrive to keep the robot
         // moving forward for a set distance. Then colorTrigger will interrupt pidDrive once the line is detected.
         // Then we can use pidLineFollow to follow the line.
-        colorTrigger = new TrcAnalogTrigger<>(
+        colorTrigger = new TrcAnalogSensorTrigger<>(
                 "colorTrigger", colorSensor, 0, FtcMRColorSensor.DataType.WHITE,
                 new double[]{COLOR_BLACK, COLOR_WHITE}, this::triggerEvent);
         //
@@ -234,7 +236,7 @@ public class K9Robot
         // In order to line follow, we need to first find the line. We will first use pidDrive to keep the robot
         // moving forward for a set distance. Then lightTrigger will interrupt pidDrive once the line is detected.
         // Then we can use lineFollowDrive to follow the line.
-        lightTrigger = new TrcAnalogTrigger<>(
+        lightTrigger = new TrcAnalogSensorTrigger<>(
                 "lightTrigger", lightSensor, 0, FtcOpticalDistanceSensor.DataType.RAW_LIGHT_DETECTED,
                 new double[]{LIGHT_DARK_LEVEL, LIGHT_WHITE_LEVEL}, this::triggerEvent);
         //
