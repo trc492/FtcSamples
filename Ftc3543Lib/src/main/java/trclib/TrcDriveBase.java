@@ -26,6 +26,8 @@ import org.apache.commons.math3.linear.MatrixUtils;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
 
+import java.util.Stack;
+
 /**
  * This class implements a platform independent drive base. It is intended to be extended by subclasses that
  * implements different drive base configurations (e.g. SimpleDriveBase, MecanumDriveBase and SwerveDriveBase).
@@ -117,6 +119,7 @@ public abstract class TrcDriveBase implements TrcExclusiveSubsystem
     private double gyroMaxRotationRate = 0.0;
     private double gyroAssistKp = 1.0;
     private boolean gyroAssistEnabled = false;
+    private Stack<TrcPose2D> referencePoseStack = new Stack<>();
     private TrcPose2D referencePose = null;
     // Change of basis matrices to convert between coordinate systems
     private final RealMatrix enuToNwuChangeOfBasis = MatrixUtils
@@ -274,6 +277,53 @@ public abstract class TrcDriveBase implements TrcExclusiveSubsystem
     {
         referencePose = null;
     }   //clearReferencePose
+
+    /**
+     * This method saves the existing reference pose onto the stack if there is one and set the given pose as the new
+     * reference pose.
+     *
+     * @param pose specifies the pose to be set as the reference pose.
+     */
+    public void pushReferencePose(TrcPose2D pose)
+    {
+        if (referencePose != null)
+        {
+            referencePoseStack.push(referencePose);
+        }
+
+        referencePose = pose;
+    }   //pushReferencePose
+
+    /**
+     * This method saves the existing reference pose onto the stack if there is one and set the global absolute pose
+     * as the new reference pose.
+     */
+    public void pushReferencePose()
+    {
+        pushReferencePose(getAbsolutePose());
+    }   //pushReferencePose
+
+    /**
+     * This method returns the current reference pose. If the reference stack is not empty, it pops a pose from the
+     * stack as the new reference pose, otherwise the reference pose is cleared.
+     *
+     * @return current reference pose.
+     */
+    public TrcPose2D popReferencePose()
+    {
+        TrcPose2D oldReferencePose = referencePose;
+
+        if (!referencePoseStack.empty())
+        {
+            referencePose = referencePoseStack.pop();
+        }
+        else
+        {
+            referencePose = null;
+        }
+
+        return oldReferencePose;
+    }   //popReferencePose
 
     /**
      * This method sets the position scales. The raw position from the encoder is in encoder counts. By setting the
@@ -1286,7 +1336,7 @@ public abstract class TrcDriveBase implements TrcExclusiveSubsystem
                 }
                 catch (UnsupportedOperationException e)
                 {
-                    motorsState.currPositions[i] = 0;
+                    motorsState.currPositions[i] = 0.0;
                 }
 
                 motorsState.motorPosDiffs[i] = motorsState.currPositions[i] - motorsState.prevPositions[i];
@@ -1297,7 +1347,7 @@ public abstract class TrcDriveBase implements TrcExclusiveSubsystem
                 }
                 catch (UnsupportedOperationException e)
                 {
-                    motorsState.currVelocities[i] = 0;
+                    motorsState.currVelocities[i] = 0.0;
                 }
 
                 if (motorsState.currPositions[i] != motorsState.prevPositions[i] || motors[i].getPower() == 0.0)

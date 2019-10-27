@@ -93,7 +93,7 @@ public abstract class TrcMotor implements TrcMotorController
 
     private final String instanceName;
     private final TrcTaskMgr.TaskObject velocityCtrlTaskObj;
-    private TrcDigitalTrigger digitalTrigger = null;
+    private TrcDigitalInputTrigger digitalTrigger = null;
     private boolean odometryEnabled = false;
     private double maxMotorVelocity = 0.0;
     private TrcPidController velocityPidCtrl = null;
@@ -489,7 +489,7 @@ public abstract class TrcMotor implements TrcMotorController
         }
 
         digitalTriggerHandler = triggerHandler;
-        digitalTrigger = new TrcDigitalTrigger(instanceName, digitalInput, this::triggerEvent);
+        digitalTrigger = new TrcDigitalInputTrigger(instanceName, digitalInput, this::triggerEvent);
         digitalTrigger.setEnabled(true);
     }   //resetPositionOnDigitalInput
 
@@ -642,7 +642,7 @@ public abstract class TrcMotor implements TrcMotorController
     }   //set
 
     //
-    // Implements TrcDigitalTrigger.TriggerHandler.
+    // Implements TrcDigitalInputTrigger.TriggerHandler.
     //
 
     /**

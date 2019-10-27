@@ -581,7 +581,7 @@ public class TrcUtil
     {
         double thetaRad = Math.toRadians(theta);
         return MatrixUtils.createRealVector(new double[] { r * Math.sin(thetaRad), r * Math.cos(thetaRad) });
-    }
+    }   //polarToCartesian
 
     /**
      * Rotate a point counter-clockwise about the origin.
@@ -593,7 +593,7 @@ public class TrcUtil
     public static RealVector rotateCCW(RealVector vector, double angle)
     {
         return createCCWRotationMatrix(angle).operate(vector);
-    }
+    }   //rotateCCW
 
     /**
      * Rotate a point clockwise about the origin.
@@ -605,7 +605,7 @@ public class TrcUtil
     public static RealVector rotateCW(RealVector vector, double angle)
     {
         return createCWRotationMatrix(angle).operate(vector);
-    }
+    }   //rotateCW
 
     /**
      * Create a rotation matrix that will rotate a point counter-clockwise
@@ -619,7 +619,7 @@ public class TrcUtil
         double angleRad = Math.toRadians(angle);
         return MatrixUtils.createRealMatrix(
             new double[][] { { Math.cos(angleRad), -Math.sin(angleRad) }, { Math.sin(angleRad), Math.cos(angleRad) } });
-    }
+    }   //createCCWRotationMatrix
 
     /**
      * Create a rotation matrix that will rotate a point clockwise
@@ -631,6 +631,6 @@ public class TrcUtil
     public static RealMatrix createCWRotationMatrix(double angle)
     {
         return createCCWRotationMatrix(angle).transpose();
-    }
+    }   //createCWRotationMatrix
 
 }   //class TrcUtil

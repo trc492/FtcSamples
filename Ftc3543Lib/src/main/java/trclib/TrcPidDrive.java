@@ -45,7 +45,6 @@ public class TrcPidDrive
     private TrcDbgTrace msgTracer = null;
     private TrcRobotBattery battery = null;
     private boolean tracePidInfo = false;
-    private TrcPose2D oldReferenceFrame = null;
 
     /**
      * This interface provides a stuck wheel notification handler. It is useful for detecting drive base motor
@@ -85,6 +84,7 @@ public class TrcPidDrive
     private final TrcPidController turnPidCtrl;
     private final TrcTaskMgr.TaskObject driveTaskObj;
     private final TrcTaskMgr.TaskObject stopTaskObj;
+    private boolean savedReferencePose = false;
     private TrcWarpSpace warpSpace = null;
     private boolean warpSpaceEnabled = true;
     private StuckWheelHandler stuckWheelHandler = null;
@@ -404,6 +404,19 @@ public class TrcPidDrive
             this.owner = owner;
             double xError = 0.0, yError = 0.0, turnError = 0.0;
 
+            if (xPidCtrl != null && yPidCtrl != null &&
+                xPidCtrl.hasAbsoluteSetPoint() != yPidCtrl.hasAbsoluteSetPoint())
+            {
+                throw new IllegalStateException("X and Y PID controller must have the same absolute setpoint state.");
+            }
+
+            if (xPidCtrl != null && !xPidCtrl.hasAbsoluteSetPoint() ||
+                yPidCtrl != null && !yPidCtrl.hasAbsoluteSetPoint())
+            {
+                driveBase.pushReferencePose();
+                savedReferencePose = true;
+            }
+
             if (xPidCtrl != null)
             {
                 xPidCtrl.setTarget(xTarget);
@@ -437,10 +450,6 @@ public class TrcPidDrive
             this.holdTarget = holdTarget;
             this.turnOnly = xError == 0.0 && yError == 0.0 && turnError != 0.0;
             driveBase.resetStallTimer();
-
-            // Cache the reference pose to reset it after the pid operation
-            oldReferenceFrame = driveBase.getReferencePose();
-            driveBase.setReferencePose();
 
             setTaskEnabled(true);
         }
@@ -642,8 +651,12 @@ public class TrcPidDrive
             turnPidCtrl.reset();
         }
 
-        // reset the reference pose
-        driveBase.setReferencePose(oldReferenceFrame);
+        // restore the old reference pose.
+        if (savedReferencePose)
+        {
+            driveBase.popReferencePose();
+            savedReferencePose = false;
+        }
 
         holdTarget = false;
         turnOnly = false;

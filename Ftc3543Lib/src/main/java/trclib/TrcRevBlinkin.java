@@ -39,20 +39,20 @@ public abstract class TrcRevBlinkin
     protected TrcDbgTrace dbgTrace = null;
 
     /**
-     * This method is provided by the platform dependent subclass that extends this class. It sets the LED pattern
-     * value to the physical REV Blinkin device in a platform dependent way.
+     * This method is provided by the platform dependent subclass that extends this class. It gets the current set
+     * LED pattern.
      *
-     * @param value specifies the color pattern value.
+     * @return currently set LED pattern.
      */
-    public abstract void set(double value);
+    public abstract LEDPattern getPattern();
 
     /**
-     * This method is provided by the platform dependent subclass that extends this class. It gets the current set
-     * LED pattern value.
+     * This method is provided by the platform dependent subclass that extends this class. It sets the LED pattern
+     * to the physical REV Blinkin device in a platform dependent way.
      *
-     * @return currently set LED pattern value.
+     * @param pattern specifies the color pattern.
      */
-    public abstract double get();
+    public abstract void setPattern(LEDPattern pattern);
 
     public enum LEDPattern
     {
@@ -303,48 +303,6 @@ public abstract class TrcRevBlinkin
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
     }   //setPatternPriorities
-
-    /**
-     * This method returns the currently set LED pattern
-     *
-     * @return currently set LED pattern.
-     */
-    public LEDPattern getPattern()
-    {
-        final String funcName = "getPattern";
-        LEDPattern pattern = LEDPattern.getPattern(get());
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", pattern);
-        }
-
-        return pattern;
-    }   //getPattern
-
-    /**
-     * This method sets the color pattern of the LED strip regardless on what is already showing. It means it
-     * does not respect the priority list.
-     *
-     * @param pattern specifies the color pattern to be set.
-     */
-    public void setPattern(LEDPattern pattern)
-    {
-        final String funcName = "setPattern";
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "pattern=%s", pattern);
-        }
-
-        set(pattern.value);
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
-        }
-    }   //setPattern
 
     /**
      * This method enables/disables the LED pattern in the priority list.

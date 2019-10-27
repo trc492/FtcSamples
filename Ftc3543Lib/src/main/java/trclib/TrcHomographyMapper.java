@@ -23,6 +23,7 @@
 package trclib;
 
 import java.util.LinkedList;
+import java.util.Locale;
 
 import org.opencv.calib3d.Calib3d;
 import org.opencv.core.Mat;
@@ -35,6 +36,60 @@ import org.opencv.core.Point;
  */
 public class TrcHomographyMapper
 {
+    /**
+     * This class implements a homography rectangle with the four coordinate points. The rectangle can be a real
+     * world rectangle or a vision camera's pixel rectangle.
+     */
+    public static class Rectangle
+    {
+        public Point topLeft;
+        public Point topRight;
+        public Point bottomLeft;
+        public Point bottomRight;
+
+        /**
+         * Constructor: Create an instance of the object.
+         *
+         * @param topLeft specifies the top left point of the rectangle.
+         * @param topRight specifies the top right point of the rectangle.
+         * @param bottomLeft specifies the bottom left point of the rectangle.
+         * @param bottomRight specifies the bottom right point of the rectangle.
+         */
+        public Rectangle(Point topLeft, Point topRight, Point bottomLeft, Point bottomRight)
+        {
+            this.topLeft = topLeft;
+            this.topRight = topRight;
+            this.bottomLeft = bottomLeft;
+            this.bottomRight = bottomRight;
+        }   //Rectangle
+
+        /**
+         * Constructor: Create an instance of the object.
+         *
+         * @param topLeftX specifies the top left X of the rectangle.
+         * @param topLeftY specifies the top left Y of the rectangle.
+         * @param topRightX specifies the top right X of the rectangle.
+         * @param topRightY specifies the top right Y of the rectangle.
+         * @param bottomLeftX specifies the bottom left X of the rectangle.
+         * @param bottomLeftY specifies the bottom left Y of the rectangle.
+         * @param bottomRightX specifies the bottom right X of the rectangle.
+         * @param bottomRightY specifies the bottom right Y of the rectangle.
+         */
+        public Rectangle(double topLeftX, double topLeftY, double topRightX, double topRightY,
+                         double bottomLeftX, double bottomLeftY, double bottomRightX, double bottomRightY)
+        {
+            this(new Point(topLeftX, topLeftY), new Point(topRightX, topRightY),
+                 new Point(bottomLeftX, bottomLeftY), new Point(bottomRightX, bottomRightY));
+        }   //Rectangle
+
+        public String toString()
+        {
+            return String.format(Locale.US, "[topLeft%s, topRight%s, bottomLeft%s, bottomRight%s]",
+                    topLeft.toString(), topRight.toString(), bottomLeft.toString(), bottomRight.toString());
+        }   //toString
+
+    }   //class Rectangle
+
     private final Mat homographyMatrix;
 
     /**
@@ -78,6 +133,18 @@ public class TrcHomographyMapper
     }   //TrcHomographyMapper
 
     /**
+     * Constructor: Create an instance of the object.
+     *
+     * @param srcRect specifies the source rectangle (e.g. camera pixel coordinate).
+     * @param dstRect specifies the destination rectangle (e.g. robot world coordinate).
+     */
+    public TrcHomographyMapper(Rectangle srcRect, Rectangle dstRect)
+    {
+        this(srcRect.topLeft, srcRect.topRight, srcRect.bottomLeft, srcRect.bottomRight,
+             dstRect.topLeft, dstRect.topRight, dstRect.bottomLeft, dstRect.bottomRight);
+    }   //TrcHomographyMapper
+
+    /**
      * This method maps a source point to the destination point using the homography matrix.
      *
      * @param srcPoint specifies the source point.
@@ -103,9 +170,9 @@ public class TrcHomographyMapper
         double[][] result = multiply(h, pmat);
 
         // Results need to be scaled by the Z-axis.
-        for (int furry = 0; furry < result.length; furry++)
+        for (int i = 0; i < result.length; i++)
         {
-            result[furry][0] *= (1.0 / result[2][0]);
+            result[i][0] *= (1.0 / result[2][0]);
         }
 
         return new Point(result[0][0], result[1][0]);

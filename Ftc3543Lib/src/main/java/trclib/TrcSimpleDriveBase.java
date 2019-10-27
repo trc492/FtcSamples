@@ -358,8 +358,8 @@ public class TrcSimpleDriveBase extends TrcDriveBase
 
         // Calculate heading and turn rate using positional info in case we don't have a gyro.
         // Get the average of all left and right motors separately, since this drivebase may have between 2-6 motors
-        double lPos = 0, rPos = 0;
-        double lVel = 0, rVel = 0;
+        double lPos = 0.0, rPos = 0.0;
+        double lVel = 0.0, rVel = 0.0;
 
         for (int i = 0; i < motorsState.motorPosDiffs.length; i++)
         {
