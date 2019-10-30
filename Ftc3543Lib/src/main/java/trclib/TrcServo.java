@@ -79,6 +79,7 @@ public abstract class TrcServo
     private static final double DEF_LOGICAL_MAX     = 1.0;
 
     private final String instanceName;
+    private TrcTimer timer;
     private double physicalMin = DEF_PHYSICAL_MIN;
     private double physicalMax = DEF_PHYSICAL_MAX;
     private double logicalMin = DEF_LOGICAL_MIN;
@@ -99,6 +100,7 @@ public abstract class TrcServo
         }
 
         this.instanceName = instanceName;
+        timer = new TrcTimer(instanceName);
     }   //TrcServo
 
     /**
@@ -111,6 +113,24 @@ public abstract class TrcServo
     {
         return instanceName;
     }   //toString
+
+    /**
+     * This method sets the servo motor position. If an event is given, it sets an event after the given amount of
+     * time has passed.
+     *
+     * @param position specifies the physical position of the servo motor. This value may be in degrees if
+     *                 setPhysicalRange is called with the degree range.
+     * @param timeout specifies a maximum time value the operation should be completed in seconds.
+     * @param event specifies an event object to signal when the timeout event has expired.
+     */
+    public void setPosition(double position, double timeout, TrcEvent event)
+    {
+        setPosition(position);
+        if (event != null)
+        {
+            timer.set(timeout, event);
+        }
+    }   //setPosition
 
     /**
      * This method sets the physical range of the servo motor. This is typically

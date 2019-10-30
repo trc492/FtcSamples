@@ -370,11 +370,14 @@ public class TrcEnhancedServo
     }   //getPosition
 
     /**
-     * This method sets the servo position.
+     * This method sets the servo position. If an event is given, it sets the event after the given amount of time
+     * has passed.
      *
      * @param position specifies the position to set.
+     * @param timeout specifies a maximum time value the operation should be completed in seconds.
+     * @param event specifies an event object to signal when the timeout event has expired.
      */
-    public void setPosition(double position)
+    public void setPosition(double position, double timeout, TrcEvent event)
     {
         final String funcName = "setPosition";
 
@@ -389,7 +392,7 @@ public class TrcEnhancedServo
 
             if (servo1 != null)
             {
-                servo1.setPosition(position);
+                servo1.setPosition(position, timeout, event);
             }
 
             if (servo2 != null)
@@ -402,6 +405,16 @@ public class TrcEnhancedServo
         {
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
+    }   //setPosition
+
+    /**
+     * This method sets the servo position.
+     *
+     * @param position specifies the position to set.
+     */
+    public void setPosition(double position)
+    {
+        setPosition(position, 0.0, null);
     }   //setPosition
 
     /**

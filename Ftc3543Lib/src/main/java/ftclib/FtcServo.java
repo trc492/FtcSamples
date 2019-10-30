@@ -58,7 +58,7 @@ public class FtcServo extends TrcServo
 
     private Servo servo;
     private ServoController controller;
-    private TrcTimer timer;
+    private TrcTimer holdTimer;
     private TrcEvent event;
     private TrcStateMachine<State> sm;
     private TrcTaskMgr.TaskObject servoTaskObj;
@@ -84,7 +84,7 @@ public class FtcServo extends TrcServo
         servo = hardwareMap.servo.get(instanceName);
         prevLogicalPos = servo.getPosition();
         controller = servo.getController();
-        timer = new TrcTimer(instanceName);
+        holdTimer = new TrcTimer(instanceName);
         event = new TrcEvent(instanceName);
         sm = new TrcStateMachine<>(instanceName);
         servoTaskObj = TrcTaskMgr.getInstance().createTask(instanceName + ".servoTask", this::servoTask);
@@ -119,7 +119,7 @@ public class FtcServo extends TrcServo
     }   //getController
 
     /**
-     * This method cancels the timer and stops the state machine if it is running.
+     * This method cancels the holdTimer and stops the state machine if it is running.
      */
     public void cancel()
     {
@@ -133,7 +133,7 @@ public class FtcServo extends TrcServo
 
         if (sm.isEnabled())
         {
-            timer.cancel();
+            holdTimer.cancel();
             sm.stop();
             setTaskEnabled(false);
         }
@@ -307,14 +307,14 @@ public class FtcServo extends TrcServo
             {
                 case SET_POSITION:
                     setPosition(servoPos);
-                    timer.set(servoOnTime, event);
+                    holdTimer.set(servoOnTime, event);
                     sm.addEvent(event);
                     sm.waitForEvents(State.DISABLE_CONTROLLER);
                     break;
 
                 case DISABLE_CONTROLLER:
                     controller.pwmDisable();
-                    timer.set(CONTROLLER_ONOFF_DELAY, event);
+                    holdTimer.set(CONTROLLER_ONOFF_DELAY, event);
                     sm.addEvent(event);
                     sm.waitForEvents(State.DONE);
                     break;

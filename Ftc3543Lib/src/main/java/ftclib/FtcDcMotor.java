@@ -398,6 +398,7 @@ public class FtcDcMotor extends TrcMotor
         {
             zeroEncoderValue = motor.getCurrentPosition();
         }
+        prevEncPos = zeroEncoderValue;
     }   //resetPosition
 
     /**
