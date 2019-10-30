@@ -216,12 +216,13 @@ public class FtcDcMotor extends TrcMotor
         {
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
         }
-        //
-        // Somebody said if motor controller got disconnected, we may get a zero. Let's detect this and see if this
-        // really happened.
-        //
+
         if (analogSensor == null)
         {
+            //
+            // Somebody said if motor controller got disconnected, we may get a zero. Let's detect this and see if this
+            // really happened.
+            //
             if (currPos == 0.0 && Math.abs(prevEncPos) > 1000)
             {
                 globalTracer.traceWarn(
@@ -233,12 +234,10 @@ public class FtcDcMotor extends TrcMotor
             {
                 prevEncPos = (int)currPos;
             }
-        }
 
-        if (analogSensor == null)
-        {
             currPos -= zeroEncoderValue;
         }
+
         currPos *= positionSensorSign;
 
         if (debugEnabled)
@@ -398,6 +397,7 @@ public class FtcDcMotor extends TrcMotor
         {
             zeroEncoderValue = motor.getCurrentPosition();
         }
+
         prevEncPos = zeroEncoderValue;
     }   //resetPosition
 
