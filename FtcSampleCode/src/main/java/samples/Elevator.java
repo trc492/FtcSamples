@@ -58,15 +58,28 @@ public class Elevator
     {
         lowerLimitSwitch = new FtcTouchSensor("elevatorLowerLimitSwitch");
         motor = new FtcDcMotor("elevatorMotor", lowerLimitSwitch);
+        motor.setBrakeModeEnabled(true);
+        motor.setOdometryEnabled(true);
+
         pidCtrl = new TrcPidController(
                 "elevatorPidCtrl",
                 new TrcPidController.PidCoefficients(ELEVATOR_KP, ELEVATOR_KI, ELEVATOR_KD),
-                ELEVATOR_TOLERANCE, actuator::getPosition);
+                ELEVATOR_TOLERANCE, this::getPosition);
 
         actuator = new TrcPidActuator(
                 "elevator", motor, lowerLimitSwitch, pidCtrl, ELEVATOR_CAL_POWER,
                 ELEVATOR_MIN_HEIGHT, ELEVATOR_MAX_HEIGHT);
         actuator.setPositionScale(ELEVATOR_INCHES_PER_COUNT);
     }   //Elevator
+
+    /**
+     * This method is called by the PID controller to get the current height of the elevator.
+     *
+     * @return current elevator height.
+     */
+    public double getPosition()
+    {
+        return actuator.getPosition();
+    }   //getPosition
 
 }   //class Elevator
