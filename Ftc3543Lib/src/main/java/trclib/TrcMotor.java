@@ -93,7 +93,7 @@ public abstract class TrcMotor implements TrcMotorController
 
     private final String instanceName;
     private final TrcTaskMgr.TaskObject velocityCtrlTaskObj;
-    private final TrcTaskMgr.TaskObject cleanupTaskObj;
+    private final TrcTaskMgr.TaskObject disableOdometryTask;
     private TrcDigitalInputTrigger digitalTrigger = null;
     private boolean odometryEnabled = false;
     private double maxMotorVelocity = 0.0;
@@ -129,7 +129,8 @@ public abstract class TrcMotor implements TrcMotorController
             odometryTaskObj = taskMgr.createTask(moduleName + ".odometryTask", TrcMotor::odometryTask);
         }
         velocityCtrlTaskObj = taskMgr.createTask(instanceName + ".velCtrlTask", this::velocityCtrlTask);
-        cleanupTaskObj = taskMgr.createTask(instanceName + ".cleanupTask", this::cleanupTask);
+        disableOdometryTask = taskMgr.createTask(
+                instanceName + ".disableOdometryTask", this::disableOdometryTask);
     }   //TrcMotor
 
     /**
@@ -215,7 +216,7 @@ public abstract class TrcMotor implements TrcMotorController
                 if (!odometryMotors.contains(this))
                 {
                     odometryMotors.add(this);
-                    cleanupTaskObj.registerTask(TaskType.STOP_TASK);
+                    disableOdometryTask.registerTask(TaskType.STOP_TASK);
                     if (odometryMotors.size() == 1)
                     {
                         //
@@ -311,14 +312,14 @@ public abstract class TrcMotor implements TrcMotorController
     }   //odometryTask
 
     /**
-     * This method is called before the runMode is about to stop so we can do clean up.
+     * This method is called before the runMode is about to stop so we can disable odometry.
      *
      * @param taskType specifies the type of task being run.
      * @param runMode  specifies the competition mode that is running.
      */
-    public void cleanupTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
+    public void disableOdometryTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
-        final String funcName = "cleanupTask";
+        final String funcName = "disableOdometryTask";
 
         if (debugEnabled)
         {
@@ -327,13 +328,13 @@ public abstract class TrcMotor implements TrcMotorController
         }
 
         setOdometryEnabled(false);
-        cleanupTaskObj.unregisterTask(TaskType.STOP_TASK);
+        disableOdometryTask.unregisterTask(TaskType.STOP_TASK);
 
         if (debugEnabled)
         {
             globalTracer.traceExit(funcName, TrcDbgTrace.TraceLevel.TASK);
         }
-    }   //cleanupTask
+    }   //disableOdometryTask
 
     /**
      * This method sets the motor controller to velocity mode with the specified maximum velocity.
