@@ -34,7 +34,12 @@ import trclib.TrcUtil;
  * menu tree structure where a menu is displayed on the Driver Station using the Dashboard class. On a choice menu,
  * the user can press the up and down buttons to change the highlighted choice on the menu and then press enter to
  * select the highlighted choice. On a value menu, the user can press the up and down button to increase or decrease
- * the value and then press enter to select the current value. After the choice is made, it will move on to the next
+ * the value and then press enter to select the current value. If the value has a huge range and the user wants to
+ * go to a value far away from the current value, it may take a lot of button presses to get to the desired value.
+ * In this situation, the user can press the alt-up or alt-down button to increase or decrease the significant digit
+ * of the value. For example, pressing up or down buttons will increase or decrease the 1's digit initially. If the
+ * user presses the alt-up button once, the significant digit becomes 10's, so pressing up or down buttons will now
+ * increase or decrease the 10's digit and so forth. After the enter button is pressed, it will move on to the next
  * menu in the menu tree. Or if the user presses the back button to cancel the menu, it will go back to the previous
  * menu in the menu tree. This is very useful in autonomous allowing the user to select from different autonomous
  * strategies and also select the options for each autonomous strategy. For example, one could have a menu to select

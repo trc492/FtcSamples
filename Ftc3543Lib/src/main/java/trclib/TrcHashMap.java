@@ -27,7 +27,9 @@ import java.util.Locale;
 
 /**
  * This class implements the TrcHashMap. TrcHashMap extends HashMap and added the add method so you can easily
- * append multiple hash map entries in a single statement.
+ * append multiple hash map entries in a single statement. It can also differentiate the case of key not found
+ * from the case of key maps to null. In the case of key not found, instead of returning null, it throws an
+ * exception.
  */
 public class TrcHashMap<K, V> extends HashMap<K, V>
 {

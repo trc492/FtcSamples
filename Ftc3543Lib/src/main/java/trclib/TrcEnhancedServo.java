@@ -291,7 +291,7 @@ public class TrcEnhancedServo
      *
      * @param physicalRangeMin specifies the desired physical range minimum (typically 0.0).
      * @param physicalRangeMax specifies the desired physical range maximum (typically 180.0).
-     * @param stepRate specifies the step rate to use for the calibration.
+     * @param stepRate specifies the step rate to use for the calibration (physicalPos/sec).
      */
     public void rangeCalibrate(double physicalRangeMin, double physicalRangeMax, double stepRate)
     {
@@ -422,7 +422,7 @@ public class TrcEnhancedServo
      * the speed to get there.
      *
      * @param position specifies the target position.
-     * @param stepRate specifies the stepping rate to get there (degrees/sec).
+     * @param stepRate specifies the stepping rate to get there (physicalPos/sec).
      */
     public synchronized void setPosition(double position, double stepRate)
     {
@@ -451,7 +451,7 @@ public class TrcEnhancedServo
     /**
      * This method sets the stepping mode characteristics.
      *
-     * @param maxStepRate specifies the maximum stepping rate.
+     * @param maxStepRate specifies the maximum stepping rate (physicalPos/sec).
      * @param minPos specifies the minimum position.
      * @param maxPos specifies the maximum position.
      */

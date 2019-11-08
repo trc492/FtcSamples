@@ -247,22 +247,26 @@ public class TrcTimer
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        timerMgr.remove(this, securityKey);
-        expiredTimeInMsec = 0;
-        expired = false;
-        canceled = true;
-        securityKey = -1.0;
-
-        if (notifyEvent != null)
+        // Only do this if the timer is actually armed and not expired.
+        if (securityKey != -1.0)
         {
-            notifyEvent.cancel();
-            notifyEvent = null;
-        }
+            timerMgr.remove(this, securityKey);
+            expiredTimeInMsec = 0;
+            expired = false;
+            canceled = true;
+            securityKey = -1.0;
 
-        if (notifyReceiver != null)
-        {
-            notifyReceiver.notify(this);
-            notifyReceiver = null;
+            if (notifyEvent != null)
+            {
+                notifyEvent.cancel();
+                notifyEvent = null;
+            }
+
+            if (notifyReceiver != null)
+            {
+                notifyReceiver.notify(this);
+                notifyReceiver = null;
+            }
         }
 
         if (debugEnabled)

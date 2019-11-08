@@ -115,6 +115,24 @@ public abstract class TrcServo
     }   //toString
 
     /**
+     * This method sets the servo motor position. If a notifier is given, it calls the notifier after the given amount
+     * of time has passed.
+     *
+     * @param position specifies the physical position of the servo motor. This value may be in degrees if
+     *                 setPhysicalRange is called with the degree range.
+     * @param timeout specifies a maximum time value the operation should be completed in seconds.
+     * @param notifier specifies a notifier to be notified when the timeout event has expired.
+     */
+    public void setPosition(double position, double timeout, TrcNotifier.Receiver notifier)
+    {
+        setPosition(position);
+        if (notifier != null)
+        {
+            timer.set(timeout, notifier);
+        }
+    }   //setPosition
+
+    /**
      * This method sets the servo motor position. If an event is given, it sets an event after the given amount of
      * time has passed.
      *
