@@ -53,8 +53,39 @@ public class TrcAbsTargetDrive<StateType>
     private final TrcPidDrive pidDrive;
     private final TrcEvent event;
     private final TrcStateMachine<StateType> sm;
+    private final boolean useAbsTarget;
     private TrcPose2D absTargetPose;
-    private double absTargetHeading;
+
+    /**
+     * Constructor: Creates an instance of the object.
+     *
+     * @param instanceName specifies the instance name.
+     * @param driveBase specifies the drive base from which to get the robot odometry.
+     * @param pidDrive specifies the PidDrive object to use for PID controlled drive.
+     * @param event specifies the event to signal at the end of the drive.
+     * @param sm specifies the state machine to advance to the next state at the end of the drive.
+     * @param useAbsTarget specifies true to use absolute target (deltas added to absolute target) instead of deltas
+     *                    are relative to current pose.
+     */
+    public TrcAbsTargetDrive(
+            String instanceName, TrcDriveBase driveBase, TrcPidDrive pidDrive, TrcEvent event,
+            TrcStateMachine<StateType> sm, boolean useAbsTarget)
+    {
+        if (debugEnabled)
+        {
+            dbgTrace = useGlobalTracer?
+                    TrcDbgTrace.getGlobalTracer():
+                    new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
+        }
+
+        this.instanceName = instanceName;
+        this.driveBase = driveBase;
+        this.pidDrive = pidDrive;
+        this.event = event;
+        this.sm = sm;
+        this.useAbsTarget = useAbsTarget;
+        absTargetPose = driveBase.getAbsolutePose();
+    }   //TrcAbsTargetDrive
 
     /**
      * Constructor: Creates an instance of the object.
@@ -69,31 +100,18 @@ public class TrcAbsTargetDrive<StateType>
             String instanceName, TrcDriveBase driveBase, TrcPidDrive pidDrive, TrcEvent event,
             TrcStateMachine<StateType> sm)
     {
-        if (debugEnabled)
-        {
-            dbgTrace = useGlobalTracer?
-                    TrcDbgTrace.getGlobalTracer():
-                    new TrcDbgTrace(moduleName + "." + instanceName, tracingEnabled, traceLevel, msgLevel);
-        }
-
-        this.instanceName = instanceName;
-        this.driveBase = driveBase;
-        this.pidDrive = pidDrive;
-        this.event = event;
-        this.sm = sm;
-        absTargetPose = driveBase.getAbsolutePose();
-        absTargetHeading = driveBase.getHeading();
+        this(instanceName, driveBase, pidDrive, event, sm, true);
     }   //TrcAbsTargetDrive
 
     /**
-     * This method returns the instance name.
+     * This method returns the instance name and the current target pose.
      *
-     * @return instance name.
+     * @return instance name and current target pose.
      */
     @Override
     public String toString()
     {
-        return instanceName;
+        return instanceName + ": " + absTargetPose.toString();
     }   //toString
 
     /**
@@ -108,27 +126,36 @@ public class TrcAbsTargetDrive<StateType>
     {
         final String funcName = "setTarget";
         TrcPose2D newTargetPose = absTargetPose.translatePose(xDelta, yDelta);
-        TrcPose2D relativePose = newTargetPose.relativeTo(driveBase.getAbsolutePose());
+        newTargetPose.heading += turnDelta;
+        double xTarget, yTarget, turnTarget;
 
         if (debugEnabled)
         {
-            dbgTrace.traceInfo(funcName, "xDelta=%.1f, yDelta=%.1f, turnDelta=%.1f, CurrPose:%s, AbsHeading=%.1f",
-                    xDelta, yDelta, turnDelta, absTargetPose, absTargetHeading);
+            dbgTrace.traceInfo(funcName, "xDelta=%.1f, yDelta=%.1f, turnDelta=%.1f, CurrPose:%s",
+                    xDelta, yDelta, turnDelta, absTargetPose);
         }
 
-        absTargetHeading += turnDelta;
+        if (useAbsTarget)
+        {
+            TrcPose2D relativePose = newTargetPose.relativeTo(driveBase.getAbsolutePose());
+            xTarget = relativePose.x;
+            yTarget = relativePose.y;
+        }
+        else
+        {
+            xTarget = xDelta;
+            yTarget = yDelta;
+        }
+        turnTarget = pidDrive.getTurnPidCtrl().hasAbsoluteSetPoint()? newTargetPose.heading: turnDelta;
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceInfo(funcName, "xTarget=%.1f, yTarget=%.1f, turnTarget=%.1f, NewPose:%s",
+                    xTarget, yTarget, turnTarget, newTargetPose);
+        }
+
         absTargetPose = newTargetPose;
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceInfo(funcName, "RelPose:%s, NewPose:%s, NewHeading=%.1f",
-                    relativePose, newTargetPose, absTargetHeading);
-        }
-
-        pidDrive.setTarget(
-                relativePose.x, relativePose.y,
-                pidDrive.getTurnPidCtrl().hasAbsoluteSetPoint()? absTargetHeading: turnDelta,
-                false, event);
+        pidDrive.setTarget(xTarget, yTarget, turnTarget, false, event);
         sm.waitForSingleEvent(event, nextState);
     }   //setTarget
 
