@@ -23,24 +23,28 @@
 package trclib;
 
 /**
- * This class implements absolute target drive. It keeps track of the robot's absolute target position in order to
- * minimize cumulative error as a result of doing multiple segments of relative target drive. For example, if you
- * did a Y setTarget of 24 inches with a 2-inch tolerance and the robot only went 22 inches and you did another Y
- * setTarget of 12 inches and the robot only went 10 inches, the overall distance traveled would be 32 inches instead
- * of the intended 36 inches. The cumulative error would be 4 inches. Using this class, it keeps track of the absolute
- * target position. On the first segment, the absolute Y target was 24 inches and the robot went 22 inches. On the
- * second segment, the cumulative absolute Y target became 24 + 12 = 36 inches so the set target will be 36 - current
- * Y position = 36 - 22 = 14 inches. So even with a 2-inch error, the robot will travel 12 inches instead of 14 and
- * the overall distance traveled will be 22 + 12 = 34 instead of the intended overall target of 36. The error is
- * now just 2 inches instead of 4. No matter how many segment the robot travels, the overall error is still just
- * the 2-inch tolerance.
+ * This class adds enhanced capabilities to PID controlled drive. In particular, it keeps track of the cumulative
+ * absolute target pose, meaning it adds the given x, y and turn delta values to the absolute pose relative to the
+ * robot starting pose. By doing so, it eliminates cumulative errors of multi-segment relative target drive. For
+ * example, if you did a Y setTarget of 24 inches with a 2-inch tolerance and the robot only went 22 inches and you
+ * did another Y setTarget of 12 inches and the robot only went 10 inches, the overall distance traveled would be 32
+ * inches instead of the intended 36 inches. The cumulative error would be 4 inches. Using this class, it keeps track
+ * of the absolute target position. On the first segment, the absolute Y target was 24 inches and the robot went 22
+ * inches. On the second segment, the cumulative absolute Y target became 24 + 12 = 36 inches so the set target will
+ * be 36 - current Y position = 36 - 22 = 14 inches. So even with a 2-inch error, the robot will travel 12 inches
+ * instead of 14 and the overall distance traveled will be 22 + 12 = 34 instead of the intended overall target of 36.
+ * The error is now just 2 inches instead of 4. No matter how many segment the robot travels, the overall error is
+ * still just the drive tolerance. In effect, subsequent drive segments will correct errors from previous segments.
+ *
+ * In addition, this class understands event signaling and state machine so it will advance the state for you making
+ * PID controlled drive a one statement affair.
  *
  * @param <StateType> The type of states used in the state machine.
  */
 
-public class TrcAbsTargetDrive<StateType>
+public class TrcEnhancedPidDrive<StateType>
 {
-    private static final String moduleName = "TrcAbsTargetDrive";
+    private static final String moduleName = "TrcEnhancedPidDrive";
     private static final boolean debugEnabled = false;
     private static final boolean tracingEnabled = false;
     private static final boolean useGlobalTracer = false;
@@ -67,7 +71,7 @@ public class TrcAbsTargetDrive<StateType>
      * @param useAbsTarget specifies true to use absolute target (deltas added to absolute target) instead of deltas
      *                    are relative to current pose.
      */
-    public TrcAbsTargetDrive(
+    public TrcEnhancedPidDrive(
             String instanceName, TrcDriveBase driveBase, TrcPidDrive pidDrive, TrcEvent event,
             TrcStateMachine<StateType> sm, boolean useAbsTarget)
     {
@@ -85,7 +89,7 @@ public class TrcAbsTargetDrive<StateType>
         this.sm = sm;
         this.useAbsTarget = useAbsTarget;
         absTargetPose = driveBase.getAbsolutePose();
-    }   //TrcAbsTargetDrive
+    }   //TrcEnhancedPidDrive
 
     /**
      * Constructor: Creates an instance of the object.
@@ -96,12 +100,12 @@ public class TrcAbsTargetDrive<StateType>
      * @param event specifies the event to signal at the end of the drive.
      * @param sm specifies the state machine to advance to the next state at the end of the drive.
      */
-    public TrcAbsTargetDrive(
+    public TrcEnhancedPidDrive(
             String instanceName, TrcDriveBase driveBase, TrcPidDrive pidDrive, TrcEvent event,
             TrcStateMachine<StateType> sm)
     {
         this(instanceName, driveBase, pidDrive, event, sm, true);
-    }   //TrcAbsTargetDrive
+    }   //TrcEnhancedPidDrive
 
     /**
      * This method returns the instance name and the current target pose.
@@ -204,4 +208,4 @@ public class TrcAbsTargetDrive<StateType>
         setTarget(0.0, 0.0, turnTarget, nextState);
     }   //setXYTarget
 
-}   //TrcAbsTargetDrive
+}   //TrcEnhancedPidDrive
