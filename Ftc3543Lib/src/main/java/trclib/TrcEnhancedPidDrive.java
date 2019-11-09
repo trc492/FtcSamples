@@ -119,6 +119,27 @@ public class TrcEnhancedPidDrive<StateType>
     }   //toString
 
     /**
+     * This method returns the current absolute target pose. It is useful if you have multiple instances of the
+     * TrcEnhancedPidDrive that you want to sync their target poses.
+     *
+     * @return current absolute target pose.
+     */
+    public TrcPose2D getAbsTargetPose()
+    {
+        return absTargetPose.clone();
+    }   //getAbsTargetPose
+
+    /**
+     * This method sets the absolute target pose of this instance with the other instance.
+     *
+     * @param other specifies the other TrcEnhancedPidDrive instance to sync with.
+     */
+    public void syncAbsTargetPose(TrcEnhancedPidDrive other)
+    {
+        this.absTargetPose = other.getAbsTargetPose();
+    }   //syncAbsTargetPose
+
+    /**
      * This method sets the PID controlled relative drive targets.
      *
      * @param xDelta specifies the X target relative to the current X position.
