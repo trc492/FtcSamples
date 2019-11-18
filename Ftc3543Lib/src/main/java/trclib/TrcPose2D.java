@@ -138,6 +138,21 @@ public class TrcPose2D
     }   //clone
 
     /**
+     * This method sets this pose to be the same as the given pose.
+     *
+     * @param pose specifies the pose to make this pose equal to.
+     */
+    public void setAs(TrcPose2D pose)
+    {
+        this.x = pose.x;
+        this.y = pose.y;
+        this.heading = pose.heading;
+        this.xVel = pose.xVel;
+        this.yVel = pose.yVel;
+        this.turnRate = pose.turnRate;
+    }   //setAs
+
+    /**
      * This method returns the position in vector form.
      *
      * @return position vector.
@@ -182,6 +197,7 @@ public class TrcPose2D
 
         transformed.x = newPos.getEntry(0);
         transformed.y = newPos.getEntry(1);
+        transformed.heading = heading - pose.heading;
 
         transformed.xVel = newVel.getEntry(0);
         transformed.yVel = newVel.getEntry(1);

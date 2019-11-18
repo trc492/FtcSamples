@@ -59,7 +59,6 @@ public class FtcTeleOpMecanumDrive extends FtcOpMode implements TrcGameControlle
     {
         hardwareMap.logDevices();
         dashboard = HalDashboard.getInstance();
-        FtcRobotControllerActivity activity = (FtcRobotControllerActivity)hardwareMap.appContext;
         //
         // Initializing sensors.
         //

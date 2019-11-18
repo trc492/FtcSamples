@@ -119,7 +119,7 @@ public class CmdTimedDrive implements TrcRobot.RobotCommand
 
         if (state == null)
         {
-            robot.dashboard.displayPrintf(1, "State: Disabled");
+            robot.dashboard.displayPrintf(1, "State: disabled or waiting...");
         }
         else
         {
@@ -142,8 +142,8 @@ public class CmdTimedDrive implements TrcRobot.RobotCommand
                     {
                         timer.set(delay, event);
                         sm.waitForSingleEvent(event, State.DRIVE_BY_TIME);
+                        break;
                     }
-                    break;
 
                 case DRIVE_BY_TIME:
                     //
@@ -166,8 +166,7 @@ public class CmdTimedDrive implements TrcRobot.RobotCommand
                     //
                     // We are done.
                     //
-                    robot.driveBase.stop();
-                    sm.stop();
+                    cancel();
                     break;
             }
             robot.traceStateInfo(elapsedTime, state.toString(), 0.0, 0.0, 0.0);

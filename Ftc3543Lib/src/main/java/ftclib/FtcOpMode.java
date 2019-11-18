@@ -346,146 +346,150 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
         {
             if (debugEnabled)
             {
-                dbgTrace.traceInfo(funcName, "Odometry motors list is not empty (numMotors=%d)!",
+                dbgTrace.traceWarn(funcName, "Odometry motors list is not empty (numMotors=%d)!",
                         TrcMotor.getNumOdometryMotors());
             }
             TrcMotor.clearOdometryMotorsList();
         }
 
-        //
-        // robotInit contains code to initialize the robot.
-        //
-        if (debugEnabled)
+        try
         {
-            dbgTrace.traceInfo(funcName, "Current RunMode: %s", runMode);
-            dbgTrace.traceInfo(funcName, "Running initRobot");
-        }
-        dashboard.displayPrintf(0, "initRobot starting...");
-        initRobot();
-        dashboard.displayPrintf(0, "initRobot completed!");
-
-        //
-        // Run initPeriodic while waiting for competition to start.
-        //
-        if (debugEnabled)
-        {
-            dbgTrace.traceInfo(funcName, "Running initPeriodic");
-        }
-        loopCounter = 0;
-        dashboard.displayPrintf(0, "initPeriodic starting...");
-        while (!isStarted())
-        {
-            loopCounter++;
-            loopStartNanoTime = TrcUtil.getCurrentTimeNanos();
+            //
+            // robotInit contains code to initialize the robot.
+            //
             if (debugEnabled)
             {
-                dbgTrace.traceInfo(funcName, "[%d:%.3f]: InitPeriodic loop",
-                        loopCounter, loopStartNanoTime/1000000000.0);
+                dbgTrace.traceInfo(funcName, "Current RunMode: %s", runMode);
+                dbgTrace.traceInfo(funcName, "Running initRobot");
             }
-            initPeriodic();
-        }
-        dashboard.displayPrintf(0, "initPeriodic completed!");
-        opModeStartNanoTime = TrcUtil.getCurrentTimeNanos();
+            dashboard.displayPrintf(0, "initRobot starting...");
+            initRobot();
+            dashboard.displayPrintf(0, "initRobot completed!");
 
-        //
-        // Prepare for starting the run mode.
-        //
-        if (debugEnabled)
-        {
-            dbgTrace.traceInfo(funcName, "Running Start Mode Tasks");
-        }
-        taskMgr.executeTaskType(TrcTaskMgr.TaskType.START_TASK, runMode);
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceInfo(funcName, "Running startMode");
-        }
-        startMode(null, runMode);
-
-        long nextPeriodNanoTime = TrcUtil.getCurrentTimeNanos();
-        long startNanoTime = TrcUtil.getCurrentTimeNanos();
-
-        loopCounter = 0;
-        while (opModeIsActive())
-        {
-            loopStartNanoTime = TrcUtil.getCurrentTimeNanos();
-            loopCounter++;
-            sdkTotalNanoTime += loopStartNanoTime - startNanoTime;
-            opModeElapsedTime = (loopStartNanoTime - opModeStartNanoTime)/1000000000.0;
-
+            //
+            // Run initPeriodic while waiting for competition to start.
+            //
             if (debugEnabled)
             {
-                dbgTrace.traceInfo(funcName, "[%d:%.3f]: OpMode loop",
-                        loopCounter, loopStartNanoTime/1000000000.0);
-                dbgTrace.traceInfo(funcName, "Running PreContinuous Tasks");
+                dbgTrace.traceInfo(funcName, "Running initPeriodic");
             }
-            taskMgr.executeTaskType(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK, runMode);
-
-            if (debugEnabled)
+            loopCounter = 0;
+            dashboard.displayPrintf(0, "initPeriodic starting...");
+            while (!isStarted())
             {
-                dbgTrace.traceInfo(funcName, "Running runContinuous");
-            }
-            startNanoTime = TrcUtil.getCurrentTimeNanos();
-            runContinuous(opModeElapsedTime);
-            continuousTotalNanoTime += TrcUtil.getCurrentTimeNanos() - startNanoTime;
-            continuousTimeSlotCount++;
-
-            if (debugEnabled)
-            {
-                dbgTrace.traceInfo(funcName, "Running PostContinuous Tasks");
-            }
-            taskMgr.executeTaskType(TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK, runMode);
-
-            if (TrcUtil.getCurrentTimeNanos() >= nextPeriodNanoTime)
-            {
-                dashboard.displayPrintf(0, "%s: %.3f", opModeName, opModeElapsedTime);
-                nextPeriodNanoTime += LOOP_PERIOD_NANO;
-
+                loopCounter++;
+                loopStartNanoTime = TrcUtil.getCurrentTimeNanos();
                 if (debugEnabled)
                 {
-                    dbgTrace.traceInfo(funcName, "Running PrePeriodic Tasks");
+                    dbgTrace.traceInfo(funcName, "[%d:%.3f]: InitPeriodic loop",
+                            loopCounter, loopStartNanoTime/1000000000.0);
                 }
-                taskMgr.executeTaskType(TrcTaskMgr.TaskType.PREPERIODIC_TASK, runMode);
+                initPeriodic();
+            }
+            dashboard.displayPrintf(0, "initPeriodic completed!");
+            opModeStartNanoTime = TrcUtil.getCurrentTimeNanos();
+
+            //
+            // Prepare for starting the run mode.
+            //
+            if (debugEnabled)
+            {
+                dbgTrace.traceInfo(funcName, "Running Start Mode Tasks");
+            }
+            taskMgr.executeTaskType(TrcTaskMgr.TaskType.START_TASK, runMode);
+
+            if (debugEnabled)
+            {
+                dbgTrace.traceInfo(funcName, "Running startMode");
+            }
+            startMode(null, runMode);
+
+            long nextPeriodNanoTime = TrcUtil.getCurrentTimeNanos();
+            long startNanoTime = TrcUtil.getCurrentTimeNanos();
+
+            loopCounter = 0;
+            while (opModeIsActive())
+            {
+                loopStartNanoTime = TrcUtil.getCurrentTimeNanos();
+                loopCounter++;
+                sdkTotalNanoTime += loopStartNanoTime - startNanoTime;
+                opModeElapsedTime = (loopStartNanoTime - opModeStartNanoTime)/1000000000.0;
 
                 if (debugEnabled)
                 {
-                    dbgTrace.traceInfo(funcName, "Running runPeriodic");
+                    dbgTrace.traceInfo(funcName, "[%d:%.3f]: OpMode loop",
+                            loopCounter, loopStartNanoTime/1000000000.0);
+                    dbgTrace.traceInfo(funcName, "Running PreContinuous Tasks");
+                }
+                taskMgr.executeTaskType(TrcTaskMgr.TaskType.PRECONTINUOUS_TASK, runMode);
+
+                if (debugEnabled)
+                {
+                    dbgTrace.traceInfo(funcName, "Running runContinuous");
                 }
                 startNanoTime = TrcUtil.getCurrentTimeNanos();
-                runPeriodic(opModeElapsedTime);
-                periodicTotalNanoTime += TrcUtil.getCurrentTimeNanos() - startNanoTime;
-                periodicTimeSlotCount++;
+                runContinuous(opModeElapsedTime);
+                continuousTotalNanoTime += TrcUtil.getCurrentTimeNanos() - startNanoTime;
+                continuousTimeSlotCount++;
 
                 if (debugEnabled)
                 {
-                    dbgTrace.traceInfo(funcName, "Running PostPeriodic Tasks");
+                    dbgTrace.traceInfo(funcName, "Running PostContinuous Tasks");
+                }
+                taskMgr.executeTaskType(TrcTaskMgr.TaskType.POSTCONTINUOUS_TASK, runMode);
+
+                if (TrcUtil.getCurrentTimeNanos() >= nextPeriodNanoTime)
+                {
+                    dashboard.displayPrintf(0, "%s: %.3f", opModeName, opModeElapsedTime);
+                    nextPeriodNanoTime += LOOP_PERIOD_NANO;
+
+                    if (debugEnabled)
+                    {
+                        dbgTrace.traceInfo(funcName, "Running PrePeriodic Tasks");
+                    }
+                    taskMgr.executeTaskType(TrcTaskMgr.TaskType.PREPERIODIC_TASK, runMode);
+
+                    if (debugEnabled)
+                    {
+                        dbgTrace.traceInfo(funcName, "Running runPeriodic");
+                    }
+                    startNanoTime = TrcUtil.getCurrentTimeNanos();
+                    runPeriodic(opModeElapsedTime);
+                    periodicTotalNanoTime += TrcUtil.getCurrentTimeNanos() - startNanoTime;
+                    periodicTimeSlotCount++;
+
+                    if (debugEnabled)
+                    {
+                        dbgTrace.traceInfo(funcName, "Running PostPeriodic Tasks");
+                    }
+
+                    taskMgr.executeTaskType(TrcTaskMgr.TaskType.POSTPERIODIC_TASK, runMode);
                 }
 
-                taskMgr.executeTaskType(TrcTaskMgr.TaskType.POSTPERIODIC_TASK, runMode);
+                startNanoTime = TrcUtil.getCurrentTimeNanos();
             }
 
-            startNanoTime = TrcUtil.getCurrentTimeNanos();
+            if (debugEnabled)
+            {
+                dbgTrace.traceInfo(funcName, "Running stopMode");
+            }
+            stopMode(runMode, null);
+
+            if (debugEnabled)
+            {
+                dbgTrace.traceInfo(funcName, "Running Stop Mode Tasks");
+            }
+            taskMgr.executeTaskType(TrcTaskMgr.TaskType.STOP_TASK, runMode);
         }
+        catch (Exception e)
+        {
+            //
+            // Catch all exceptions so we can continue to properly clean up and shutdown.
+            //
+            e.printStackTrace();
+        }
+
         TrcMotor.clearOdometryMotorsList();
-
-        //
-        // runOpMode could be "interrupted" soon, so the taskmgr.shutdown() call below may not run.
-        // Explicitly terminating all taskmgr threads while we still can.
-        //
-        taskMgr.terminateAllThreads();
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceInfo(funcName, "Running stopMode");
-        }
-        stopMode(runMode, null);
-
-        if (debugEnabled)
-        {
-            dbgTrace.traceInfo(funcName, "Running Stop Mode Tasks");
-        }
-        taskMgr.executeTaskType(TrcTaskMgr.TaskType.STOP_TASK, runMode);
-
         taskMgr.shutdown();
     }   //runOpMode
 

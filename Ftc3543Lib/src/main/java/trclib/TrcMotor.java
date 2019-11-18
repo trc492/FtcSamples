@@ -174,6 +174,11 @@ public abstract class TrcMotor implements TrcMotorController
                 odometryMotors.clear();
                 odometryTaskObj.unregisterTask(TaskType.INPUT_TASK);
             }
+            //
+            // We must clear the task object because FTC opmode stuck around even after it has ended. So the task
+            // object would have a stale odometryTask if we run the opmode again.
+            //
+            odometryTaskObj = null;
         }
     }   //clearOdometryMotorsList
 

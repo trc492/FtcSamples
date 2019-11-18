@@ -118,7 +118,7 @@ public class CmdDriveAndTurn implements TrcRobot.RobotCommand
 
         if (state == null)
         {
-            robot.dashboard.displayPrintf(1, "State: Disabled");
+            robot.dashboard.displayPrintf(1, "State: disabled or waiting...");
         }
         else
         {
@@ -148,7 +148,7 @@ public class CmdDriveAndTurn implements TrcRobot.RobotCommand
                     //
                     // Drive the set distance and maintain the same heading.
                     //
-                    robot.pidDrive.setTarget(yDistance, robot.targetHeading, false, event);
+                    robot.pidDrive.setRelativeYTarget(yDistance, event);
                     sm.waitForSingleEvent(event, State.DO_PID_TURN);
                     break;
 
@@ -156,8 +156,7 @@ public class CmdDriveAndTurn implements TrcRobot.RobotCommand
                     //
                     // Update the robot target heading with the degrees to turn and turn to the new heading.
                     //
-                    robot.targetHeading += turnDegrees;
-                    robot.pidDrive.setTarget(0.0, robot.targetHeading, false, event);
+                    robot.pidDrive.setRelativeTurnTarget(turnDegrees, event);
                     sm.waitForSingleEvent(event, State.DONE);
                     break;
 
@@ -170,7 +169,7 @@ public class CmdDriveAndTurn implements TrcRobot.RobotCommand
                     break;
             }
 
-            robot.traceStateInfo(elapsedTime, state.toString(), 0.0, yDistance, robot.targetHeading);
+            robot.traceStateInfo(elapsedTime, state.toString(), 0.0, yDistance, turnDegrees);
         }
 
         if (robot.pidDrive.isActive() && (debugYPid || debugTurnPid))

@@ -41,8 +41,8 @@ public class TrcTaskMgr
     private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private static TrcDbgTrace dbgTrace = null;
 
-    private static final long INPUT_THREAD_INTERVAL = 50;       // in msec
-    private static final long OUTPUT_THREAD_INTERVAL = 20;      // in msec
+    public static final long INPUT_THREAD_INTERVAL = 20;        // in msec
+    public static final long OUTPUT_THREAD_INTERVAL = 20;       // in msec
     private static final long defTaskTimeThreshold = 50000000;  // 50 msec
 
     /**

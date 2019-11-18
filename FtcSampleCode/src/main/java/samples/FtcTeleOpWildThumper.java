@@ -22,8 +22,6 @@
 
 package samples;
 
-import android.widget.TextView;
-
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 

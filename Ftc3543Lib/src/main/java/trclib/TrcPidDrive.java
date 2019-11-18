@@ -41,6 +41,7 @@ public class TrcPidDrive
     private static final boolean useGlobalTracer = false;
     private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
     private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
+    private static final boolean verbosePidInfo = false;
     private TrcDbgTrace dbgTrace = null;
     private TrcDbgTrace msgTracer = null;
     private TrcRobotBattery battery = null;
@@ -87,6 +88,7 @@ public class TrcPidDrive
     private boolean savedReferencePose = false;
     private TrcWarpSpace warpSpace = null;
     private boolean warpSpaceEnabled = true;
+    private boolean absTargetModeEnabled = false;
     private StuckWheelHandler stuckWheelHandler = null;
     private double stuckTimeout = 0.0;
     private TurnMode turnMode = TurnMode.IN_PLACE;
@@ -104,6 +106,7 @@ public class TrcPidDrive
     private boolean maintainHeading = false;
     private boolean canceled = false;
     private String owner = null;
+    private TrcPose2D absTargetPose;
 
     /**
      * Constructor: Create an instance of the object.
@@ -130,6 +133,7 @@ public class TrcPidDrive
         this.xPidCtrl = xPidCtrl;
         this.yPidCtrl = yPidCtrl;
         this.turnPidCtrl = turnPidCtrl;
+        resetAbsTargetPose();
         TrcTaskMgr taskMgr = TrcTaskMgr.getInstance();
         driveTaskObj = taskMgr.createTask(instanceName + ".driveTask", this::driveTask);
         stopTaskObj = taskMgr.createTask(instanceName + ".stopTask", this::stopTask);
@@ -150,6 +154,19 @@ public class TrcPidDrive
     {
         return instanceName;
     }   //toString
+
+    /**
+     * This method enables/disables absolute target mode. This class always keep track of the absolute position of
+     * the robot. When absolute target mode is enabled, all setRelativeTarget calls will adjust the relative targets
+     * by subtracting the current robot position from the absolute target position. This will essentially canceling
+     * out cumulative errors of multi-segment PID drive.
+     *
+     * @param enabled specifies true to enable absolute target mode, false to disable.
+     */
+    public synchronized void setAbsTargetModeEnabled(boolean enabled)
+    {
+        this.absTargetModeEnabled = enabled;
+    }   //setAbsTargetModeEnabled
 
     /**
      * This method sets the message tracer for logging trace messages.
@@ -205,6 +222,35 @@ public class TrcPidDrive
     {
         warpSpaceEnabled = enabled;
     }   //setWarpSpaceEnabled
+
+    /**
+     * This method returns the current absolute target pose. It is useful if you have multiple instances of the
+     * TrcEnhancedPidDrive that you want to sync their target poses.
+     *
+     * @return current absolute target pose.
+     */
+    public synchronized TrcPose2D getAbsTargetPose()
+    {
+        return absTargetPose.clone();
+    }   //getAbsTargetPose
+
+    /**
+     * This method sets the current absolute target pose to the given pose.
+     *
+     * @param pose specifies the pose to be set as the current absolute target pose.
+     */
+    public synchronized void setAbsTargetPose(TrcPose2D pose)
+    {
+        absTargetPose = pose;
+    }   //setAbsTargetPose
+
+    /**
+     * This method sets the current robot pose as the absolute target pose.
+     */
+    public synchronized void resetAbsTargetPose()
+    {
+        absTargetPose = driveBase.getAbsolutePose();
+    }   //resetAbsTargetPose
 
     /**
      * This method returns the X PID controller if any.
@@ -377,7 +423,6 @@ public class TrcPidDrive
     /**
      * This method starts a PID operation by setting the PID targets.
      *
-     * @param owner specifies the ID string of the caller requesting exclusive access.
      * @param xTarget specifies the X target position.
      * @param yTarget specifies the Y target position.
      * @param turnTarget specifies the target heading.
@@ -387,139 +432,378 @@ public class TrcPidDrive
      *                timeout, the operation will be canceled and the event will be signaled. If no timeout is
      *                specified, it should be set to zero.
      */
-    public synchronized void setTarget(String owner, double xTarget, double yTarget, double turnTarget,
-        boolean holdTarget, TrcEvent event, double timeout)
+    private void setTarget(
+            double xTarget, double yTarget, double turnTarget, boolean holdTarget, TrcEvent event, double timeout)
     {
         final String funcName = "setTarget";
 
         if (debugEnabled)
         {
             dbgTrace.traceEnter(
-                    funcName, TrcDbgTrace.TraceLevel.API, "x=%f,y=%f,turn=%f,hold=%s,event=%s,timeout=%.3f",
-                    xTarget, yTarget, turnTarget, Boolean.toString(holdTarget), event.toString(), timeout);
+                    funcName, TrcDbgTrace.TraceLevel.FUNC,
+                    "owner=%s,x=%f,y=%f,turn=%f,hold=%s,event=%s,timeout=%.3f",
+                    owner, xTarget, yTarget, turnTarget, holdTarget, event.toString(), timeout);
         }
 
-        if (driveBase.validateOwnership(owner))
-        {
-            this.owner = owner;
-            double xError = 0.0, yError = 0.0, turnError = 0.0;
+        double xError = 0.0, yError = 0.0, turnError = 0.0;
 
-            if (xPidCtrl != null && yPidCtrl != null &&
+        if (xPidCtrl != null && yPidCtrl != null &&
                 xPidCtrl.hasAbsoluteSetPoint() != yPidCtrl.hasAbsoluteSetPoint())
-            {
-                throw new IllegalStateException("X and Y PID controller must have the same absolute setpoint state.");
-            }
-
-            if (xPidCtrl != null && !xPidCtrl.hasAbsoluteSetPoint() ||
-                yPidCtrl != null && !yPidCtrl.hasAbsoluteSetPoint())
-            {
-                driveBase.pushReferencePose();
-                savedReferencePose = true;
-            }
-
-            if (xPidCtrl != null)
-            {
-                xPidCtrl.setTarget(xTarget);
-                xError = xPidCtrl.getError();
-            }
-
-            if (yPidCtrl != null)
-            {
-                yPidCtrl.setTarget(yTarget);
-                yError = yPidCtrl.getError();
-            }
-
-            if (turnPidCtrl != null)
-            {
-                turnPidCtrl.setTarget(turnTarget, warpSpaceEnabled? warpSpace: null);
-                turnError = turnPidCtrl.getError();
-            }
-
-            if (event != null)
-            {
-                event.clear();
-            }
-            this.notifyEvent = event;
-
-            this.expiredTime = timeout;
-            if (timeout != 0)
-            {
-                this.expiredTime += TrcUtil.getCurrentTime();
-            }
-
-            this.holdTarget = holdTarget;
-            this.turnOnly = xError == 0.0 && yError == 0.0 && turnError != 0.0;
-            driveBase.resetStallTimer();
-
-            setTaskEnabled(true);
+        {
+            throw new IllegalStateException("X and Y PID controller must have the same absolute setpoint state.");
         }
+
+        if (xPidCtrl != null && !xPidCtrl.hasAbsoluteSetPoint() ||
+                yPidCtrl != null && !yPidCtrl.hasAbsoluteSetPoint())
+        {
+            driveBase.pushReferencePose();
+            savedReferencePose = true;
+        }
+
+        if (xPidCtrl != null)
+        {
+            xPidCtrl.setTarget(xTarget);
+            xError = xPidCtrl.getError();
+        }
+
+        if (yPidCtrl != null)
+        {
+            yPidCtrl.setTarget(yTarget);
+            yError = yPidCtrl.getError();
+        }
+
+        if (turnPidCtrl != null)
+        {
+            turnPidCtrl.setTarget(turnTarget, warpSpaceEnabled? warpSpace: null);
+            turnError = turnPidCtrl.getError();
+        }
+
+        if (event != null)
+        {
+            event.clear();
+        }
+        this.notifyEvent = event;
+
+        this.expiredTime = timeout;
+        if (timeout != 0)
+        {
+            this.expiredTime += TrcUtil.getCurrentTime();
+        }
+
+        this.holdTarget = holdTarget;
+        this.turnOnly = xError == 0.0 && yError == 0.0 && turnError != 0.0;
+        driveBase.resetStallTimer();
+
+        setTaskEnabled(true);
 
         if (debugEnabled)
         {
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC);
         }
     }   //setTarget
 
     /**
-     * This method starts a PID operation by setting the PID targets.
+     * This method sets the PID controlled relative drive targets.
      *
-     * @param xTarget    specifies the X target position.
-     * @param yTarget    specifies the Y target position.
-     * @param turnTarget specifies the target heading.
-     * @param holdTarget specifies true for holding the target position at the end, false otherwise.
-     * @param event      specifies an event object to signal when done.
-     * @param timeout    specifies a timeout value in seconds. If the operation is not completed without the specified
-     *                   timeout, the operation will be canceled and the event will be signaled. If no timeout is
-     *                   specified, it should be set to zero.
-     */
-    public synchronized void setTarget(double xTarget, double yTarget, double turnTarget, boolean holdTarget,
-                                       TrcEvent event, double timeout)
-    {
-        setTarget(null, xTarget, yTarget, turnTarget, holdTarget, event, timeout);
-    }   //setTarget
-
-    /**
-     * This method starts a PID operation by setting the PID targets.
-     *
-     * @param xTarget specifies the X target position.
-     * @param yTarget specifies the Y target position.
-     * @param turnTarget specifies the target heading.
-     * @param holdTarget specifies true for holding the target position at the end, false otherwise.
-     * @param event specifies an event object to signal when done.
-     */
-    public void setTarget(double xTarget, double yTarget, double turnTarget, boolean holdTarget, TrcEvent event)
-    {
-        setTarget(xTarget, yTarget, turnTarget, holdTarget, event, 0.0);
-    }   //setTarget
-
-    /**
-     * This method starts a PID operation by setting the PID targets.
-     *
-     * @param yTarget specifies the Y target position.
-     * @param turnTarget specifies the target heading.
+     * @param owner specifies the ID string of the caller requesting exclusive access.
+     * @param xDelta specifies the X target relative to the current X position.
+     * @param yDelta specifies the Y target relative to the current Y position.
+     * @param turnDelta specifies the turn target relative to the current heading.
      * @param holdTarget specifies true for holding the target position at the end, false otherwise.
      * @param event specifies an event object to signal when done.
      * @param timeout specifies a timeout value in seconds. If the operation is not completed without the specified
      *                timeout, the operation will be canceled and the event will be signaled. If no timeout is
      *                specified, it should be set to zero.
      */
-    public void setTarget(double yTarget, double turnTarget, boolean holdTarget, TrcEvent event, double timeout)
+    public synchronized void setRelativeTarget(
+            String owner, double xDelta, double yDelta, double turnDelta,
+            boolean holdTarget, TrcEvent event, double timeout)
     {
-        setTarget(0.0, yTarget, turnTarget, holdTarget, event, timeout);
-    }   //setTarget
+        final String funcName = "setRelativeTarget";
+
+        if (driveBase.validateOwnership(owner))
+        {
+            this.owner = owner;
+            // adding relative X and Y targets to the absolute target pose.
+            TrcPose2D newTargetPose = absTargetPose.translatePose(xDelta, yDelta);
+            // adding relative turn target to the absolute target heading.
+            newTargetPose.heading += turnDelta;
+            double xTarget, yTarget, turnTarget;
+
+            if (debugEnabled)
+            {
+                dbgTrace.traceInfo(funcName, "xDelta=%.1f, yDelta=%.1f, turnDelta=%.1f, CurrPose:%s",
+                        xDelta, yDelta, turnDelta, absTargetPose);
+            }
+
+            if (absTargetModeEnabled)
+            {
+                //
+                // Adjusting relative target by subtracting current robot pose from the absolute target pose.
+                // This will eliminate cumulative error.
+                //
+                TrcPose2D relativePose = newTargetPose.relativeTo(driveBase.getAbsolutePose());
+                xTarget = relativePose.x;
+                yTarget = relativePose.y;
+            }
+            else
+            {
+                //
+                // Not using absolute target pose, so use the relative targets as-is.
+                //
+                xTarget = xDelta;
+                yTarget = yDelta;
+            }
+            // Adjust the turn target.
+            turnTarget = turnPidCtrl.hasAbsoluteSetPoint()? newTargetPose.heading: turnDelta;
+
+            if (debugEnabled)
+            {
+                dbgTrace.traceInfo(funcName, "xTarget=%.1f, yTarget=%.1f, turnTarget=%.1f, NewPose:%s",
+                        xTarget, yTarget, turnTarget, newTargetPose);
+            }
+            // The new target pose will become the updated absolute target pose.
+            absTargetPose = newTargetPose;
+            setTarget(xTarget, yTarget, turnTarget, holdTarget, event, timeout);
+        }
+    }   //setRelativeTarget
 
     /**
-     * This method starts a PID operation by setting the PID targets.
+     * This method sets the PID controlled relative drive targets.
      *
-     * @param yTarget specifies the Y target position.
-     * @param turnTarget specifies the target heading.
+     * @param xDelta specifies the X target relative to the current X position.
+     * @param yDelta specifies the Y target relative to the current Y position.
+     * @param absHeading specifies the absolute heading to turn to.
+     * @param event specifies an event object to signal when done.
+     */
+    public void setRelativeTargetWithAbsHeading(double xDelta,double yDelta, double absHeading, TrcEvent event)
+    {
+        // TODO: Need to put more thought on this.
+        throw new UnsupportedOperationException("To be written!");
+//        double turnDelta = absHeading - turnPidCtrl.getCurrentInput();
+//        setRelativeTarget(null, 0.0, yDelta, turnDelta, false, event, 0.0);
+    }   //setRelativeYTargetWithAbsHeading
+
+    /**
+     * This method sets the PID controlled relative drive targets.
+     *
+     * @param xDelta specifies the X target relative to the current X position.
+     * @param yDelta specifies the Y target relative to the current Y position.
+     * @param turnDelta specifies the turn target relative to the current heading.
+     * @param holdTarget specifies true for holding the target position at the end, false otherwise.
+     * @param event specifies an event object to signal when done.
+     * @param timeout specifies a timeout value in seconds. If the operation is not completed without the specified
+     *                timeout, the operation will be canceled and the event will be signaled. If no timeout is
+     *                specified, it should be set to zero.
+     */
+    public void setRelativeTarget(
+            double xDelta, double yDelta, double turnDelta, boolean holdTarget, TrcEvent event, double timeout)
+    {
+        setRelativeTarget(null, xDelta, yDelta, turnDelta, holdTarget, event, timeout);
+    }   //setRelativeTarget
+
+    /**
+     * This method sets the PID controlled relative drive targets.
+     *
+     * @param xDelta specifies the X target relative to the current X position.
+     * @param yDelta specifies the Y target relative to the current Y position.
+     * @param turnDelta specifies the turn target relative to the current heading.
      * @param holdTarget specifies true for holding the target position at the end, false otherwise.
      * @param event specifies an event object to signal when done.
      */
-    public void setTarget(double yTarget, double turnTarget, boolean holdTarget, TrcEvent event)
+    public void setRelativeTarget(double xDelta, double yDelta, double turnDelta, boolean holdTarget, TrcEvent event)
     {
-        setTarget(0.0, yTarget, turnTarget, holdTarget, event, 0.0);
-    }   //setTarget
+        setRelativeTarget(null, xDelta, yDelta, turnDelta, holdTarget, event, 0.0);
+    }   //setRelativeTarget
+
+    /**
+     * This method sets the PID controlled relative drive targets.
+     *
+     * @param xDelta specifies the X target relative to the current X position.
+     * @param yDelta specifies the Y target relative to the current Y position.
+     * @param turnDelta specifies the turn target relative to the current heading.
+     * @param event specifies an event object to signal when done.
+     */
+    public void setRelativeTarget(double xDelta, double yDelta, double turnDelta, TrcEvent event)
+    {
+        setRelativeTarget(null, xDelta, yDelta, turnDelta, false, event, 0.0);
+    }   //setRelativeTarget
+
+    /**
+     * This method sets the PID controlled relative drive targets.
+     *
+     * @param xDelta specifies the X target relative to the current X position.
+     * @param yDelta specifies the Y target relative to the current Y position.
+     * @param event specifies an event object to signal when done.
+     */
+    public void setRelativeXYTarget(double xDelta, double yDelta, TrcEvent event)
+    {
+        setRelativeTarget(null, xDelta, yDelta, 0.0, false, event, 0.0);
+    }   //setRelativeXYTarget
+
+    /**
+     * This method sets the PID controlled relative drive targets.
+     *
+     * @param xDelta specifies the X target relative to the current X position.
+     * @param event specifies an event object to signal when done.
+     */
+    public void setRelativeXTarget(double xDelta, TrcEvent event)
+    {
+        setRelativeTarget(null, xDelta, 0.0, 0.0, false, event, 0.0);
+    }   //setRelativeXTarget
+
+    /**
+     * This method sets the PID controlled relative drive targets.
+     *
+     * @param yDelta specifies the Y target relative to the current Y position.
+     * @param event specifies an event object to signal when done.
+     */
+    public void setRelativeYTarget(double yDelta, TrcEvent event)
+    {
+        setRelativeTarget(null, 0.0, yDelta, 0.0, false, event, 0.0);
+    }   //setRelativeYTarget
+
+    /**
+     * This method sets the PID controlled relative drive targets.
+     *
+     * @param turnDelta specifies the turn target relative to the current heading.
+     * @param event specifies an event object to signal when done.
+     */
+    public void setRelativeTurnTarget(double turnDelta, TrcEvent event)
+    {
+        setRelativeTarget(null, 0.0, 0.0, turnDelta, false, event, 0.0);
+    }   //setRelativeTurnTarget
+
+    /**
+     * This method sets the PID controlled absolute drive targets.
+     *
+     * @param owner specifies the ID string of the caller requesting exclusive access.
+     * @param absX specifies the absolute X target position.
+     * @param absY specifies the absolute Y target position.
+     * @param absHeading specifies the absolute target heading.
+     * @param holdTarget specifies true for holding the target position at the end, false otherwise.
+     * @param event specifies an event object to signal when done.
+     * @param timeout specifies a timeout value in seconds. If the operation is not completed without the specified
+     *                timeout, the operation will be canceled and the event will be signaled. If no timeout is
+     *                specified, it should be set to zero.
+     */
+    public synchronized void setAbsoluteTarget(
+            String owner, double absX, double absY, double absHeading,
+            boolean holdTarget, TrcEvent event, double timeout)
+    {
+        final String funcName = "setAbsoluteTarget";
+
+        if (driveBase.validateOwnership(owner))
+        {
+            this.owner = owner;
+
+            TrcPose2D newTargetPose = new TrcPose2D(absX, absY, absHeading);
+            TrcPose2D currRobotPose = driveBase.getAbsolutePose();
+            TrcPose2D  relativePose = newTargetPose.relativeTo(currRobotPose);
+            double turnTarget = turnPidCtrl.hasAbsoluteSetPoint()? newTargetPose.heading: relativePose.heading;
+
+            if (debugEnabled)
+            {
+                dbgTrace.traceInfo(funcName, "absX=%.1f, absY=%.1f, absHeading=%.1f, CurrPose:%s",
+                        absX, absY, absHeading, absTargetPose);
+                dbgTrace.traceInfo(funcName, "xTarget=%.1f, yTarget=%.1f, turnTarget=%.1f, NewPose:%s",
+                        relativePose.x, relativePose.y, turnTarget, newTargetPose);
+            }
+
+            absTargetPose = newTargetPose;
+            setTarget(relativePose.x, relativePose.y, turnTarget, holdTarget, event, timeout);
+        }
+    }   //setAbsoluteTarget
+
+    /**
+     * This method sets the PID controlled absolute drive targets.
+     *
+     * @param absX specifies the absolute X target position.
+     * @param absY specifies the absolute Y target position.
+     * @param absHeading specifies the absolute target heading.
+     * @param holdTarget specifies true for holding the target position at the end, false otherwise.
+     * @param event specifies an event object to signal when done.
+     * @param timeout specifies a timeout value in seconds. If the operation is not completed without the specified
+     *                timeout, the operation will be canceled and the event will be signaled. If no timeout is
+     *                specified, it should be set to zero.
+     */
+    public void setAbsoluteTarget(
+            double absX, double absY, double absHeading, boolean holdTarget, TrcEvent event, double timeout)
+    {
+        setAbsoluteTarget(null, absX, absY, absHeading, holdTarget, event, timeout);
+    }   //setAbsoluteTarget
+
+    /**
+     * This method sets the PID controlled absolute drive targets.
+     *
+     * @param absX specifies the absolute X target position.
+     * @param absY specifies the absolute Y target position.
+     * @param absHeading specifies the absolute target heading.
+     * @param holdTarget specifies true for holding the target position at the end, false otherwise.
+     * @param event specifies an event object to signal when done.
+     */
+    public void setAbsoluteTarget(double absX, double absY, double absHeading, boolean holdTarget, TrcEvent event)
+    {
+        setAbsoluteTarget(null, absX, absY, absHeading, holdTarget, event, 0.0);
+    }   //setAbsoluteTarget
+
+    /**
+     * This method sets the PID controlled absolute drive targets.
+     *
+     * @param absX specifies the absolute X target position.
+     * @param absY specifies the absolute Y target position.
+     * @param absHeading specifies the absolute target heading.
+     * @param event specifies an event object to signal when done.
+     */
+    public void setAbsoluteTarget(double absX, double absY, double absHeading, TrcEvent event)
+    {
+        setAbsoluteTarget(null, absX, absY, absHeading, false, event, 0.0);
+    }   //setAbsoluteTarget
+
+    /**
+     * This method sets the PID controlled absolute drive targets.
+     *
+     * @param absX specifies the absolute X target position.
+     * @param absY specifies the absolute Y target position.
+     * @param event specifies an event object to signal when done.
+     */
+    public void setAbsoluteXYTarget(double absX, double absY, TrcEvent event)
+    {
+        setAbsoluteTarget(null, absX, absY, absTargetPose.heading, false, event, 0.0);
+    }   //setAbsoluteXYTarget
+
+    /**
+     * This method sets the PID controlled absolute drive targets.
+     *
+     * @param absX specifies the absolute X target position.
+     * @param event specifies an event object to signal when done.
+     */
+    public void setAbsoluteXTarget(double absX, TrcEvent event)
+    {
+        setAbsoluteTarget(null, absX, absTargetPose.y, absTargetPose.heading, false, event, 0.0);
+    }   //setAbsoluteXTarget
+
+    /**
+     * This method sets the PID controlled absolute drive targets.
+     *
+     * @param absY specifies the absolute Y target position.
+     * @param event specifies an event object to signal when done.
+     */
+    public void setAbsoluteYTarget(double absY, TrcEvent event)
+    {
+        setAbsoluteTarget(null, absTargetPose.x, absY, absTargetPose.heading, false, event, 0.0);
+    }   //setAbsoluteYTarget
+
+    /**
+     * This method sets the PID controlled absolute drive targets.
+     *
+     * @param absHeading specifies the absolute target heading.
+     * @param event specifies an event object to signal when done.
+     */
+    public void setAbsoluteHeadingTarget(double absHeading, TrcEvent event)
+    {
+        setAbsoluteTarget(null, absTargetPose.x, absTargetPose.y, absHeading, false, event, 0.0);
+    }   //setAbsoluteHeadingTarget
 
     /**
      * This method allows a mecanum drive base to drive and maintain a fixed heading.
@@ -823,9 +1107,9 @@ public class TrcPidDrive
         if (msgTracer != null && tracePidInfo)
         {
             double currTime = TrcUtil.getCurrentTime();
-            if (xPidCtrl != null) xPidCtrl.printPidInfo(msgTracer, currTime, battery);
-            if (yPidCtrl != null) yPidCtrl.printPidInfo(msgTracer, currTime, battery);
-            if (turnPidCtrl != null) turnPidCtrl.printPidInfo(msgTracer, currTime, battery);
+            if (xPidCtrl != null) xPidCtrl.printPidInfo(msgTracer, currTime, verbosePidInfo, battery);
+            if (yPidCtrl != null) yPidCtrl.printPidInfo(msgTracer, currTime, verbosePidInfo, battery);
+            if (turnPidCtrl != null) turnPidCtrl.printPidInfo(msgTracer, currTime, verbosePidInfo, battery);
         }
 
         if (debugEnabled)

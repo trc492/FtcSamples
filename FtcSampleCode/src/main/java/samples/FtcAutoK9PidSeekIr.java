@@ -92,7 +92,7 @@ public class FtcAutoK9PidSeekIr extends FtcOpMode
 
         if (state == null)
         {
-            robot.dashboard.displayPrintf(1, "State: Disabled");
+            robot.dashboard.displayPrintf(1, "State: disabled or waiting...");
         }
         else
         {
@@ -104,7 +104,7 @@ public class FtcAutoK9PidSeekIr extends FtcOpMode
                     //
                     // Go towards IR beacon until IR strength reaches 0.8.
                     //
-                    robot.pidSeekIr.setTarget(0.8, 0.0, false, event);
+                    robot.pidSeekIr.setRelativeTargetWithAbsHeading(0.0, 0.8, 0.0, event);
                     sm.waitForSingleEvent(event, State.DONE);
                     break;
 

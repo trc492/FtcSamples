@@ -119,7 +119,6 @@ public class K9Robot
     //
     public FtcBNO055Imu imu;
     public TrcGyro gyro;
-    public double targetHeading = 0.0;
     public FtcMRColorSensor colorSensor;
     public FtcOpticalDistanceSensor lightSensor;
     public IrSeekerSensor irSeeker;
@@ -274,7 +273,6 @@ public class K9Robot
     {
         dashboard.clearDisplay();
         gyro.setEnabled(true);
-        targetHeading = 0.0;
         driveBase.setOdometryEnabled(true);
         colorSensor.sensor.enableLed(true);
     }   //startMode

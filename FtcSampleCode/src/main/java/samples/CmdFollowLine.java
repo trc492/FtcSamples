@@ -60,8 +60,7 @@ public class CmdFollowLine implements TrcRobot.RobotCommand
      */
     public CmdFollowLine(K9Robot robot, double delay, FtcAutoK9.Alliance alliance)
     {
-        robot.globalTracer.traceInfo(moduleName,
-                "delay=%.3f, alliance=%s", delay, alliance);
+        robot.globalTracer.traceInfo(moduleName, "delay=%.3f, alliance=%s", delay, alliance);
 
         this.robot = robot;
         this.delay = delay;
@@ -119,7 +118,7 @@ public class CmdFollowLine implements TrcRobot.RobotCommand
 
         if (state == null)
         {
-            robot.dashboard.displayPrintf(1, "State: Disabled");
+            robot.dashboard.displayPrintf(1, "State: disabled or waiting...");
         }
         else
         {
@@ -153,7 +152,7 @@ public class CmdFollowLine implements TrcRobot.RobotCommand
                     robot.colorTrigger.setEnabled(true);
                     // Drive slowly, limit to half power.
                     robot.encoderYPidCtrl.setOutputRange(-0.5, 0.5);
-                    robot.pidDrive.setTarget(36.0, robot.targetHeading, false, event);
+                    robot.pidDrive.setRelativeYTarget(36.0, event);
                     sm.waitForSingleEvent(event, State.TURN_TO_LINE);
                     break;
 
@@ -164,10 +163,8 @@ public class CmdFollowLine implements TrcRobot.RobotCommand
                     // PID turn will be interrupted.
                     //
                     robot.gyroPidCtrl.setOutputRange(-0.5, 0.5);
-                    robot.pidDrive.setTarget(
-                            0.0,
-                            alliance == FtcAutoK9.Alliance.RED_ALLIANCE? -90.0: 90.0,
-                            false, event);
+                    robot.pidDrive.setRelativeTurnTarget(
+                            alliance == FtcAutoK9.Alliance.RED_ALLIANCE? -90.0: 90.0, event);
                     sm.waitForSingleEvent(event, State.FOLLOW_LINE);
                     break;
 
@@ -183,7 +180,9 @@ public class CmdFollowLine implements TrcRobot.RobotCommand
                     // Follow left edge if blue alliance.
                     //
                     robot.colorPidCtrl.setInverted(alliance == FtcAutoK9.Alliance.RED_ALLIANCE);
-                    robot.pidLineFollow.setTarget(60.0, K9Robot.COLOR_LINE_EDGE_DEADBAND, false, event);
+                    // TODO: this is not implemented yet, fix it.
+                    robot.pidLineFollow.setRelativeTargetWithAbsHeading(
+                            0.0, 60.0, K9Robot.COLOR_LINE_EDGE_DEADBAND, event);
                     sm.waitForSingleEvent(event, State.DONE);
                     break;
 
@@ -195,8 +194,6 @@ public class CmdFollowLine implements TrcRobot.RobotCommand
                     sm.stop();
                     break;
             }
-
-            robot.traceStateInfo(elapsedTime, state.toString(), 0.0, 0.0, robot.targetHeading);
         }
 
         return !sm.isEnabled();

@@ -454,8 +454,13 @@ public abstract class TrcRevBlinkin
                 break;
             }
         }
-
-        setPattern(pattern);
+        //
+        // Only set the pattern if it is not already active.
+        //
+        if (pattern != getPattern())
+        {
+            setPattern(pattern);
+        }
 
         if (debugEnabled)
         {

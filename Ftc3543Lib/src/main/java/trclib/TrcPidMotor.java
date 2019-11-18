@@ -32,10 +32,11 @@ public class TrcPidMotor
 {
     protected static final String moduleName = "TrcPidMotor";
     protected static final boolean debugEnabled = false;
-    protected static final boolean tracingEnabled = false;
-    protected static final boolean useGlobalTracer = false;
-    protected static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
-    protected static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
+    private static final boolean tracingEnabled = false;
+    private static final boolean useGlobalTracer = false;
+    private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
+    private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
+    private static final boolean verbosePidInfo = false;
     protected TrcDbgTrace dbgTrace = null;
     private TrcDbgTrace msgTracer = null;
     private TrcRobotBattery battery = null;
@@ -1062,7 +1063,7 @@ public class TrcPidMotor
 
                 if (msgTracer != null && tracePidInfo)
                 {
-                    pidCtrl.printPidInfo(msgTracer, TrcUtil.getCurrentTime(), battery);
+                    pidCtrl.printPidInfo(msgTracer, TrcUtil.getCurrentTime(), verbosePidInfo, battery);
                 }
             }
         }

@@ -154,7 +154,7 @@ public class TrcPidController
     private double settlingStartTime = 0.0;
     private double setPoint = 0.0;
     private double setPointSign = 1.0;
-    private double input = 0.0;
+    private double currInput = 0.0;
     private double output = 0.0;
     private double prevOutputTime = 0.0; // time that getOutput() was called last. Used for ramp rates.
 
@@ -225,10 +225,10 @@ public class TrcPidController
      *
      * @param lineNum specifies the starting line number of the dashboard to display the info.
      */
-    public void displayPidInfo(int lineNum)
+    public synchronized void displayPidInfo(int lineNum)
     {
         dashboard.displayPrintf(
-                lineNum, "%s:Target=%.1f,Input=%.1f,Error=%.1f", instanceName, setPoint, input, currError);
+                lineNum, "%s:Target=%.1f,Input=%.1f,Error=%.1f", instanceName, setPoint, currInput, currError);
         dashboard.displayPrintf(
                 lineNum + 1, "minOutput=%.1f,Output=%.1f,maxOutput=%.1f", minOutput, output, maxOutput);
     }   //displayPidInfo
@@ -239,9 +239,10 @@ public class TrcPidController
      *
      * @param tracer    specifies the tracer object to print the PID info to.
      * @param timestamp specifies the timestamp to be printed.
+     * @param verbose specifies true to print verbose info, false to print summary info.
      * @param battery   specifies the battery object to get battery info, can be null if not provided.
      */
-    public void printPidInfo(TrcDbgTrace tracer, double timestamp, TrcRobotBattery battery)
+    public synchronized void printPidInfo(TrcDbgTrace tracer, double timestamp, boolean verbose, TrcRobotBattery battery)
     {
         final String funcName = "printPidInfo";
 
@@ -252,20 +253,46 @@ public class TrcPidController
 
         if (tracer != null)
         {
-            String msg = timestamp != 0.0 ? String.format(Locale.US, "[%.3f] ", timestamp) : "";
+            StringBuilder msg = new StringBuilder();
 
-            msg += String.format(Locale.US, "%s: Target=%6.1f, Input=%6.1f, Error=%6.1f, "
-                    + "PIDTerms=%6.3f/%6.3f/%6.3f/%6.3f, Output=%6.3f(%6.3f/%5.3f)", instanceName, setPoint, input,
-                currError, pTerm, iTerm, dTerm, fTerm, output, minOutput, maxOutput);
+            if (timestamp != 0.0)
+            {
+                msg.append(String.format(Locale.US, "[%.3f] ", timestamp));
+            }
+
+            msg.append(String.format(
+                    Locale.US, "%s: Target=%6.1f, Input=%6.1f, Error=%6.1f",
+                    instanceName, setPoint, currInput, currError));
+
+            if (verbose)
+            {
+                msg.append(String.format(
+                        Locale.US, ", PIDTerms=%6.3f/%6.3f/%6.3f/%6.3f, Output=%6.3f(%6.3f/%5.3f)",
+                        pTerm, iTerm, dTerm, fTerm, output, minOutput,
+                        maxOutput));
+            }
 
             if (battery != null)
             {
-                msg += String.format(Locale.US, ", Volt=%.1f(%.1f)",
-                        battery.getVoltage(), battery.getLowestVoltage());
+                msg.append(String.format(Locale.US, ", Volt=%.1f(%.1f)",
+                        battery.getVoltage(), battery.getLowestVoltage()));
             }
 
-            tracer.traceInfo(funcName, msg);
+            tracer.traceInfo(funcName, msg.toString());
         }
+    }   //printPidInfo
+
+    /**
+     * This method prints the PID information to the tracer console. If no tracer is provided, it will attempt to
+     * use the debug tracer in this module but if the debug tracer is not enabled, no output will be produced.
+     *
+     * @param tracer    specifies the tracer object to print the PID info to.
+     * @param timestamp specifies the timestamp to be printed.
+     * @param verbose specifies true to print verbose info, false to print summary info.
+     */
+    public void printPidInfo(TrcDbgTrace tracer, double timestamp, boolean verbose)
+    {
+        printPidInfo(tracer, timestamp, verbose, null);
     }   //printPidInfo
 
     /**
@@ -277,7 +304,7 @@ public class TrcPidController
      */
     public void printPidInfo(TrcDbgTrace tracer, double timestamp)
     {
-        printPidInfo(tracer, timestamp, null);
+        printPidInfo(tracer, timestamp, false, null);
     }   //printPidInfo
 
     /**
@@ -288,7 +315,7 @@ public class TrcPidController
      */
     public void printPidInfo(TrcDbgTrace tracer)
     {
-        printPidInfo(tracer, 0.0, null);
+        printPidInfo(tracer, 0.0, false, null);
     }   //printPidInfo
 
     /**
@@ -296,7 +323,7 @@ public class TrcPidController
      */
     public void printPidInfo()
     {
-        printPidInfo(null, 0.0, null);
+        printPidInfo(null, 0.0, false, null);
     }   //printPidInfo
 
     /**
@@ -805,6 +832,16 @@ public class TrcPidController
     }   //isOnTarget
 
     /**
+     * This method returns the current PID input value.
+     *
+     * @return current PID input value.
+     */
+    public double getCurrentInput()
+    {
+        return pidInput.get();
+    }   //getCurrentInput
+
+    /**
      * This method calculates the PID output applying the PID equation to the given set point target and current
      * input value.
      *
@@ -831,8 +868,8 @@ public class TrcPidController
             double currTime = TrcUtil.getCurrentTime();
             double deltaTime = currTime - prevTime;
             prevTime = currTime;
-            input = currentInputValue;
-            currError = setPoint - input;
+            currInput = currentInputValue;
+            currError = setPoint - currInput;
             if (inverted)
             {
                 currError = -currError;

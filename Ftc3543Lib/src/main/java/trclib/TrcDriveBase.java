@@ -188,7 +188,7 @@ public abstract class TrcDriveBase implements TrcExclusiveSubsystem
         if (enabled)
         {
             resetOdometry(false, false);
-            odometryTaskObj.registerTask(TrcTaskMgr.TaskType.STANDALONE_TASK, 20);
+            odometryTaskObj.registerTask(TrcTaskMgr.TaskType.STANDALONE_TASK, TrcTaskMgr.INPUT_THREAD_INTERVAL);
         }
         else
         {
@@ -214,6 +214,19 @@ public abstract class TrcDriveBase implements TrcExclusiveSubsystem
             return TrcPose2D.copyOf(odometry);
         }
     }   //getAbsolutePose
+
+    /**
+     * This method sets the given pose as the current pose.
+     *
+     * @param pose specifies the pose to be set as the current pose.
+     */
+    public void setAbsolutePose(TrcPose2D pose)
+    {
+        synchronized (odometry)
+        {
+            odometry.setAs(pose);
+        }
+    }   //setAbsolutePose
 
     /**
      * This method returns the robot pose relative to <code>pose</code>.

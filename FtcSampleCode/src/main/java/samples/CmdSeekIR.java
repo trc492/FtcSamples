@@ -57,8 +57,7 @@ public class CmdSeekIR implements TrcRobot.RobotCommand
      */
     public CmdSeekIR(K9Robot robot, double delay, FtcAutoK9.Alliance alliance)
     {
-        robot.globalTracer.traceInfo(moduleName,
-                "delay=%.3f, alliance=%s", delay, alliance);
+        robot.globalTracer.traceInfo(moduleName, "delay=%.3f, alliance=%s", delay, alliance);
 
         this.robot = robot;
         this.delay = delay;
@@ -116,7 +115,7 @@ public class CmdSeekIR implements TrcRobot.RobotCommand
 
         if (state == null)
         {
-            robot.dashboard.displayPrintf(1, "State: Disabled");
+            robot.dashboard.displayPrintf(1, "State: disabled or waiting...");
         }
         else
         {
@@ -146,7 +145,7 @@ public class CmdSeekIR implements TrcRobot.RobotCommand
                     //
                     // Go towards IR beacon until IR strength reaches 0.8.
                     //
-                    robot.pidSeekIr.setTarget(0.8, 0.0, false, event);
+                    robot.pidSeekIr.setRelativeTargetWithAbsHeading(0.0, 0.8, 0.0, event);
                     sm.waitForSingleEvent(event, State.DONE);
                     break;
 
@@ -158,8 +157,6 @@ public class CmdSeekIR implements TrcRobot.RobotCommand
                     sm.stop();
                     break;
             }
-
-            robot.traceStateInfo(elapsedTime, state.toString(), 0.0, 0.0, robot.targetHeading);
         }
 
         return !sm.isEnabled();

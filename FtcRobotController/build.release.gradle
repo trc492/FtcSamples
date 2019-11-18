@@ -1,4 +1,5 @@
 dependencies {
+    implementation project(path: ':OpenCVLib310')
     implementation (name:'Inspection-release', ext: 'aar')
     implementation (name:'Blocks-release', ext: 'aar')
     implementation (name:'RobotCore-release', ext: 'aar')
