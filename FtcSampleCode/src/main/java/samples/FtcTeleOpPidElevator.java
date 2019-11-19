@@ -102,10 +102,13 @@ public class FtcTeleOpPidElevator extends FtcOpMode implements TrcGameController
             switch (button)
             {
                 case FtcGamepad.GAMEPAD_RBUMPER:
+                    // Press and hold this button to enable manual override.
+                    // Release this button to disable manual override.
                     elevator.setManualOverride(pressed);
                     break;
 
                 case FtcGamepad.GAMEPAD_BACK:
+                    // Press this button to start zero calibration.
                     if (pressed)
                     {
                         elevator.zeroCalibrate();
