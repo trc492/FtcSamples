@@ -57,9 +57,9 @@ public abstract class TrcDriveBase implements TrcExclusiveSubsystem
     {
         public double prevTimestamp;
         public double currTimestamp;
+        public double[] prevPositions;
         public double[] currPositions;
         public double[] currVelocities;
-        public double[] prevPositions;
         public double[] stallStartTimes;
         public double[] motorPosDiffs;
     }   //class MotorsState
@@ -216,9 +216,10 @@ public abstract class TrcDriveBase implements TrcExclusiveSubsystem
     }   //getAbsolutePose
 
     /**
-     * This method sets the given pose as the current pose.
+     * This method sets the robot's current absolute pose to the given pose. This can be used to set the robot's
+     * absolute starting position relative to the origin of the coordinate system.
      *
-     * @param pose specifies the pose to be set as the current pose.
+     * @param pose specifies the absolute pose of the robot relative to the origin of the coordinate system.
      */
     public void setAbsolutePose(TrcPose2D pose)
     {

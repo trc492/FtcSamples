@@ -106,6 +106,7 @@ public class TrcPidDrive
     private boolean maintainHeading = false;
     private boolean canceled = false;
     private String owner = null;
+    private TrcPose2D savedPoseForTurnOnly = null;
     private TrcPose2D absTargetPose;
 
     /**
@@ -133,7 +134,7 @@ public class TrcPidDrive
         this.xPidCtrl = xPidCtrl;
         this.yPidCtrl = yPidCtrl;
         this.turnPidCtrl = turnPidCtrl;
-        resetAbsTargetPose();
+        resetAbsoluteTargetPose();
         TrcTaskMgr taskMgr = TrcTaskMgr.getInstance();
         driveTaskObj = taskMgr.createTask(instanceName + ".driveTask", this::driveTask);
         stopTaskObj = taskMgr.createTask(instanceName + ".stopTask", this::stopTask);
@@ -163,10 +164,24 @@ public class TrcPidDrive
      *
      * @param enabled specifies true to enable absolute target mode, false to disable.
      */
-    public synchronized void setAbsTargetModeEnabled(boolean enabled)
+    public synchronized void setAbsoluteTargetModeEnabled(boolean enabled)
     {
         this.absTargetModeEnabled = enabled;
-    }   //setAbsTargetModeEnabled
+        if (enabled)
+        {
+            resetAbsoluteTargetPose();
+        }
+    }   //setAbsoluteTargetModeEnabled
+
+    /**
+     * This method checks if Absolute Target Mode is enabled.
+     *
+     * @return true if Absolute Target Mode is enabled, false otherwise.
+     */
+    public synchronized boolean isAbsoluteTargetModeEnabled()
+    {
+        return absTargetModeEnabled;
+    }   //isAbsoluteTargetModeEnabled
 
     /**
      * This method sets the message tracer for logging trace messages.
@@ -229,28 +244,51 @@ public class TrcPidDrive
      *
      * @return current absolute target pose.
      */
-    public synchronized TrcPose2D getAbsTargetPose()
+    public synchronized TrcPose2D getAbsoluteTargetPose()
     {
         return absTargetPose.clone();
-    }   //getAbsTargetPose
+    }   //getAbsoluteTargetPose
 
     /**
      * This method sets the current absolute target pose to the given pose.
      *
      * @param pose specifies the pose to be set as the current absolute target pose.
      */
-    public synchronized void setAbsTargetPose(TrcPose2D pose)
+    public synchronized void setAbsoluteTargetPose(TrcPose2D pose)
     {
         absTargetPose = pose;
-    }   //setAbsTargetPose
+    }   //setAbsoluteTargetPose
 
     /**
      * This method sets the current robot pose as the absolute target pose.
      */
-    public synchronized void resetAbsTargetPose()
+    public synchronized void resetAbsoluteTargetPose()
     {
-        absTargetPose = driveBase.getAbsolutePose();
-    }   //resetAbsTargetPose
+        setAbsoluteTargetPose(driveBase.getAbsolutePose());
+    }   //resetAbsoluteTargetPose
+
+    /**
+     * This method sets the robot's current absolute pose to the given pose. It also updates the absolute target pose
+     * to the same pose. This can be used to set the robot's absolute starting position relative to the origin of the
+     * coordinate system.
+     *
+     * @param pose specifies the absolute pose of the robot relative to the origin of the coordinate system.
+     */
+    public synchronized void setAbsolutePose(TrcPose2D pose)
+    {
+        driveBase.setAbsolutePose(pose);
+        setAbsoluteTargetPose(pose);
+    }   //setAbsolutePose
+
+    /**
+     * This method returns the robot's current absolute pose relative to the origin of the coordinate system.
+     *
+     * @return robot's current absolute pose.
+     */
+    public synchronized TrcPose2D getAbsolutePose()
+    {
+        return driveBase.getAbsolutePose();
+    }   //getAbsolutePose
 
     /**
      * This method returns the X PID controller if any.
@@ -503,6 +541,78 @@ public class TrcPidDrive
     }   //setTarget
 
     /**
+     * This method sets the PID controlled drive referencing sensors as targets. It is sometimes useful to use sensors
+     * as target referencing devices. For example, this can be used to do vision target drive where the camera can
+     * provide the target distance as well as the target heading. Note that when doing sensor target drive, you cannot
+     * turn on Absolute Target Mode because Absolute Target Mode assumes wheel odometry is the target referencing
+     * device.
+     *
+     * @param owner specifies the ID string of the caller requesting exclusive access.
+     * @param xTarget specifies the X target position.
+     * @param yTarget specifies the Y target position.
+     * @param turnTarget specifies the target heading.
+     * @param holdTarget specifies true for holding the target position at the end, false otherwise.
+     * @param event specifies an event object to signal when done.
+     * @param timeout specifies a timeout value in seconds. If the operation is not completed without the specified
+     *                timeout, the operation will be canceled and the event will be signaled. If no timeout is
+     *                specified, it should be set to zero.
+     */
+    public void setSensorTarget(
+            String owner, double xTarget, double yTarget, double turnTarget, boolean holdTarget, TrcEvent event,
+            double timeout)
+    {
+        if (absTargetModeEnabled)
+        {
+            throw new UnsupportedOperationException("SensorTarget cannot use Absolute Target Mode.");
+        }
+
+        if (driveBase.validateOwnership(owner))
+        {
+            this.owner = owner;
+            setTarget(xTarget, yTarget, turnTarget, holdTarget, event, timeout);
+        }
+    }   //setSensorTarget
+
+    /**
+     * This method sets the PID controlled drive referencing sensors as targets. It is sometimes useful to use sensors
+     * as target referencing devices. For example, this can be used to do vision target drive where the camera can
+     * provide the target distance as well as the target heading. Note that when doing sensor target drive, you cannot
+     * turn on Absolute Target Mode because Absolute Target Mode assumes wheel odometry is the target referencing
+     * device.
+     *
+     * @param xTarget specifies the X target position.
+     * @param yTarget specifies the Y target position.
+     * @param turnTarget specifies the target heading.
+     * @param holdTarget specifies true for holding the target position at the end, false otherwise.
+     * @param event specifies an event object to signal when done.
+     * @param timeout specifies a timeout value in seconds. If the operation is not completed without the specified
+     *                timeout, the operation will be canceled and the event will be signaled. If no timeout is
+     *                specified, it should be set to zero.
+     */
+    public void setSensorTarget(
+            double xTarget, double yTarget, double turnTarget, boolean holdTarget, TrcEvent event, double timeout)
+    {
+        setSensorTarget(null, xTarget, yTarget, turnTarget, holdTarget, event, timeout);
+    }   //setSensorTarget
+
+    /**
+     * This method sets the PID controlled drive referencing sensors as targets. It is sometimes useful to use sensors
+     * as target referencing devices. For example, this can be used to do vision target drive where the camera can
+     * provide the target distance as well as the target heading. Note that when doing sensor target drive, you cannot
+     * turn on Absolute Target Mode because Absolute Target Mode assumes wheel odometry is the target referencing
+     * device.
+     *
+     * @param xTarget specifies the X target position.
+     * @param yTarget specifies the Y target position.
+     * @param turnTarget specifies the target heading.
+     * @param event specifies an event object to signal when done.
+     */
+    public void setSensorTarget(double xTarget, double yTarget, double turnTarget, TrcEvent event)
+    {
+        setSensorTarget(null, xTarget, yTarget, turnTarget, false, event, 0.0);
+    }   //setSensorTarget
+
+    /**
      * This method sets the PID controlled relative drive targets.
      *
      * @param owner specifies the ID string of the caller requesting exclusive access.
@@ -538,13 +648,27 @@ public class TrcPidDrive
 
             if (absTargetModeEnabled)
             {
-                //
-                // Adjusting relative target by subtracting current robot pose from the absolute target pose.
-                // This will eliminate cumulative error.
-                //
-                TrcPose2D relativePose = newTargetPose.relativeTo(driveBase.getAbsolutePose());
-                xTarget = relativePose.x;
-                yTarget = relativePose.y;
+                if (xDelta == 0.0 && yDelta == 0.0 && turnDelta != 0.0)
+                {
+                    //
+                    // setTarget disables X and Y PID controllers while doing a turn-only movement but absolute target
+                    // mode may calculate non-zero X and Y to compensate for previous errors. This hides the fact that
+                    // it's a turn-only movement and causes the robot to do a combo movement that causes more odometry
+                    // error. So we need to preserve the X and Y odometry before the turn and restore them afterwards.
+                    //
+                    xTarget = yTarget = 0.0;
+                    savedPoseForTurnOnly = driveBase.getAbsolutePose();
+                }
+                else
+                {
+                    //
+                    // Adjusting relative target by subtracting current robot pose from the absolute target pose.
+                    // This will eliminate cumulative error.
+                    //
+                    TrcPose2D relativePose = newTargetPose.relativeTo(driveBase.getAbsolutePose());
+                    xTarget = relativePose.x;
+                    yTarget = relativePose.y;
+                }
             }
             else
             {
@@ -567,22 +691,6 @@ public class TrcPidDrive
             setTarget(xTarget, yTarget, turnTarget, holdTarget, event, timeout);
         }
     }   //setRelativeTarget
-
-    /**
-     * This method sets the PID controlled relative drive targets.
-     *
-     * @param xDelta specifies the X target relative to the current X position.
-     * @param yDelta specifies the Y target relative to the current Y position.
-     * @param absHeading specifies the absolute heading to turn to.
-     * @param event specifies an event object to signal when done.
-     */
-    public void setRelativeTargetWithAbsHeading(double xDelta,double yDelta, double absHeading, TrcEvent event)
-    {
-        // TODO: Need to put more thought on this.
-        throw new UnsupportedOperationException("To be written!");
-//        double turnDelta = absHeading - turnPidCtrl.getCurrentInput();
-//        setRelativeTarget(null, 0.0, yDelta, turnDelta, false, event, 0.0);
-    }   //setRelativeYTargetWithAbsHeading
 
     /**
      * This method sets the PID controlled relative drive targets.
@@ -704,8 +812,9 @@ public class TrcPidDrive
 
             if (debugEnabled)
             {
-                dbgTrace.traceInfo(funcName, "absX=%.1f, absY=%.1f, absHeading=%.1f, CurrPose:%s",
-                        absX, absY, absHeading, absTargetPose);
+                dbgTrace.traceInfo(
+                        funcName, "absX=%.1f, absY=%.1f, absHeading=%.1f, CurrPose:%s, absTargetPose=%s",
+                        absX, absY, absHeading, currRobotPose, absTargetPose);
                 dbgTrace.traceInfo(funcName, "xTarget=%.1f, yTarget=%.1f, turnTarget=%.1f, NewPose:%s",
                         relativePose.x, relativePose.y, turnTarget, newTargetPose);
             }
@@ -1044,6 +1153,19 @@ public class TrcPidDrive
             if (expired || stalled || !holdTarget)
             {
                 stopPid();
+
+                if (savedPoseForTurnOnly != null)
+                {
+                    //
+                    // We are done with a turn-only operation. Let's restore the X and Y odometry we saved earlier.
+                    //
+                    TrcPose2D pose = driveBase.getAbsolutePose();
+                    pose.x = savedPoseForTurnOnly.x;
+                    pose.y = savedPoseForTurnOnly.y;
+                    driveBase.setAbsolutePose(pose);
+                    savedPoseForTurnOnly = null;
+                }
+
                 if (notifyEvent != null)
                 {
                     notifyEvent.set(true);
