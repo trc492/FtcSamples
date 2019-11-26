@@ -72,7 +72,6 @@ public class TrcEnhancedServo
 
     /**
      * Constructor: Creates an instance of the object.
-     * This method is called by different constructors to do common initialization.
      *
      * @param instanceName specifies the instance name.
      * @param continuousServo specifies true if servos are continuous servo.
@@ -106,7 +105,6 @@ public class TrcEnhancedServo
 
     /**
      * Constructor: Creates an instance of the object.
-     * This method is called by different constructors to do common initialization.
      *
      * @param instanceName specifies the instance name.
      * @param continuousServo specifies true if servos are continuous servo.
@@ -123,7 +121,6 @@ public class TrcEnhancedServo
 
     /**
      * Constructor: Creates an instance of the object.
-     * This method is called by different constructors to do common initialization.
      *
      * @param instanceName specifies the instance name.
      * @param continuousServo specifies true if servos are continuous servo.
@@ -138,7 +135,6 @@ public class TrcEnhancedServo
 
     /**
      * Constructor: Creates an instance of the object.
-     * This method is called by different constructors to do common initialization.
      *
      * @param instanceName specifies the instance name.
      * @param servo1 specifies the first physical servo object.
@@ -155,7 +151,6 @@ public class TrcEnhancedServo
 
     /**
      * Constructor: Creates an instance of the object.
-     * This method is called by different constructors to do common initialization.
      *
      * @param instanceName specifies the instance name.
      * @param servo1 specifies the first physical servo object.
@@ -170,7 +165,6 @@ public class TrcEnhancedServo
 
     /**
      * Constructor: Creates an instance of the object.
-     * This method is called by different constructors to do common initialization.
      *
      * @param instanceName specifies the instance name.
      * @param servo1 specifies the first physical servo object.
@@ -184,7 +178,6 @@ public class TrcEnhancedServo
 
     /**
      * Constructor: Creates an instance of the object.
-     * This method is called by different constructors to do common initialization.
      *
      * @param instanceName specifies the instance name.
      * @param servo specifies the physical servo object.
@@ -199,7 +192,6 @@ public class TrcEnhancedServo
 
     /**
      * Constructor: Creates an instance of the object.
-     * This method is called by different constructors to do common initialization.
      *
      * @param instanceName specifies the instance name.
      * @param servo specifies the physical servo object.
@@ -213,7 +205,6 @@ public class TrcEnhancedServo
 
     /**
      * Constructor: Creates an instance of the object.
-     * This method is called by different constructors to do common initialization.
      *
      * @param instanceName specifies the instance name.
      * @param servo specifies the physical servo object.
