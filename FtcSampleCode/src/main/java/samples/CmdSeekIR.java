@@ -145,7 +145,7 @@ public class CmdSeekIR implements TrcRobot.RobotCommand
                     //
                     // Go towards IR beacon until IR strength reaches 0.8.
                     //
-                    robot.pidSeekIr.setRelativeTargetWithAbsHeading(0.0, 0.8, 0.0, event);
+                    robot.pidSeekIr.setSensorTarget(0.0, 0.8, 0.0, event);
                     sm.waitForSingleEvent(event, State.DONE);
                     break;
 

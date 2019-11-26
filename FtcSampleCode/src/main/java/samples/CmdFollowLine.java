@@ -180,8 +180,7 @@ public class CmdFollowLine implements TrcRobot.RobotCommand
                     // Follow left edge if blue alliance.
                     //
                     robot.colorPidCtrl.setInverted(alliance == FtcAutoK9.Alliance.RED_ALLIANCE);
-                    // TODO: this is not implemented yet, fix it.
-                    robot.pidLineFollow.setRelativeTargetWithAbsHeading(
+                    robot.pidLineFollow.setSensorTarget(
                             0.0, 60.0, K9Robot.COLOR_LINE_EDGE_DEADBAND, event);
                     sm.waitForSingleEvent(event, State.DONE);
                     break;

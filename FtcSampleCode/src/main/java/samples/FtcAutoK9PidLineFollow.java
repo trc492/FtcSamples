@@ -136,7 +136,7 @@ public class FtcAutoK9PidLineFollow extends FtcOpMode
                     // Follow right edge if red alliance.
                     // Follow left edge if blue alliance.
                     //
-                    robot.lineFollowDrive.setRelativeTargetWithAbsHeading(
+                    robot.lineFollowDrive.setSensorTarget(
                             0.0, 60.0, K9Robot.LIGHT_THRESHOLD, event);
                     sm.waitForSingleEvent(event, State.DONE);
                     break;

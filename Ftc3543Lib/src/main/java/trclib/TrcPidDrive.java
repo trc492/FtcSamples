@@ -982,6 +982,17 @@ public class TrcPidDrive
         if (active && driveBase.validateOwnership(owner))
         {
             stopPid();
+            if (savedPoseForTurnOnly != null)
+            {
+                //
+                // We are aborting a turn-only operation. Let's restore the X and Y odometry we saved earlier.
+                //
+                TrcPose2D pose = driveBase.getAbsolutePose();
+                pose.x = savedPoseForTurnOnly.x;
+                pose.y = savedPoseForTurnOnly.y;
+                driveBase.setAbsolutePose(pose);
+                savedPoseForTurnOnly = null;
+            }
             canceled = true;
             if (notifyEvent != null)
             {
