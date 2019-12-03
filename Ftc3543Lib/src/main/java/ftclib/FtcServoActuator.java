@@ -36,13 +36,15 @@ public class FtcServoActuator
      */
     public static class Parameters
     {
-        double maxStepRate;
-        double minPos;
-        double maxPos;
-        double retractPos;
-        double retractTime;
-        double extendPos;
-        double extendTime;
+        double maxStepRate = 0.0;
+        double minPos = 0.0;
+        double maxPos = 1.0;
+        boolean servo1Inverted = false;
+        boolean servo2Inverted = false;
+        double retractPos = 0.0;
+        double retractTime = 0.5;
+        double extendPos = 1.0;
+        double extendTime = 0.5;
 
         /**
          * This method sets Step Mode parameters of the servo actuator. Step Mode allows a servo to be speed
@@ -60,6 +62,13 @@ public class FtcServoActuator
             this.maxPos = maxPos;
             return this;
         }   //setStepParams
+
+        public Parameters setInverted(boolean servo1Inverted, boolean servo2Inverted)
+        {
+            this.servo1Inverted = servo1Inverted;
+            this.servo2Inverted = servo2Inverted;
+            return this;
+        }   //setInverted
 
         /**
          * This method sets the retract parameters of the servo actuator.
@@ -92,7 +101,7 @@ public class FtcServoActuator
     }   //class Parameters
 
     private Parameters params;
-    protected FtcServo servo1, servo2;
+    protected FtcServo servo1, servo2 = null;
     protected TrcEnhancedServo enhancedServo;
 
     /**
@@ -111,7 +120,12 @@ public class FtcServoActuator
 
         this.params = params;
         servo1 = new FtcServo(servo1Name);
-        servo2 = servo2Name == null? null: new FtcServo(servo2Name);
+        servo1.setInverted(params.servo1Inverted);
+        if (servo2Name != null)
+        {
+            servo2 = new FtcServo(servo2Name);
+            servo2.setInverted(params.servo2Inverted);
+        }
         enhancedServo = new TrcEnhancedServo("servoActuator." + servo1Name, servo1, servo2);
         if (params.maxStepRate != 0.0)
         {

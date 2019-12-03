@@ -28,6 +28,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import ftclib.FtcGamepad;
 import ftclib.FtcOpMode;
 import ftclib.FtcServo;
+import ftclib.FtcServoActuator;
 import hallib.HalDashboard;
 import trclib.TrcEnhancedServo;
 import trclib.TrcRobot;
@@ -36,9 +37,16 @@ import trclib.TrcRobot;
 @Disabled
 public class FtcTeleOpVariableSpeedServo extends FtcOpMode
 {
-    private static final double ARM_DOWN_POSITION   = 0.0;
-    private static final double ARM_UP_POSITION     = 1.0;
-    private static final double ARM_MAX_STEPRATE    = 0.2;
+    //
+    // Arm constants.
+    //
+    static final double ARM_MAX_STEPRATE                = 0.2;
+    static final double ARM_MIN_POS                     = 0.0;
+    static final double ARM_MAX_POS                     = 1.0;
+    static final double ARM_RELEASE_POS                 = 0.0;
+    static final double ARM_RELEASE_TIME                = 0.5;
+    static final double ARM_GRAB_POS                    = 1.0;
+    static final double ARM_GRAB_TIME                   = 0.5;
 
     private HalDashboard dashboard;
     //
@@ -48,8 +56,7 @@ public class FtcTeleOpVariableSpeedServo extends FtcOpMode
     //
     // Arm subsystem.
     //
-    private FtcServo armServo;
-    private TrcEnhancedServo arm;
+    private FtcServoActuator arm;
 
     //
     // Implements FtcOpMode abstract methods.
@@ -58,6 +65,12 @@ public class FtcTeleOpVariableSpeedServo extends FtcOpMode
     @Override
     public void initRobot()
     {
+        final FtcServoActuator.Parameters armParams = new FtcServoActuator.Parameters()
+                .setStepParams(ARM_MAX_STEPRATE, ARM_MIN_POS, ARM_MAX_POS)
+                .setInverted(false, false)
+                .setRetractParams(ARM_GRAB_POS, ARM_GRAB_TIME)
+                .setExtendParams(ARM_RELEASE_POS, ARM_RELEASE_TIME);
+
         hardwareMap.logDevices();
         dashboard = HalDashboard.getInstance();
         //
@@ -68,10 +81,8 @@ public class FtcTeleOpVariableSpeedServo extends FtcOpMode
         //
         // Arm subsystem.
         //
-        armServo = new FtcServo("armServo");
-        arm = new TrcEnhancedServo("arm", armServo);
-        arm.setPosition(ARM_DOWN_POSITION);
-        arm.setStepMode(ARM_MAX_STEPRATE, ARM_DOWN_POSITION, ARM_UP_POSITION);
+        arm = new FtcServoActuator("armServo", armParams);
+        arm.setPosition(ARM_MIN_POS);
     }   //initRobot
 
     //
@@ -92,8 +103,7 @@ public class FtcTeleOpVariableSpeedServo extends FtcOpMode
         //
         double armPower = gamepad.getRightStickY(true);
         arm.setPower(armPower);
-        dashboard.displayPrintf(2, "Arm:power=%.2f,position=%.2f",
-                                armPower, armServo.getPosition());
+        dashboard.displayPrintf(2, "Arm:power=%.2f,position=%.2f", armPower, arm.getPosition());
     }   //runPeriodic
 
 }   //class FtcTeleOpVariableSpeedServo

@@ -26,6 +26,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import ftclib.FtcGamepad;
+import ftclib.FtcMotorActuator;
 import ftclib.FtcOpMode;
 import hallib.HalDashboard;
 import trclib.TrcGameController;
@@ -35,6 +36,21 @@ import trclib.TrcRobot;
 @Disabled
 public class FtcTeleOpPidElevator extends FtcOpMode implements TrcGameController.ButtonHandler
 {
+    //
+    // Elevator constants.
+    //
+    private static final double ELEVATOR_KP                     = 0.5;
+    private static final double ELEVATOR_KI                     = 0.0;
+    private static final double ELEVATOR_KD                     = 0.0;
+    private static final double ELEVATOR_TOLERANCE              = 0.2;
+    private static final double ELEVATOR_MIN_HEIGHT             = 0.0;
+    private static final double ELEVATOR_MAX_HEIGHT             = 23.5;
+    private static final double ELEVATOR_INCHES_PER_COUNT       = (23.5/9700.0);
+    private static final double ELEVATOR_OFFSET                 = 0.0;
+    private static final double ELEVATOR_CAL_POWER              = 0.3;
+    private static final boolean ELEVATOR_INVERTED              = false;
+    private static final boolean ELEVATOR_HAS_UPPER_LIMIT_SWITCH= true;
+
     private HalDashboard dashboard;
     //
     // Gamepad.
@@ -43,7 +59,7 @@ public class FtcTeleOpPidElevator extends FtcOpMode implements TrcGameController
     //
     // Elevator.
     //
-    private Elevator elevator;
+    private FtcMotorActuator elevator;
 
     //
     // Implements FtcOpMode abstract methods.
@@ -52,6 +68,12 @@ public class FtcTeleOpPidElevator extends FtcOpMode implements TrcGameController
     @Override
     public void initRobot()
     {
+        final FtcMotorActuator.Parameters elevatorParams = new FtcMotorActuator.Parameters()
+                .setPosRange(ELEVATOR_MIN_HEIGHT, ELEVATOR_MAX_HEIGHT)
+                .setScaleOffset(ELEVATOR_INCHES_PER_COUNT, ELEVATOR_OFFSET)
+                .setPidParams(ELEVATOR_KP, ELEVATOR_KI, ELEVATOR_KD, ELEVATOR_TOLERANCE)
+                .setMotorParams(ELEVATOR_INVERTED, ELEVATOR_HAS_UPPER_LIMIT_SWITCH, ELEVATOR_CAL_POWER);
+
         hardwareMap.logDevices();
         dashboard = HalDashboard.getInstance();
         //
@@ -62,7 +84,7 @@ public class FtcTeleOpPidElevator extends FtcOpMode implements TrcGameController
         //
         // Elevator subsystem.
         //
-        elevator = new Elevator();
+        elevator = new FtcMotorActuator("elevator", elevatorParams);
         elevator.zeroCalibrate();
     }   //initRobot
 
@@ -86,7 +108,7 @@ public class FtcTeleOpPidElevator extends FtcOpMode implements TrcGameController
         elevator.setPower(elevatorPower);
         dashboard.displayPrintf(
                 1, "Elevator:power=%.2f,height=%.2f,lowerLimit=%s,upperLimit=%s",
-                elevatorPower, elevator.getHeight(), elevator.isLowerLimitSwitchActive(),
+                elevatorPower, elevator.getPosition(), elevator.isLowerLimitSwitchActive(),
                 elevator.isUpperLimitSwitchActive());
     }   //runPeriodic
 

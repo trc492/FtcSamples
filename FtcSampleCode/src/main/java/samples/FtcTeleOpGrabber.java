@@ -28,6 +28,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import ftclib.FtcGamepad;
 import ftclib.FtcOpMode;
 import ftclib.FtcServo;
+import ftclib.FtcServoActuator;
 import trclib.TrcEnhancedServo;
 import trclib.TrcGameController;
 
@@ -35,10 +36,19 @@ import trclib.TrcGameController;
 @Disabled
 public class FtcTeleOpGrabber extends FtcOpMode implements TrcGameController.ButtonHandler
 {
+    //
+    // Grabber constants.
+    //
+    static final double GRABBER_MAX_STEPRATE            = 0.0;
+    static final double GRABBER_MIN_POS                 = 0.0;
+    static final double GRABBER_MAX_POS                 = 1.0;
+    static final double GRABBER_RELEASE_POS             = 0.0;
+    static final double GRABBER_RELEASE_TIME            = 0.5;
+    static final double GRABBER_GRAB_POS                = 1.0;
+    static final double GRABBER_GRAB_TIME               = 0.5;
+
     private FtcGamepad gamepad;
-    private FtcServo leftServo;
-    private FtcServo rightServo;
-    private TrcEnhancedServo grabber;
+    private FtcServoActuator grabber;
 
     //
     // Implements FtcOpMode abstract methods.
@@ -47,13 +57,15 @@ public class FtcTeleOpGrabber extends FtcOpMode implements TrcGameController.But
     @Override
     public void initRobot()
     {
+        final FtcServoActuator.Parameters grabberParams = new FtcServoActuator.Parameters()
+                .setStepParams(GRABBER_MAX_STEPRATE, GRABBER_MIN_POS, GRABBER_MAX_POS)
+                .setInverted(true, false)
+                .setRetractParams(GRABBER_GRAB_POS, GRABBER_GRAB_TIME)
+                .setExtendParams(GRABBER_RELEASE_POS, GRABBER_RELEASE_TIME);
+
         hardwareMap.logDevices();
 
-        leftServo = new FtcServo("leftServo");
-        rightServo = new FtcServo("rightServo");
-        grabber = new TrcEnhancedServo("grabber", leftServo, rightServo);
-        leftServo.setInverted(true);
-        rightServo.setInverted(false);
+        grabber = new FtcServoActuator("grabberLeftServo", "grabberRightServo", grabberParams);
         //
         // Initializing gamepads.
         //

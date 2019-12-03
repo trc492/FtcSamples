@@ -110,6 +110,16 @@ public class TrcPidController
             return String.format("(%f,%f,%f,%f)", kP, kI, kD, kF);
         }   //toString
 
+        /**
+         * This method returns a copy of this object.
+         *
+         * @return a copy of this object.
+         */
+        public PidCoefficients clone()
+        {
+            return new PidCoefficients(kP, kI, kD, kF);
+        }   //clone
+
     }   //class PidCoefficients
 
     /**

@@ -481,16 +481,15 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
             }
             taskMgr.executeTaskType(TrcTaskMgr.TaskType.STOP_TASK, runMode);
         }
-        catch (Exception e)
+        finally
         {
             //
-            // Catch all exceptions so we can continue to properly clean up and shutdown.
+            // Make sure we properly clean up and shut down even if the code throws an exception but we are not
+            // catching the exception and let it propagate up.
             //
-            e.printStackTrace();
+            TrcMotor.clearOdometryMotorsList();
+            taskMgr.shutdown();
         }
-
-        TrcMotor.clearOdometryMotorsList();
-        taskMgr.shutdown();
     }   //runOpMode
 
     /**
