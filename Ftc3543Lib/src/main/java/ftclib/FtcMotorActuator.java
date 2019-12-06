@@ -25,6 +25,7 @@ package ftclib;
 import trclib.TrcEvent;
 import trclib.TrcPidActuator;
 import trclib.TrcPidController;
+import trclib.TrcTone;
 
 /**
  * This class implements a platform dependent motor actuator. A motor actuator consists of a DC motor, a lower limit
@@ -44,6 +45,9 @@ public class FtcMotorActuator
         boolean inverted = false;
         boolean hasUpperLimitSwitch = false;
         double calPower = 0.3;
+        double stallMinPower = 0.0;
+        double stallTimeout = 0.0;
+        double resetTimeout = 0.0;
         double[] posPresets = null;
 
         /**
@@ -110,6 +114,23 @@ public class FtcMotorActuator
         }   //setMotorParams
 
         /**
+         * This method sets the stall protection parameters of the motor actuator.
+         *
+         * @param stallMinPower specifies the minimum power applied to the motor before stall detection will kick in.
+         * @param stallTimeout specifies the minimum time the motor has to stall to trigger the stalled condition.
+         * @param resetTimeout specifies the minimum time has to pass with no power applied to the motor to reset
+         *                     stalled condition.
+         * @return this parameter object.
+         */
+        public Parameters setStallProtectionParams(double stallMinPower, double stallTimeout, double resetTimeout)
+        {
+            this.stallMinPower = stallMinPower;
+            this.stallTimeout = stallTimeout;
+            this.resetTimeout = resetTimeout;
+            return this;
+        }   //setStallProtectionParams
+
+        /**
          * This method sets an array of preset positions for the motor actuator.
          *
          * @param posPresets specifies an array of preset positions in scaled unit.
@@ -123,6 +144,7 @@ public class FtcMotorActuator
 
     }   //class Parameters
 
+    private final String instanceName;
     private FtcDigitalInput lowerLimitSwitch;
     private FtcDigitalInput upperLimitSwitch;
     private TrcPidActuator pidActuator;
@@ -138,6 +160,7 @@ public class FtcMotorActuator
      */
     public FtcMotorActuator(String instanceName, Parameters params)
     {
+        this.instanceName = instanceName;
         lowerLimitSwitch = new FtcDigitalInput(instanceName + "LowerLimit");
         if (params.hasUpperLimitSwitch)
         {
@@ -159,10 +182,30 @@ public class FtcMotorActuator
                 "pid" + instanceName, actuatorMotor, lowerLimitSwitch, pidController,
                 params.calPower, params.minPos, params.maxPos);
         pidActuator.setPositionScale(params.scale, params.offset);
+        if (params.stallMinPower != 0.0)
+        {
+            pidActuator.setStallProtection(params.stallMinPower, params.stallTimeout, params.resetTimeout);
+        }
 
         this.posPresets = params.posPresets;
         this.posLevel = 0;
     }   //FtcMotorActuator
+
+    /**
+     * This method returns the instance name.
+     *
+     * @return instance name.
+     */
+    @Override
+    public String toString()
+    {
+        return instanceName;
+    }   //toString
+
+    public void setBeep(TrcTone beepDevice)
+    {
+        pidActuator.setBeep(beepDevice);
+    }   //setBeep
 
     /**
      * This method starts the zero calibration process by operating the motor with calibration power moving it towards

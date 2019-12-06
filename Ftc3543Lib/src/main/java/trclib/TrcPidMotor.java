@@ -22,6 +22,8 @@
 
 package trclib;
 
+import ftclib.FtcOpMode;
+
 /**
  * This class implements a platform independent PID controlled motor. A PID controlled motor may consist of one or
  * two physical motors, a position sensor, typically an encoder (or could be a potentiometer). Optionally, it supports
@@ -579,33 +581,75 @@ public class TrcPidMotor
     }   //setTarget
 
     /**
-     * This method sets the PID motor power. It will also check for stalled condition and cut motor power if stalled
-     * detected. It will also check to reset the stalled condition if reset timeout was specified.
+     * This method performs motor stall detection to protect the motor from burning out. A motor is considered stalled
+     * when at least stallMinPower is applied to the motor and the motor is not turning for at least stallTimeout.
      *
-     * @param power specifies the motor power.
-     * @param rangeLow specifies the power range low limit.
-     * @param rangeHigh specifies the power range high limit.
-     * @param stopPid specifies true to stop previous PID operation, false otherwise.
+     * @param power specifies the power applying to the motor.
      */
-    private synchronized void setPower(double power, double rangeLow, double rangeHigh, boolean stopPid)
+    private void performStallDetection(double power)
     {
-        final String funcName = "setPower";
+        final String funcName = "performStallDetection";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API,
-                                "power=%f,rangeLow=%f,rangeHigh=%f,stopPid=%s",
-                                power, rangeLow, rangeHigh, Boolean.toString(stopPid));
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC, "power=%f", power);
         }
-        //
-        // Note: this method does not handle zero calibration, so do not call this method in zero calibration mode.
-        //
-        if (active && stopPid)
+
+        if (stallMinPower > 0.0 && stallTimeout > 0.0)
         {
             //
-            // A previous PID operation is still in progress, cancel it. Don't stop the motor to prevent jerkiness.
+            // Stall protection is ON, check for stall condition.
+            // - power is above stallMinPower
+            // - motor has not moved for at least stallTimeout.
             //
-            stop(false);
+            double currPos = getPosition();
+            if (Math.abs(power) < Math.abs(stallMinPower) || currPos != prevPos || prevTime == 0.0)
+            {
+                prevPos = currPos;
+                prevTime = TrcUtil.getCurrentTime();
+            }
+
+            if (TrcUtil.getCurrentTime() - prevTime > stallTimeout)
+            {
+                //
+                // We have detected a stalled condition for at least stallTimeout. Kill power to protect
+                // the motor.
+                //
+                motorPower = 0.0;
+                stalled = true;
+                if (beepDevice != null)
+                {
+                    beepDevice.playTone(beepHighFrequency, beepDuration);
+                }
+
+                if (msgTracer != null)
+                {
+                    msgTracer.traceInfo(funcName, "%s: stalled", instanceName);
+                }
+            }
+        }
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC);
+        }
+    }   //performStallDetection
+
+    /**
+     * This method checks if the motor was stalled and if power has been removed for at least resetTimeout, the
+     * stalled condition is then cleared.
+     *
+     * @param power specifies the power applying to the motor.
+     * @return true if the motor was stalled, false otherwise.
+     */
+    private boolean resetStall(double power)
+    {
+        final String funcName = "resetStall";
+        boolean wasStalled = stalled;
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC);
         }
 
         if (stalled)
@@ -632,57 +676,63 @@ public class TrcPidMotor
                 prevTime = TrcUtil.getCurrentTime();
             }
         }
-        else
+
+        if (debugEnabled)
         {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC, "=%s", wasStalled);
+        }
+
+        return wasStalled;
+    }   //resetStall
+
+    /**
+     * This method sets the PID motor power. It will also check for stalled condition and cut motor power if stalled
+     * detected. It will also check to reset the stalled condition if reset timeout was specified.
+     *
+     * @param power specifies the motor power.
+     * @param rangeLow specifies the power range low limit.
+     * @param rangeHigh specifies the power range high limit.
+     * @param stopPid specifies true to stop previous PID operation, false otherwise.
+     */
+    private synchronized void setPower(double power, double rangeLow, double rangeHigh, boolean stopPid)
+    {
+        final String funcName = "setPower";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.FUNC,
+                                "power=%f,rangeLow=%f,rangeHigh=%f,stopPid=%s",
+                                power, rangeLow, rangeHigh, Boolean.toString(stopPid));
+        }
+        //
+        // Note: this method does not handle zero calibration, so do not call this method in zero calibration mode.
+        //
+        if (active && stopPid)
+        {
+            //
+            // A previous PID operation is still in progress, cancel it. Don't stop the motor to prevent jerkiness.
+            //
+            stop(false);
+        }
+
+        if (!resetStall(power))
+        {
+            //
+            // Motor was not stalled. Do the normal processing.
+            //
             if (powerCompensation != null)
             {
                 power += powerCompensation.getCompensation();
             }
             power = TrcUtil.clipRange(power, rangeLow, rangeHigh);
             motorPower = power;
-            //
-            // Perform stall detection if enabled.
-            //
-            if (stallMinPower > 0.0 && stallTimeout > 0.0)
-            {
-                //
-                // Stall protection is ON, check for stall condition.
-                // - power is above stallMinPower
-                // - motor has not moved for at least stallTimeout.
-                //
-                double currPos = getPosition();
-                if (Math.abs(power) < Math.abs(stallMinPower) || currPos != prevPos)
-                {
-                    prevPos = currPos;
-                    prevTime = TrcUtil.getCurrentTime();
-                }
-
-                if (TrcUtil.getCurrentTime() - prevTime > stallTimeout)
-                {
-                    //
-                    // We have detected a stalled condition for at least stallTimeout. Kill power to protect
-                    // the motor.
-                    //
-                    motorPower = 0.0;
-                    stalled = true;
-                    if (beepDevice != null)
-                    {
-                        beepDevice.playTone(beepHighFrequency, beepDuration);
-                    }
-
-                    if (msgTracer != null)
-                    {
-                        msgTracer.traceInfo(funcName, "%s: stalled", instanceName);
-                    }
-                }
-            }
-
+            performStallDetection(power);
             setMotorPower(motorPower);
         }
 
         if (debugEnabled)
         {
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.FUNC);
         }
     }   //setPower
 
@@ -925,6 +975,7 @@ public class TrcPidMotor
 
         motorPower = 0.0;
         calibrating = false;
+        stalled = false;
 
         if (debugEnabled)
         {
@@ -972,7 +1023,8 @@ public class TrcPidMotor
      */
     private boolean zeroCalibratingMotor(TrcMotor motor)
     {
-        boolean done = motor.isLowerLimitSwitchActive();
+        final String funcName = "zeroCalibratingMotor";
+        boolean done = motor.isLowerLimitSwitchActive() || stalled;
 
         if (done)
         {
@@ -980,11 +1032,22 @@ public class TrcPidMotor
             // Done with zero calibration of the motor. Call the motor directly to stop, do not call any of
             // the setPower or setMotorPower because they do not handle zero calibration mode.
             //
+            if (stalled)
+            {
+                if (beepDevice != null)
+                {
+                    beepDevice.playTone(beepLowFrequency, beepDuration);
+                }
+                FtcOpMode.getGlobalTracer().traceWarn(
+                        funcName, "%s is stalled, lower limit switch might have failed!", instanceName);
+            }
+            stalled = false;
             motor.set(0.0);
             motor.resetPosition(false);
         }
         else
         {
+            performStallDetection(calPower);
             motor.set(calPower);
         }
 
