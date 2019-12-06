@@ -43,6 +43,7 @@ public class FtcMotorActuator
         double scale = 1.0, offset = 0.0;
         double kP = 1.0, kI = 0.0, kD = 0.0, tolerance = 1.0;
         boolean inverted = false;
+        boolean hasLowerLimitSwitch = false;
         boolean hasUpperLimitSwitch = false;
         double calPower = 0.3;
         double stallMinPower = 0.0;
@@ -101,13 +102,16 @@ public class FtcMotorActuator
          * This method sets the motor parameters of the motor actuator.
          *
          * @param inverted specifies true if the motor direction should be reverse, false otherwise.
+         * @param hasLowerLimitSwitch specifies true if it has a lower limit switch, false otherwise.
          * @param hasUpperLimitSwitch specifies true if it has an upper limit switch, false otherwise.
          * @param calPower specifies the motor power to use for zero calibration.
          * @return this parameter object.
          */
-        public Parameters setMotorParams(boolean inverted, boolean hasUpperLimitSwitch, double calPower)
+        public Parameters setMotorParams(
+                boolean inverted, boolean hasLowerLimitSwitch, boolean hasUpperLimitSwitch, double calPower)
         {
             this.inverted = inverted;
+            this.hasLowerLimitSwitch = hasLowerLimitSwitch;
             this.hasUpperLimitSwitch = hasUpperLimitSwitch;
             this.calPower = calPower;
             return this;
@@ -161,11 +165,11 @@ public class FtcMotorActuator
     public FtcMotorActuator(String instanceName, Parameters params)
     {
         this.instanceName = instanceName;
-        lowerLimitSwitch = new FtcDigitalInput(instanceName + "LowerLimit");
-        if (params.hasUpperLimitSwitch)
-        {
-            upperLimitSwitch = new FtcDigitalInput(instanceName + "UpperLimit");
-        }
+
+        lowerLimitSwitch =
+                params.hasLowerLimitSwitch? new FtcDigitalInput(instanceName + "LowerLimit"): null;
+        upperLimitSwitch =
+                params.hasUpperLimitSwitch? new FtcDigitalInput(instanceName + "UpperLimit"): null;
 
         FtcDcMotor actuatorMotor = new FtcDcMotor(
                 instanceName + "Motor", lowerLimitSwitch, upperLimitSwitch);
@@ -355,7 +359,7 @@ public class FtcMotorActuator
      */
     public boolean isLowerLimitSwitchActive()
     {
-        return lowerLimitSwitch.isActive();
+        return lowerLimitSwitch != null && lowerLimitSwitch.isActive();
     }   //isLowerLimitSwitchActive
 
     /**
@@ -365,7 +369,7 @@ public class FtcMotorActuator
      */
     public boolean isUpperLimitSwitchActive()
     {
-        return upperLimitSwitch != null ? upperLimitSwitch.isActive() : false;
+        return upperLimitSwitch != null && upperLimitSwitch.isActive();
     }   //isUpperLimitSwitchActive
 
 }   //class FtcMotorActuator

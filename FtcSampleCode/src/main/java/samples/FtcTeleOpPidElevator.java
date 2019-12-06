@@ -52,6 +52,7 @@ public class FtcTeleOpPidElevator extends FtcOpMode implements TrcGameController
     private static final double ELEVATOR_STALL_TIMEOUT          = 0.5;
     private static final double ELEVATOR_RESET_TIMEOUT          = 0.5;
     private static final boolean ELEVATOR_INVERTED              = false;
+    private static final boolean ELEVATOR_HAS_LOWER_LIMIT_SWITCH= true;
     private static final boolean ELEVATOR_HAS_UPPER_LIMIT_SWITCH= true;
 
     private HalDashboard dashboard;
@@ -75,7 +76,8 @@ public class FtcTeleOpPidElevator extends FtcOpMode implements TrcGameController
                 .setPosRange(ELEVATOR_MIN_HEIGHT, ELEVATOR_MAX_HEIGHT)
                 .setScaleOffset(ELEVATOR_INCHES_PER_COUNT, ELEVATOR_OFFSET)
                 .setPidParams(ELEVATOR_KP, ELEVATOR_KI, ELEVATOR_KD, ELEVATOR_TOLERANCE)
-                .setMotorParams(ELEVATOR_INVERTED, ELEVATOR_HAS_UPPER_LIMIT_SWITCH, ELEVATOR_CAL_POWER)
+                .setMotorParams(ELEVATOR_INVERTED, ELEVATOR_HAS_LOWER_LIMIT_SWITCH, ELEVATOR_HAS_UPPER_LIMIT_SWITCH,
+                        ELEVATOR_CAL_POWER)
                 .setStallProtectionParams(ELEVATOR_STALL_MIN_POWER, ELEVATOR_STALL_TIMEOUT, ELEVATOR_RESET_TIMEOUT);
 
         hardwareMap.logDevices();
