@@ -63,7 +63,7 @@ import trclib.TrcRobot;
 public class FtcTestOpenCv extends FtcOpMode implements CameraBridgeViewBase.CvCameraViewListener2
 {
     private static final String moduleName = "FtcTestOpenCv";
-    private TrcDbgTrace tracer = FtcOpMode.getGlobalTracer();
+    private TrcDbgTrace tracer = TrcDbgTrace.getGlobalTracer();
     private static final boolean perfCheckEnabled = true;
     private static final boolean cameraEnabled = true;
     private static final Scalar FACE_RECT_COLOR = new Scalar(0, 255, 0, 255);

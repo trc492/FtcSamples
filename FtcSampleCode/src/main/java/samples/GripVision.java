@@ -28,7 +28,6 @@ import org.opencv.core.MatOfKeyPoint;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 
-import ftclib.FtcOpMode;
 import hallib.HalDashboard;
 import trclib.TrcDbgTrace;
 import trclib.TrcOpenCvDetector;
@@ -42,7 +41,7 @@ public class GripVision extends TrcOpenCvDetector<Rect[]>
     private static final TrcDbgTrace.TraceLevel traceLevel = TrcDbgTrace.TraceLevel.API;
     private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
-    private TrcDbgTrace tracer = FtcOpMode.getGlobalTracer();
+    private TrcDbgTrace tracer = TrcDbgTrace.getGlobalTracer();
 
     private static final int NUM_IMAGE_BUFFERS = 2;
 

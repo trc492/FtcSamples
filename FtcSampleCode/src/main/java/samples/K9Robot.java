@@ -172,7 +172,7 @@ public class K9Robot
         opMode = FtcOpMode.getInstance();
         opMode.hardwareMap.logDevices();
         dashboard = HalDashboard.getInstance();
-        globalTracer = FtcOpMode.getGlobalTracer();
+        globalTracer = TrcDbgTrace.getGlobalTracer();
         //
         // Initialize sensors.
         //
