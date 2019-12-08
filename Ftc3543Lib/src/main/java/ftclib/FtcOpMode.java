@@ -50,7 +50,6 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
     private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
 
-    private static TrcDbgTrace globalTracer = null;
     private static String opModeName = null;
     private TextToSpeech textToSpeech = null;
 
