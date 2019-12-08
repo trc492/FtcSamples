@@ -105,39 +105,6 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
     }   //getInstance
 
     /**
-     * This method returns a global debug trace object for tracing OpMode code. If it doesn't exist yet, one is
-     * created. This is an easy way to quickly get some debug output without a whole lot of setup overhead as the
-     * full module-based debug tracing.
-     *
-     * @return global opMode trace object.
-     */
-    public static TrcDbgTrace getGlobalTracer()
-    {
-        if (globalTracer == null)
-        {
-            globalTracer = new TrcDbgTrace(opModeName != null? opModeName: "globalTracer", false,
-                                           TrcDbgTrace.TraceLevel.API, TrcDbgTrace.MsgLevel.INFO);
-        }
-
-        return globalTracer;
-    }   //getGlobalTracer
-
-    /**
-     * This method sets the global tracer configuration. The OpMode trace object was created with default
-     * configuration of disabled method tracing, method tracing level is set to API and message trace level
-     * set to INFO. Call this method if you want to change the configuration.
-     *
-     * @param traceEnabled specifies true if enabling method tracing.
-     * @param traceLevel specifies the method tracing level.
-     * @param msgLevel specifies the message tracing level.
-     */
-    public static void setGlobalTracerConfig(
-            boolean traceEnabled, TrcDbgTrace.TraceLevel traceLevel, TrcDbgTrace.MsgLevel msgLevel)
-    {
-        globalTracer.setDbgTraceConfig(traceEnabled, traceLevel, msgLevel);
-    }   //setGlobalTracerConfig
-
-    /**
      * This method returns the name of the active OpMode.
      *
      * @return active OpMode name.

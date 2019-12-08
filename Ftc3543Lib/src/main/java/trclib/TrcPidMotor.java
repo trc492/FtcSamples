@@ -22,8 +22,6 @@
 
 package trclib;
 
-import ftclib.FtcOpMode;
-
 /**
  * This class implements a platform independent PID controlled motor. A PID controlled motor may consist of one or
  * two physical motors, a position sensor, typically an encoder (or could be a potentiometer). Optionally, it supports
@@ -1038,8 +1036,8 @@ public class TrcPidMotor
                 {
                     beepDevice.playTone(beepLowFrequency, beepDuration);
                 }
-                FtcOpMode.getGlobalTracer().traceWarn(
-                        funcName, "%s is stalled, lower limit switch might have failed!", instanceName);
+                TrcDbgTrace.getGlobalTracer().traceWarn(
+                    funcName, "%s is stalled, lower limit switch might have failed!", instanceName);
             }
             stalled = false;
             motor.set(0.0);

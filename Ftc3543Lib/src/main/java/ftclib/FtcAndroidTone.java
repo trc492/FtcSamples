@@ -26,6 +26,7 @@ import android.media.AudioAttributes;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
+import android.os.Build;
 
 import trclib.TrcDbgTrace;
 import trclib.TrcTone;
@@ -159,28 +160,33 @@ public class FtcAndroidTone extends TrcTone implements AudioTrack.OnPlaybackPosi
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
 
-        AudioAttributes.Builder attrBuilder = new AudioAttributes.Builder();
-        attrBuilder.setLegacyStreamType(AudioManager.STREAM_MUSIC);
+        if (Build.VERSION.SDK_INT >= 21)
+        {
+            AudioAttributes.Builder attrBuilder = new AudioAttributes.Builder();
+            attrBuilder.setLegacyStreamType(AudioManager.STREAM_MUSIC);
 
-        AudioFormat.Builder formatBuilder = new AudioFormat.Builder();
-        formatBuilder.setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-               .setSampleRate(sampleRate)
-               .setChannelMask(AudioFormat.CHANNEL_OUT_MONO);
+            AudioFormat.Builder formatBuilder = new AudioFormat.Builder();
+            formatBuilder.setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                    .setSampleRate(sampleRate)
+                    .setChannelMask(AudioFormat.CHANNEL_OUT_MONO);
 
-        audioTrack = new AudioTrack(
-                attrBuilder.build(),
-                formatBuilder.build(),
-                buffer.length*2,
-                AudioTrack.MODE_STATIC,
-                AudioManager.AUDIO_SESSION_ID_GENERATE);
-
-//        audioTrack = new AudioTrack(
-//                AudioManager.STREAM_MUSIC,
-//                sampleRate,
-//                AudioFormat.CHANNEL_OUT_MONO,
-//                AudioFormat.ENCODING_PCM_16BIT,
-//                buffer.length*2,    //buffer length in bytes
-//                AudioTrack.MODE_STATIC);
+            audioTrack = new AudioTrack(
+                    attrBuilder.build(),
+                    formatBuilder.build(),
+                    buffer.length * 2,
+                    AudioTrack.MODE_STATIC,
+                    AudioManager.AUDIO_SESSION_ID_GENERATE);
+        }
+        else
+        {
+            audioTrack = new AudioTrack(
+                    AudioManager.STREAM_MUSIC,
+                    sampleRate,
+                    AudioFormat.CHANNEL_OUT_MONO,
+                    AudioFormat.ENCODING_PCM_16BIT,
+                    buffer.length * 2,    //buffer length in bytes
+                    AudioTrack.MODE_STATIC);
+        }
 
         audioTrack.write(buffer, 0, buffer.length);
         audioTrack.setNotificationMarkerPosition(buffer.length);
