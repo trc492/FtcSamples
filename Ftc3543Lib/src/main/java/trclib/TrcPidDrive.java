@@ -911,7 +911,11 @@ public class TrcPidDrive
      */
     public void setAbsoluteHeadingTarget(double absHeading, TrcEvent event)
     {
-        setAbsoluteTarget(null, absTargetPose.x, absTargetPose.y, absHeading, false, event, 0.0);
+        // Use the current absolute pose for X and Y to ensure that
+        // we do not find any error along X or Y, thereby ensuring that the X
+        // and Y PID controllers are turned off during the turn.
+        final TrcPose2D currentAbsPose = driveBase.getAbsolutePose();
+        setAbsoluteTarget(null, currentAbsPose.x, currentAbsPose.y, absHeading, false, event, 0.0);
     }   //setAbsoluteHeadingTarget
 
     /**
