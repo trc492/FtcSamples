@@ -557,7 +557,7 @@ public class TrcPidDrive
      *                timeout, the operation will be canceled and the event will be signaled. If no timeout is
      *                specified, it should be set to zero.
      */
-    public void setSensorTarget(
+    public synchronized void setSensorTarget(
             String owner, double xTarget, double yTarget, double turnTarget, boolean holdTarget, TrcEvent event,
             double timeout)
     {
@@ -642,8 +642,9 @@ public class TrcPidDrive
 
             if (debugEnabled)
             {
-                dbgTrace.traceInfo(funcName, "xDelta=%.1f, yDelta=%.1f, turnDelta=%.1f, CurrPose:%s",
-                        xDelta, yDelta, turnDelta, absTargetPose);
+                dbgTrace.traceInfo(
+                        funcName, "owner=%s,xDelta=%.1f,yDelta=%.1f,turnDelta=%.1f,CurrPose:%s",
+                        owner, xDelta, yDelta, turnDelta, absTargetPose);
             }
 
             if (absTargetModeEnabled)
@@ -807,14 +808,14 @@ public class TrcPidDrive
 
             TrcPose2D newTargetPose = new TrcPose2D(absX, absY, absHeading);
             TrcPose2D currRobotPose = driveBase.getAbsolutePose();
-            TrcPose2D  relativePose = newTargetPose.relativeTo(currRobotPose);
+            TrcPose2D relativePose = newTargetPose.relativeTo(currRobotPose);
             double turnTarget = turnPidCtrl.hasAbsoluteSetPoint()? newTargetPose.heading: relativePose.heading;
 
             if (debugEnabled)
             {
                 dbgTrace.traceInfo(
-                        funcName, "absX=%.1f, absY=%.1f, absHeading=%.1f, CurrPose:%s, absTargetPose=%s",
-                        absX, absY, absHeading, currRobotPose, absTargetPose);
+                        funcName, "owner=%s,absX=%.1f,absY=%.1f,absHeading=%.1f,CurrPose:%s,absTargetPose=%s",
+                        owner, absX, absY, absHeading, currRobotPose, absTargetPose);
                 dbgTrace.traceInfo(funcName, "xTarget=%.1f, yTarget=%.1f, turnTarget=%.1f, NewPose:%s",
                         relativePose.x, relativePose.y, turnTarget, newTargetPose);
             }
@@ -911,9 +912,11 @@ public class TrcPidDrive
      */
     public void setAbsoluteHeadingTarget(double absHeading, TrcEvent event)
     {
+        //
         // Use the current absolute pose for X and Y to ensure that
         // we do not find any error along X or Y, thereby ensuring that the X
         // and Y PID controllers are turned off during the turn.
+        //
         final TrcPose2D currentAbsPose = driveBase.getAbsolutePose();
         setAbsoluteTarget(null, currentAbsPose.x, currentAbsPose.y, absHeading, false, event, 0.0);
     }   //setAbsoluteHeadingTarget

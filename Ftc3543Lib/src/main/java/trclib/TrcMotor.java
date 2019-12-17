@@ -74,9 +74,9 @@ public abstract class TrcMotor implements TrcMotorController
      * implementing its own native velocity control, it does not really need to do anything for this method.
      * But for completeness, it can just set the raw motor power in the motor controller.
      *
-     * @param power specifies the percentage power (range -1.0 to 1.0) to be set.
+     * @param value specifies the percentage power (range -1.0 to 1.0) to be set.
      */
-    public abstract void setMotorPower(double power);
+    public abstract void setMotorPower(double value);
 
     private class Odometry
     {
@@ -96,10 +96,10 @@ public abstract class TrcMotor implements TrcMotorController
     private final TrcTaskMgr.TaskObject velocityCtrlTaskObj;
     private TrcDigitalInputTrigger digitalTrigger = null;
     private boolean odometryEnabled = false;
-    private double maxMotorVelocity = 0.0;
+    protected double maxMotorVelocity = 0.0;
     private TrcPidController velocityPidCtrl = null;
     private DigitalTriggerHandler digitalTriggerHandler = null;
-    private boolean calibrating = false;
+    protected boolean calibrating = false;
 
     /**
      * Constructor: Create an instance of the object.
@@ -408,7 +408,7 @@ public abstract class TrcMotor implements TrcMotorController
     private double getNormalizedVelocity()
     {
         final String funcName = "getNormalizedVelocity";
-        double normalizedVel = getVelocity() / maxMotorVelocity;
+        double normalizedVel = maxMotorVelocity != 0.0? getVelocity() / maxMotorVelocity: 0.0;
 
         if (debugEnabled)
         {

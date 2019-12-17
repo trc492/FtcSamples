@@ -24,12 +24,14 @@ package ftclib;
 
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsUsbDcMotorController;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import trclib.TrcAnalogInput;
 import trclib.TrcDigitalInput;
 import trclib.TrcDbgTrace;
 import trclib.TrcMotor;
+import trclib.TrcPidController;
 
 /**
  * This class implements the generic DC Motor Controller extending TrcMotor. It provides implementation of the
@@ -50,7 +52,7 @@ public class FtcDcMotor extends TrcMotor
     private int prevEncPos;
     private int zeroEncoderValue;
     private int positionSensorSign = 1;
-    private double prevPower = 0.0;
+    private double prevMotorValue = 0.0;
     private boolean softLowerLimitEnabled = false;
     private boolean softUpperLimitEnabled = false;
     private double softLowerLimit = 0.0;
@@ -162,38 +164,134 @@ public class FtcDcMotor extends TrcMotor
     }   //getVoltage
 
     /**
-     * Ensures that the given requested motor power does not violate limit switch constraints (e.g. if the upper limit
+     * Ensures that the given requested motor value does not violate limit switch constraints (e.g. if the upper limit
      * switch is pressed, the motor may not be commanded forward).
      *
      * If the given value does not violate limit switch constraints, it is returned as-is; otherwise, 0;
      *
-     * @param motorPower The requested motor power value.
-     * @return The given motor power value respecting limit switch constraints.
+     * @param motorValue The requested motor value. It may be a power value or a velocity value.
+     * @return The given motor value respecting limit switch constraints.
      */
-    private double constrainMotorPowerByLimitSwitches(double motorPower)
+    private double constrainMotorValueByLimitSwitches(double motorValue)
     {
-        final String funcName = "constrainMotorPowerByLimitSwitches";
+        final String funcName = "constrainMotorValueByLimitSwitches";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "power=%f", motorPower);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "value=%f", motorValue);
         }
 
-        if (motorPower > 0.0 && (upperLimitSwitch != null && upperLimitSwitch.isActive() ||
-                softUpperLimitEnabled && getPosition() >= softUpperLimit) ||
-                motorPower < 0.0 && (lowerLimitSwitch != null && lowerLimitSwitch.isActive() ||
-                        softLowerLimitEnabled && getPosition() <= softLowerLimit))
+        if (motorValue > 0.0 && (upperLimitSwitch != null && upperLimitSwitch.isActive() ||
+            softUpperLimitEnabled && getPosition() >= softUpperLimit) ||
+            motorValue < 0.0 && (lowerLimitSwitch != null && lowerLimitSwitch.isActive() ||
+            softLowerLimitEnabled && getPosition() <= softLowerLimit))
         {
-            motorPower = 0.0;
+            motorValue = 0.0;
         }
 
         if (debugEnabled)
         {
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", motorPower);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%f", motorValue);
         }
 
-        return motorPower;
-    }   //constrainMotorPowerByLimitSwitches
+        return motorValue;
+    }   //constrainMotorValueByLimitSwitches
+
+    //
+    // Override TrcMotor methods.
+    //
+
+    /**
+     * This method sets the motor controller to velocity mode with the specified maximum velocity.
+     *
+     * @param maxVelocity     specifies the maximum velocity the motor can run, in sensor units per second.
+     * @param pidCoefficients specifies the PID coefficients to use to for velocity control. If null, use default
+     *                        PID coefficients built-in to the motor.
+     */
+    @Override
+    public synchronized void enableVelocityMode(double maxVelocity, TrcPidController.PidCoefficients pidCoefficients)
+    {
+        final String funcName = "enableVelocityMode";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "maxVel=%f,pidCoef=%s", maxVelocity,
+                    pidCoefficients.toString());
+        }
+
+        this.maxMotorVelocity = maxVelocity;
+        if (pidCoefficients != null)
+        {
+            ((DcMotorEx)motor).setVelocityPIDFCoefficients(
+                    pidCoefficients.kP, pidCoefficients.kI, pidCoefficients.kD, pidCoefficients.kF);
+        }
+        motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+    }   //enableVelocityMode
+
+    /**
+     * This method sets the motor controller to velocity mode with the specified maximum velocity.
+     *
+     * @param maxVelocity specifies the maximum velocity the motor can run, in sensor units per second.
+     */
+    public void enableVelocityMode(double maxVelocity)
+    {
+        enableVelocityMode(maxVelocity, null);
+    }   //enableVelocityMode
+
+    /**
+     * This method disables velocity mode returning it to power mode.
+     */
+    @Override
+    public synchronized void disableVelocityMode()
+    {
+        final String funcName = "disableVelocityMode";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+
+        maxMotorVelocity = 0.0;
+        motor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+    }   //disableVelocityMode
+
+    /**
+     * This method sets the motor output value. The value can be power or velocity percentage depending on whether
+     * the motor controller is in power mode or velocity mode.
+     *
+     * @param value specifies the percentage power or velocity (range -1.0 to 1.0) to be set.
+     */
+    @Override
+    public void set(double value)
+    {
+        final String funcName = "set";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "value=%f", value);
+        }
+
+        calibrating = false;
+        if (maxMotorVelocity != 0.0)
+        {
+            setMotorVelocity(value);
+        }
+        else
+        {
+            setMotorPower(value);
+        }
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+    }   //set
 
     //
     // Implements TrcMotor abstract methods.
@@ -251,31 +349,57 @@ public class FtcDcMotor extends TrcMotor
     /**
      * This method sets the raw motor power.
      *
-     * @param power specifies the percentage power (range -1.0 to 1.0) to be set.
+     * @param value specifies the percentage power (range -1.0 to 1.0) to be set.
      */
     @Override
-    public void setMotorPower(double power)
+    public void setMotorPower(double value)
     {
         final String funcName = "setMotorPower";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "value=%f", power);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "value=%f", value);
         }
 
-        power = constrainMotorPowerByLimitSwitches(power);
-
-        if (power != prevPower)
+        value = constrainMotorValueByLimitSwitches(value);
+        if (value != prevMotorValue)
         {
-            motor.setPower(power);
-            prevPower = power;
+            motor.setPower(value);
+            prevMotorValue = value;
         }
 
         if (debugEnabled)
         {
-            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "! (value=%f)", power);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "! (value=%f)", value);
         }
     }   //setMotorPower
+
+    /**
+     * This method sets the motor velocity.
+     *
+     * @param value specifies the percentage of max motor velocity (range -1.0 to 1.0) to be set.
+     */
+    private void setMotorVelocity(double value)
+    {
+        final String funcName = "setMotorVelocity";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "value=%f", value);
+        }
+
+        value = constrainMotorValueByLimitSwitches(value);
+        if (value != prevMotorValue)
+        {
+            ((DcMotorEx)motor).setVelocity(value*maxMotorVelocity);
+            prevMotorValue = value;
+        }
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "! (value=%f)", value);
+        }
+    }   //setMotorVelocity
 
     //
     // Implements TrcMotorController interface.
@@ -310,7 +434,7 @@ public class FtcDcMotor extends TrcMotor
     public double getPower()
     {
         final String funcName = "getPower";
-        double power = prevPower;
+        double power = motor.getPower();
 
         if (debugEnabled)
         {

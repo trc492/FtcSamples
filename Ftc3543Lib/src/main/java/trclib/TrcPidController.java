@@ -212,8 +212,8 @@ public class TrcPidController
      * @param tolerance       specifies the target tolerance.
      * @param pidInput        specifies the input provider.
      */
-    public TrcPidController(final String instanceName, PidCoefficients pidCoefficients, double tolerance,
-        PidInput pidInput)
+    public TrcPidController(
+            final String instanceName, PidCoefficients pidCoefficients, double tolerance, PidInput pidInput)
     {
         this(instanceName, pidCoefficients, tolerance, DEF_SETTLING_TIME, pidInput);
     }   //TrcPidController
@@ -271,15 +271,13 @@ public class TrcPidController
             }
 
             msg.append(String.format(
-                    Locale.US, "%s: Target=%6.1f, Input=%6.1f, Error=%6.1f",
-                    instanceName, setPoint, currInput, currError));
+                    Locale.US, "%s: Target=%6.1f, Input=%6.1f, Error=%6.1f, Output=%6.3f(%6.3f/%5.3f)",
+                    instanceName, setPoint, currInput, currError, output, minOutput, maxOutput));
 
             if (verbose)
             {
                 msg.append(String.format(
-                        Locale.US, ", PIDTerms=%6.3f/%6.3f/%6.3f/%6.3f, Output=%6.3f(%6.3f/%5.3f)",
-                        pTerm, iTerm, dTerm, fTerm, output, minOutput,
-                        maxOutput));
+                        Locale.US, ", PIDTerms=%6.3f/%6.3f/%6.3f/%6.3f", pTerm, iTerm, dTerm, fTerm));
             }
 
             if (battery != null)
