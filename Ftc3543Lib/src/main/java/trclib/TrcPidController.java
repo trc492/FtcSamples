@@ -266,7 +266,7 @@ public class TrcPidController
 
             msg.append(String.format(
                     Locale.US, "[%.3f] %s: Target=%6.1f, Input=%6.1f, Error=%6.1f, Output=%6.3f(%6.3f/%5.3f)",
-                    TrcUtil.getMatchElapsedTime(), instanceName, setPoint, currInput, currError, output, minOutput,
+                    TrcUtil.getModeElapsedTime(), instanceName, setPoint, currInput, currError, output, minOutput,
                     maxOutput));
 
             if (verbose)

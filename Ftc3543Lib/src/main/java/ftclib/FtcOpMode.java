@@ -293,6 +293,11 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
             }
         }
         TrcRobot.setRunMode(runMode);
+        //
+        // Initialize mode start time before match starts in case somebody calls TrcUtil.getModeElapsedTime before
+        // competition starts (e.g. in initRobot) so it will report elapsed time from the "Init" button being pressed.
+        //
+        TrcUtil.recordModeStartTime();
 
         if (TrcMotor.getNumOdometryMotors() > 0)
         {
@@ -339,7 +344,7 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
                 initPeriodic();
             }
             dashboard.displayPrintf(0, "initPeriodic completed!");
-            TrcUtil.recordMatchStartTime();
+            TrcUtil.recordModeStartTime();
 
             //
             // Prepare for starting the run mode.
@@ -365,7 +370,7 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
                 loopStartNanoTime = TrcUtil.getCurrentTimeNanos();
                 loopCounter++;
                 sdkTotalNanoTime += loopStartNanoTime - startNanoTime;
-                double opModeElapsedTime = TrcUtil.getMatchElapsedTime();
+                double opModeElapsedTime = TrcUtil.getModeElapsedTime();
 
                 if (debugEnabled)
                 {

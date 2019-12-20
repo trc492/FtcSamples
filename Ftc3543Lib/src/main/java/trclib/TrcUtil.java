@@ -40,7 +40,7 @@ public class TrcUtil
     public static final double INCHES_PER_CM = 0.393701;
     public static final double MM_PER_INCH = 25.4;
     public static final double EARTH_GRAVITATIONAL_CONSTANT = 9.807;    //in m/s2
-    private static long matchStartTimeNanos = 0;
+    private static long modeStartTimeNanos = 0;
 
     /**
      * This interface provides the method to get data of the specified type. This is to replaced the Supplier
@@ -58,24 +58,24 @@ public class TrcUtil
     }   //interface DataSupplier
 
     /**
-     * This method is called at the start of a match to set the match start timestamp so that getMatchElapsedTime can
-     * calculate the match elapsed time.
+     * This method is called at the start of a competition mode to set the mode start timestamp so that
+     * getModeElapsedTime can calculate the mode elapsed time.
      */
-    public static void recordMatchStartTime()
+    public static void recordModeStartTime()
     {
-        matchStartTimeNanos = System.nanoTime();
-    }   //recordMatchStartTime
+        modeStartTimeNanos = System.nanoTime();
+    }   //recordModeStartTime
 
     /**
-     * This method returns the match elapsed time by subtracting match start time from the current time. If this
-     * method is called before the match is started, the system elapsed time is returned instead.
+     * This method returns the competition mode elapsed time by subtracting mode start time from the current time.
+     * If this method is called before the competition mode is started, the system elapsed time is returned instead.
      *
-     * @return match elapsed time in seconds.
+     * @return mode elapsed time in seconds.
      */
-    public static double getMatchElapsedTime()
+    public static double getModeElapsedTime()
     {
-        return (System.nanoTime() - matchStartTimeNanos) / 1000000000.0;
-    }   //getMatchElapsedTime
+        return (System.nanoTime() - modeStartTimeNanos) / 1000000000.0;
+    }   //getModeElapsedTime
 
     /**
      * This method returns the current time in seconds with nano-second precision.
