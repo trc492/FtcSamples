@@ -40,6 +40,7 @@ public class TrcUtil
     public static final double INCHES_PER_CM = 0.393701;
     public static final double MM_PER_INCH = 25.4;
     public static final double EARTH_GRAVITATIONAL_CONSTANT = 9.807;    //in m/s2
+    private static long matchStartTimeNanos = 0;
 
     /**
      * This interface provides the method to get data of the specified type. This is to replaced the Supplier
@@ -55,6 +56,26 @@ public class TrcUtil
         T get();
 
     }   //interface DataSupplier
+
+    /**
+     * This method is called at the start of a match to set the match start timestamp so that getMatchElapsedTime can
+     * calculate the match elapsed time.
+     */
+    public static void recordMatchStartTime()
+    {
+        matchStartTimeNanos = System.nanoTime();
+    }   //recordMatchStartTime
+
+    /**
+     * This method returns the match elapsed time by subtracting match start time from the current time. If this
+     * method is called before the match is started, the system elapsed time is returned instead.
+     *
+     * @return match elapsed time in seconds.
+     */
+    public static double getMatchElapsedTime()
+    {
+        return (System.nanoTime() - matchStartTimeNanos) / 1000000000.0;
+    }   //getMatchElapsedTime
 
     /**
      * This method returns the current time in seconds with nano-second precision.

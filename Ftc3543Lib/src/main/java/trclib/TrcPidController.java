@@ -247,12 +247,11 @@ public class TrcPidController
      * This method prints the PID information to the tracer console. If no tracer is provided, it will attempt to
      * use the debug tracer in this module but if the debug tracer is not enabled, no output will be produced.
      *
-     * @param tracer    specifies the tracer object to print the PID info to.
-     * @param timestamp specifies the timestamp to be printed.
+     * @param tracer specifies the tracer object to print the PID info to.
      * @param verbose specifies true to print verbose info, false to print summary info.
-     * @param battery   specifies the battery object to get battery info, can be null if not provided.
+     * @param battery specifies the battery object to get battery info, can be null if not provided.
      */
-    public synchronized void printPidInfo(TrcDbgTrace tracer, double timestamp, boolean verbose, TrcRobotBattery battery)
+    public synchronized void printPidInfo(TrcDbgTrace tracer, boolean verbose, TrcRobotBattery battery)
     {
         final String funcName = "printPidInfo";
 
@@ -265,14 +264,10 @@ public class TrcPidController
         {
             StringBuilder msg = new StringBuilder();
 
-            if (timestamp != 0.0)
-            {
-                msg.append(String.format(Locale.US, "[%.3f] ", timestamp));
-            }
-
             msg.append(String.format(
-                    Locale.US, "%s: Target=%6.1f, Input=%6.1f, Error=%6.1f, Output=%6.3f(%6.3f/%5.3f)",
-                    instanceName, setPoint, currInput, currError, output, minOutput, maxOutput));
+                    Locale.US, "[%.3f] %s: Target=%6.1f, Input=%6.1f, Error=%6.1f, Output=%6.3f(%6.3f/%5.3f)",
+                    TrcUtil.getMatchElapsedTime(), instanceName, setPoint, currInput, currError, output, minOutput,
+                    maxOutput));
 
             if (verbose)
             {
@@ -294,25 +289,12 @@ public class TrcPidController
      * This method prints the PID information to the tracer console. If no tracer is provided, it will attempt to
      * use the debug tracer in this module but if the debug tracer is not enabled, no output will be produced.
      *
-     * @param tracer    specifies the tracer object to print the PID info to.
-     * @param timestamp specifies the timestamp to be printed.
+     * @param tracer specifies the tracer object to print the PID info to.
      * @param verbose specifies true to print verbose info, false to print summary info.
      */
-    public void printPidInfo(TrcDbgTrace tracer, double timestamp, boolean verbose)
+    public void printPidInfo(TrcDbgTrace tracer, boolean verbose)
     {
-        printPidInfo(tracer, timestamp, verbose, null);
-    }   //printPidInfo
-
-    /**
-     * This method prints the PID information to the tracer console. If no tracer is provided, it will attempt to
-     * use the debug tracer in this module but if the debug tracer is not enabled, no output will be produced.
-     *
-     * @param tracer    specifies the tracer object to print the PID info to.
-     * @param timestamp specifies the timestamp to be printed.
-     */
-    public void printPidInfo(TrcDbgTrace tracer, double timestamp)
-    {
-        printPidInfo(tracer, timestamp, false, null);
+        printPidInfo(tracer, verbose, null);
     }   //printPidInfo
 
     /**
@@ -323,7 +305,7 @@ public class TrcPidController
      */
     public void printPidInfo(TrcDbgTrace tracer)
     {
-        printPidInfo(tracer, 0.0, false, null);
+        printPidInfo(tracer, false, null);
     }   //printPidInfo
 
     /**
@@ -331,7 +313,7 @@ public class TrcPidController
      */
     public void printPidInfo()
     {
-        printPidInfo(null, 0.0, false, null);
+        printPidInfo(null, false, null);
     }   //printPidInfo
 
     /**

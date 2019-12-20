@@ -215,6 +215,18 @@ public class FtcMotorActuator
      * This method starts the zero calibration process by operating the motor with calibration power moving it towards
      * the lower limit switch. When the lower limit switch is activated, the position sensor is reset and the motor
      * stops.
+     *
+     * @param calPower specifies the motor power for zero calibration.
+     */
+    public void zeroCalibrate(double calPower)
+    {
+        pidActuator.zeroCalibrate(calPower);
+    }   //zeroCalibrate
+
+    /**
+     * This method starts the zero calibration process by operating the motor with calibration power moving it towards
+     * the lower limit switch. When the lower limit switch is activated, the position sensor is reset and the motor
+     * stops.
      */
     public void zeroCalibrate()
     {

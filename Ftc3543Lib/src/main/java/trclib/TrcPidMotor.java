@@ -74,7 +74,7 @@ public class TrcPidMotor
     private final TrcMotor motor1;
     private final TrcMotor motor2;
     private final TrcPidController pidCtrl;
-    private final double calPower;
+    private final double defCalPower;
     private final PowerCompensation powerCompensation;
     private final TrcTaskMgr.TaskObject pidMotorTaskObj;
     private final TrcTaskMgr.TaskObject stopMotorTaskObj;
@@ -86,6 +86,7 @@ public class TrcPidMotor
     private TrcEvent notifyEvent = null;
     private double expiredTime = 0.0;
     private boolean calibrating = false;
+    private double calPower = 0.0;
     private double motorPower = 0.0;
     private double prevPos = 0.0;
     private double prevTime = 0.0;
@@ -115,13 +116,13 @@ public class TrcPidMotor
      * @param motor2 specifies motor2 object. If there is only one motor, this can be set to null.
      * @param syncGain specifies the gain constant for synchronizing motor1 and motor2.
      * @param pidCtrl specifies the PID controller object.
-     * @param calPower specifies the motor power for the calibration.
+     * @param defCalPower specifies the default motor power for the calibration.
      * @param powerCompensation specifies the object that implements the PowerCompensation interface, null if none
      *                          provided.
      */
     public TrcPidMotor(
         String instanceName, TrcMotor motor1, TrcMotor motor2, double syncGain, TrcPidController pidCtrl,
-        double calPower, PowerCompensation powerCompensation)
+        double defCalPower, PowerCompensation powerCompensation)
     {
         if (debugEnabled)
         {
@@ -145,7 +146,7 @@ public class TrcPidMotor
         this.motor2 = motor2;
         this.syncGain = syncGain;
         this.pidCtrl = pidCtrl;
-        this.calPower = -Math.abs(calPower);
+        this.defCalPower = -Math.abs(defCalPower);
         this.powerCompensation = powerCompensation;
         TrcTaskMgr taskMgr = TrcTaskMgr.getInstance();
         pidMotorTaskObj = taskMgr.createTask(instanceName + ".pidMotorTask", this::pidMotorTask);
@@ -159,15 +160,15 @@ public class TrcPidMotor
      * @param motor1 specifies motor1 object.
      * @param motor2 specifies motor2 object. If there is only one motor, this can be set to null.
      * @param pidCtrl specifies the PID controller object.
-     * @param calPower specifies the motor power for the calibration.
+     * @param defCalPower specifies the default motor power for the calibration.
      * @param powerCompensation specifies the object that implements the PowerCompensation interface, null if none
      *                          provided.
      */
     public TrcPidMotor(
-        String instanceName, TrcMotor motor1, TrcMotor motor2, TrcPidController pidCtrl, double calPower,
+        String instanceName, TrcMotor motor1, TrcMotor motor2, TrcPidController pidCtrl, double defCalPower,
         PowerCompensation powerCompensation)
     {
-        this(instanceName, motor1, motor2, 0.0, pidCtrl, calPower, powerCompensation);
+        this(instanceName, motor1, motor2, 0.0, pidCtrl, defCalPower, powerCompensation);
     }   //TrcPidMotor
 
     /**
@@ -176,15 +177,15 @@ public class TrcPidMotor
      * @param instanceName specifies the instance name.
      * @param motor specifies motor object.
      * @param pidCtrl specifies the PID controller object.
-     * @param calPower specifies the motor power for the calibration.
+     * @param defCalPower specifies the default motor power for the calibration.
      * @param powerCompensation specifies the object that implements the PowerCompensation interface, null if none
      *                          provided.
      */
     public TrcPidMotor(
-        String instanceName, TrcMotor motor, TrcPidController pidCtrl, double calPower,
+        String instanceName, TrcMotor motor, TrcPidController pidCtrl, double defCalPower,
         PowerCompensation powerCompensation)
     {
-        this(instanceName, motor, null, 0.0, pidCtrl, calPower, powerCompensation);
+        this(instanceName, motor, null, 0.0, pidCtrl, defCalPower, powerCompensation);
     }   //TrcPidMotor
 
     /**
@@ -195,13 +196,13 @@ public class TrcPidMotor
      * @param motor2 specifies motor2 object. If there is only one motor, this can be set to null.
      * @param syncGain specifies the gain constant for synchronizing motor1 and motor2.
      * @param pidCtrl specifies the PID controller object.
-     * @param calPower specifies the motor power for the calibration.
+     * @param defCalPower specifies the default motor power for the calibration.
      */
     public TrcPidMotor(
         String instanceName, TrcMotor motor1, TrcMotor motor2, double syncGain, TrcPidController pidCtrl,
-        double calPower)
+        double defCalPower)
     {
-        this(instanceName, motor1, motor2, syncGain, pidCtrl, calPower, null);
+        this(instanceName, motor1, motor2, syncGain, pidCtrl, defCalPower, null);
     }   //TrcPidMotor
 
     /**
@@ -211,11 +212,12 @@ public class TrcPidMotor
      * @param motor1 specifies motor1 object.
      * @param motor2 specifies motor2 object. If there is only one motor, this can be set to null.
      * @param pidCtrl specifies the PID controller object.
-     * @param calPower specifies the motor power for the calibration.
+     * @param defCalPower specifies the default motor power for the calibration.
      */
-    public TrcPidMotor(String instanceName, TrcMotor motor1, TrcMotor motor2, TrcPidController pidCtrl, double calPower)
+    public TrcPidMotor(
+            String instanceName, TrcMotor motor1, TrcMotor motor2, TrcPidController pidCtrl, double defCalPower)
     {
-        this(instanceName, motor1, motor2, 0.0, pidCtrl, calPower, null);
+        this(instanceName, motor1, motor2, 0.0, pidCtrl, defCalPower, null);
     }   //TrcPidMotor
 
     /**
@@ -224,11 +226,11 @@ public class TrcPidMotor
      * @param instanceName specifies the instance name.
      * @param motor specifies motor object.
      * @param pidCtrl specifies the PID controller object.
-     * @param calPower specifies the motor power for the calibration.
+     * @param defCalPower specifies the default motor power for the calibration.
      */
-    public TrcPidMotor(String instanceName, TrcMotor motor, TrcPidController pidCtrl, double calPower)
+    public TrcPidMotor(String instanceName, TrcMotor motor, TrcPidController pidCtrl, double defCalPower)
     {
-        this(instanceName, motor, null, 0.0, pidCtrl, calPower, null);
+        this(instanceName, motor, null, 0.0, pidCtrl, defCalPower, null);
     }   //TrcPidMotor
 
     /**
@@ -849,20 +851,24 @@ public class TrcPidMotor
     /**
      * This method starts zero calibration mode by moving the motor with specified calibration power until a limit
      * switch is hit.
+     *
+     * @param calPower specifies the motor power to use for the zero calibration overriding the default calibration
+     *                 power specified in the constructor.
      */
-    public synchronized void zeroCalibrate()
+    public synchronized void zeroCalibrate(double calPower)
     {
         final String funcName = "zeroCalibrate";
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "calPower=%f", calPower);
         }
 
         //
         // Calibration power is always negative. Motor 1 always has a lower limit switch. If there is a motor 2,
         // motor 2 has a lower limit switch only if it is independent of motor 1 and needs synchronizing with motor 1.
         //
+        this.calPower = -Math.abs(calPower);
         calibrating = true;
         motor1ZeroCalDone = false;
         motor2ZeroCalDone = motor2 == null || syncGain == 0.0;
@@ -872,6 +878,15 @@ public class TrcPidMotor
         {
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
+    }   //zeroCalibrate
+
+    /**
+     * This method starts zero calibration mode by moving the motor with specified calibration power until a limit
+     * switch is hit.
+     */
+    public synchronized void zeroCalibrate()
+    {
+        zeroCalibrate(defCalPower);
     }   //zeroCalibrate
 
     /**
@@ -1124,7 +1139,7 @@ public class TrcPidMotor
 
                 if (msgTracer != null && tracePidInfo)
                 {
-                    pidCtrl.printPidInfo(msgTracer, TrcUtil.getCurrentTime(), verbosePidInfo, battery);
+                    pidCtrl.printPidInfo(msgTracer, verbosePidInfo, battery);
                 }
             }
         }

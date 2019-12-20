@@ -62,8 +62,6 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
     protected final static int NUM_DASHBOARD_LINES = 16;
     private final static long LOOP_PERIOD_NANO = 50000000;
     private static FtcOpMode instance = null;
-    private static long opModeStartNanoTime = 0;
-    private static double opModeElapsedTime = 0.0;
     private static long loopStartNanoTime = 0;
     private static long loopCounter = 0;
 
@@ -112,18 +110,6 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
     {
         return opModeName;
     }   //getOpModeName
-
-    /**
-     * This method returns the elapsed time since competition starts. This is the elapsed time after robotInit() is
-     * called and after waitForStart() has returned (i.e. The "Play" button is pressed on the Driver Station.
-     *
-     * @return OpMode elapsed time in seconds.
-     */
-    public static double getOpModeElapsedTime()
-    {
-        opModeElapsedTime = (TrcUtil.getCurrentTimeNanos() - opModeStartNanoTime)/1000000000.0;
-        return opModeElapsedTime;
-    }   //getElapsedTime
 
     /**
      * This method returns the start time of the time slice loop. This is useful for the caller to determine if it
@@ -353,7 +339,7 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
                 initPeriodic();
             }
             dashboard.displayPrintf(0, "initPeriodic completed!");
-            opModeStartNanoTime = TrcUtil.getCurrentTimeNanos();
+            TrcUtil.recordMatchStartTime();
 
             //
             // Prepare for starting the run mode.
@@ -379,7 +365,7 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
                 loopStartNanoTime = TrcUtil.getCurrentTimeNanos();
                 loopCounter++;
                 sdkTotalNanoTime += loopStartNanoTime - startNanoTime;
-                opModeElapsedTime = (loopStartNanoTime - opModeStartNanoTime)/1000000000.0;
+                double opModeElapsedTime = TrcUtil.getMatchElapsedTime();
 
                 if (debugEnabled)
                 {

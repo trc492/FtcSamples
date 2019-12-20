@@ -1246,10 +1246,9 @@ public class TrcPidDrive
 
         if (msgTracer != null && tracePidInfo)
         {
-            double currTime = TrcUtil.getCurrentTime();
-            if (xPidCtrl != null) xPidCtrl.printPidInfo(msgTracer, currTime, verbosePidInfo, battery);
-            if (yPidCtrl != null) yPidCtrl.printPidInfo(msgTracer, currTime, verbosePidInfo, battery);
-            if (turnPidCtrl != null) turnPidCtrl.printPidInfo(msgTracer, currTime, verbosePidInfo, battery);
+            if (xPidCtrl != null) xPidCtrl.printPidInfo(msgTracer, verbosePidInfo, battery);
+            if (yPidCtrl != null) yPidCtrl.printPidInfo(msgTracer, verbosePidInfo, battery);
+            if (turnPidCtrl != null) turnPidCtrl.printPidInfo(msgTracer, verbosePidInfo, battery);
         }
 
         if (debugEnabled)

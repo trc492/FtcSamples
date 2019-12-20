@@ -182,12 +182,12 @@ public class CmdDriveAndTurn implements TrcRobot.RobotCommand
 
             if (debugYPid)
             {
-                robot.pidDrive.getYPidCtrl().printPidInfo(robot.globalTracer, elapsedTime);
+                robot.pidDrive.getYPidCtrl().printPidInfo(robot.globalTracer);
             }
 
             if (debugTurnPid)
             {
-                robot.pidDrive.getTurnPidCtrl().printPidInfo(robot.globalTracer, elapsedTime);
+                robot.pidDrive.getTurnPidCtrl().printPidInfo(robot.globalTracer);
             }
         }
 
