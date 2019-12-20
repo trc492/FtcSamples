@@ -85,6 +85,14 @@ public class TrcLoopPerformanceMonitor
      */
     public void reset()
     {
+        final String funcName = "reset";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+
         periodQueue.clear();
         lastTime = null;
         minPeriod = Double.POSITIVE_INFINITY;
@@ -98,6 +106,14 @@ public class TrcLoopPerformanceMonitor
      */
     public void update()
     {
+        final String funcName = "update";
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.HIFREQ);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.HIFREQ);
+        }
+
         double currTime = TrcUtil.getCurrentTime();
 
         if (lastTime != null)

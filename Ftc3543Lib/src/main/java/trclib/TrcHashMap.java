@@ -34,11 +34,13 @@ import java.util.Locale;
  */
 public class TrcHashMap<K, V> extends HashMap<K, V>
 {
+    private static final long serialVersionUID = 1L;
+
     /**
-     * This method adds an entry to the hash map and returns this hashmap object so you can chain multiple calls to
-     * the add method in a single statement.
+     * This method adds an entry to the hash map and returns this hashmap object so
+     * you can chain multiple calls to the add method in a single statement.
      *
-     * @param key specifies the key of the mapping.
+     * @param key   specifies the key of the mapping.
      * @param value specifies the value of the mappng.
      * @return this hashmap instance.
      */
