@@ -90,6 +90,8 @@ public class TrcHolonomicPurePursuitDrive
     private volatile boolean maintainHeading = false;
     private double startHeading;
     private TrcPose2D referencePose;
+    private double moveOutputLimit = Double.POSITIVE_INFINITY;
+    private double rotOutputLimit = Double.POSITIVE_INFINITY;
 
     public TrcHolonomicPurePursuitDrive(
             String instanceName, TrcDriveBase driveBase, double followingDistance, double posTolerance,
@@ -246,6 +248,16 @@ public class TrcHolonomicPurePursuitDrive
         velPidCtrl.setPidCoefficients(pidCoefficients);
     }   //setVelocityPidCoefficients
 
+    public void setMoveOutputLimit(double limit)
+    {
+        moveOutputLimit = Math.abs(limit);
+    }   //setMoveOutputLimit
+
+    public void setRotOutputLimit(double limit)
+    {
+        rotOutputLimit = Math.abs(limit);
+    }   //setRotOutputLimit
+
     /**
      * Start following the supplied path using a pure pursuit controller.
      *
@@ -292,7 +304,7 @@ public class TrcHolonomicPurePursuitDrive
         posPidCtrl.setTarget(0.0);
         turnPidCtrl.setTarget(startHeading); // Maintain heading to start
 
-        referencePose = driveBase.getAbsolutePose();
+        referencePose = driveBase.getFieldPosition();
         driveTaskObj.registerTask(TrcTaskMgr.TaskType.OUTPUT_TASK);
     }   //start
 
@@ -340,7 +352,7 @@ public class TrcHolonomicPurePursuitDrive
 
     private synchronized void driveTask(TrcTaskMgr.TaskType taskType, TrcRobot.RunMode runMode)
     {
-        TrcPose2D pose = driveBase.getPoseRelativeTo(referencePose);
+        TrcPose2D pose = driveBase.getPositionRelativeTo(referencePose, false);
         double robotX = pose.x;
         double robotY = pose.y;
         TrcWaypoint point = getFollowingPoint(robotX, robotY);
@@ -357,15 +369,17 @@ public class TrcHolonomicPurePursuitDrive
         double posPower = posPidCtrl.getOutput();
         double turnPower = turnPidCtrl.getOutput();
         double velPower = velPidCtrl.getOutput();
+        turnPower = TrcUtil.clipRange(turnPower, -rotOutputLimit, rotOutputLimit);
 
         double r = posPower + velPower;
+        r = TrcUtil.clipRange(r, -moveOutputLimit, moveOutputLimit);
         double theta = Math.toDegrees(Math.atan2(point.x - robotX, point.y - robotY));
 
         double velocity = TrcUtil.magnitude(driveBase.getXVelocity(), driveBase.getYVelocity());
 
         TrcDbgTrace.getGlobalTracer().traceInfo("TrcHolonomicPurePursuitDrive.driveTask",
             "Robot: (%.2f,%.2f), RobotVel: %.2f, RobotHeading: %.2f, Target: (%.2f,%.2f), TargetVel: %.2f, TargetHeading: %.2f, pathIndex=%d, r,theta=(%.2f,%.1f)\n",
-            robotX, robotY, velocity, pose.heading, point.x, point.y, point.velocity, point.heading,
+            robotX, robotY, velocity, pose.angle, point.x, point.y, point.velocity, point.heading,
             pathIndex, r, theta);
 
         // If we have timed out or finished, stop the operation.
@@ -382,7 +396,7 @@ public class TrcHolonomicPurePursuitDrive
         }
         else
         {
-            driveBase.holonomicDrive_Polar(r, theta, turnPower, pose.heading - startHeading);
+            driveBase.holonomicDrive_Polar(r, theta, turnPower, pose.angle - startHeading);
         }
     }   //driveTask
 

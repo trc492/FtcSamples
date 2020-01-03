@@ -68,8 +68,15 @@ public class TrcPeriodicThread<T>
             periodicThread.setPriority(taskPriority);
             taskEnabled = false;
             data = null;
-            periodicThread.start();
         }   //TaskState
+
+        /**
+         * This method is called after TaskState is created to start the task thread.
+         */
+        public void start()
+        {
+            periodicThread.start();
+        }   //start
 
         /**
          * This method checks if the periodic task has been terminated.
@@ -187,6 +194,7 @@ public class TrcPeriodicThread<T>
         this.task = task;
         this.context = context;
         taskState = new TaskState(instanceName, this::run, taskPriority);
+        taskState.start();
     }   //TrcPeriodicThread
 
     /**

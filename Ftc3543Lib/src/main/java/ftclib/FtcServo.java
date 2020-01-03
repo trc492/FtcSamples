@@ -265,7 +265,9 @@ public class FtcServo extends TrcServo
         double newLogicalPos = toLogicalPosition(position);
         if (newLogicalPos != prevLogicalPos)
         {
+            if (servoSetPosElapsedTimer != null) servoSetPosElapsedTimer.recordStartTime();
             servo.setPosition(newLogicalPos);
+            if (servoSetPosElapsedTimer != null) servoSetPosElapsedTimer.recordEndTime();
             prevLogicalPos = newLogicalPos;
         }
     }   //setPosition

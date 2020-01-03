@@ -90,11 +90,13 @@ public class TrcWaypoint
     /**
      * Constructor: Create an instance of the object from a given 2D pose.
      *
-     * @param pose specifies the 2D pose.
+     * @param position specifies the position of the way point.
+     * @param velocity specifies the velocity of the way point.
      */
-    public TrcWaypoint(TrcPose2D pose)
+    public TrcWaypoint(TrcPose2D position, TrcPose2D velocity)
     {
-        this(0, pose.x, pose.y, 0, TrcUtil.magnitude(pose.xVel, pose.yVel), 0, 0, pose.heading);
+        this(0, position.x, position.y, 0,
+             velocity != null? TrcUtil.magnitude(velocity.x, velocity.y): 0.0, 0, 0, position.angle);
     }   //TrcWaypoint
 
     /**

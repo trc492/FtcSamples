@@ -43,6 +43,7 @@ public abstract class TrcDigitalOutput
      */
     public abstract void setState(boolean state);
 
+    protected static TrcElapsedTimer setOutputElapsedTimer = null;
     private final String instanceName;
 
     /**
@@ -72,5 +73,38 @@ public abstract class TrcDigitalOutput
     {
         return instanceName;
     }   //toString
+
+    /**
+     * This method enables/disables the elapsed timers for performance monitoring.
+     *
+     * @param enabled specifies true to enable elapsed timers, false to disable.
+     */
+    public static void setElapsedTimerEnabled(boolean enabled)
+    {
+        if (enabled)
+        {
+            if (setOutputElapsedTimer == null)
+            {
+                setOutputElapsedTimer = new TrcElapsedTimer("TrcDigitalOutput.setOutput", 2.0);
+            }
+        }
+        else
+        {
+            setOutputElapsedTimer = null;
+        }
+    }   //setElapsedTimerEnabled
+
+    /**
+     * This method prints the elapsed time info using the given tracer.
+     *
+     * @param tracer specifies the tracer to use for printing elapsed time info.
+     */
+    public static void printElapsedTime(TrcDbgTrace tracer)
+    {
+        if (setOutputElapsedTimer != null)
+        {
+            setOutputElapsedTimer.printElapsedTime(tracer);
+        }
+    }   //printElapsedTime
 
 }   //class TrcDigitalOutput

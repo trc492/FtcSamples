@@ -26,7 +26,7 @@ package trclib;
  * This class implements a low cost interval timer that will expire at the specified interval. This is different
  * from TrcTimer in that it doesn't signal any event, thus no monitoring task. The caller is responsible for calling
  * the hasExpired() method periodically to check if the interval timer has expired. Once expired, the interval timer
- * is rearmed at the next interval from the time hasExpired() is called.
+ * is re-armed at the next interval from the time hasExpired() is called.
  */
 public class TrcIntervalTimer
 {

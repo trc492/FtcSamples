@@ -97,7 +97,9 @@ public class FtcDigitalInput extends TrcDigitalInput
     public synchronized boolean isActive()
     {
         final String funcName = "isActive";
+        if (getInputElapsedTimer != null) getInputElapsedTimer.recordStartTime();
         boolean state = digitalInput.getState() ^ inverted;
+        if (getInputElapsedTimer != null) getInputElapsedTimer.recordEndTime();
 
         if (debugEnabled)
         {

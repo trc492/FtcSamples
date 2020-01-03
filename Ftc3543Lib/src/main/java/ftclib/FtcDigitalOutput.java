@@ -92,7 +92,9 @@ public class FtcDigitalOutput extends TrcDigitalOutput
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", Boolean.toString(state));
         }
 
+        if (setOutputElapsedTimer != null) setOutputElapsedTimer.recordStartTime();
         digitalOutput.setState(state);
+        if (setOutputElapsedTimer != null) setOutputElapsedTimer.recordEndTime();
     }   //setState
 
 }   //class FtcDigitalOutput

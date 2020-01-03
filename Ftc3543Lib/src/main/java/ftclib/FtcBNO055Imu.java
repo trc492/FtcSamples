@@ -87,8 +87,8 @@ public class FtcBNO055Imu
             // So we need to convert it to Cartesian system.
             //
             super(instanceName, 3,
-                    GYRO_HAS_X_AXIS | GYRO_HAS_Y_AXIS | GYRO_HAS_Z_AXIS | GYRO_CONVERT_TO_CARTESIAN, null);
-            gyroTaskObj = TrcTaskMgr.getInstance().createTask(instanceName, this::gyroTask);
+                  GYRO_HAS_X_AXIS | GYRO_HAS_Y_AXIS | GYRO_HAS_Z_AXIS | GYRO_CONVERT_TO_CARTESIAN, null);
+            gyroTaskObj = TrcTaskMgr.getInstance().createTask(instanceName + ".gyroTask", this::gyroTask);
         }   //Gyro
 
         /**
@@ -338,7 +338,7 @@ public class FtcBNO055Imu
             // BNO055 IMU has a 3-axis accelerometer.
             //
             super(instanceName, 3, ACCEL_HAS_X_AXIS | ACCEL_HAS_Y_AXIS | ACCEL_HAS_Z_AXIS, null);
-            accelTaskObj = TrcTaskMgr.getInstance().createTask(instanceName, this::accelTask);
+            accelTaskObj = TrcTaskMgr.getInstance().createTask(instanceName + ".accelTask", this::accelTask);
         }   //Accelerometer
 
         /**

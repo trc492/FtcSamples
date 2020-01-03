@@ -42,6 +42,7 @@ public abstract class TrcDigitalInput
      */
     public abstract boolean isActive();
 
+    protected static TrcElapsedTimer getInputElapsedTimer = null;
     private String instanceName;
 
     /**
@@ -71,5 +72,38 @@ public abstract class TrcDigitalInput
     {
         return instanceName;
     }   //toString
+
+    /**
+     * This method enables/disables the elapsed timers for performance monitoring.
+     *
+     * @param enabled specifies true to enable elapsed timers, false to disable.
+     */
+    public static void setElapsedTimerEnabled(boolean enabled)
+    {
+        if (enabled)
+        {
+            if (getInputElapsedTimer == null)
+            {
+                getInputElapsedTimer = new TrcElapsedTimer("TrcDigitalInput.getInput", 2.0);
+            }
+        }
+        else
+        {
+            getInputElapsedTimer = null;
+        }
+    }   //setElapsedTimerEnabled
+
+    /**
+     * This method prints the elapsed time info using the given tracer.
+     *
+     * @param tracer specifies the tracer to use for printing elapsed time info.
+     */
+    public static void printElapsedTime(TrcDbgTrace tracer)
+    {
+        if (getInputElapsedTimer != null)
+        {
+            getInputElapsedTimer.printElapsedTime(tracer);
+        }
+    }   //printElapsedTime
 
 }   //class TrcDigitalInput

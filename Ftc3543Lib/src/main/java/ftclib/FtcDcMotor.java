@@ -215,8 +215,8 @@ public class FtcDcMotor extends TrcMotor
 
         if (debugEnabled)
         {
-            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "maxVel=%f,pidCoef=%s", maxVelocity,
-                    pidCoefficients.toString());
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "maxVel=%f,pidCoef=%s",
+                    maxVelocity, pidCoefficients);
         }
 
         this.maxMotorVelocity = maxVelocity;
@@ -268,7 +268,7 @@ public class FtcDcMotor extends TrcMotor
      * @param value specifies the percentage power or velocity (range -1.0 to 1.0) to be set.
      */
     @Override
-    public void set(double value)
+    public synchronized void set(double value)
     {
         final String funcName = "set";
 
@@ -278,6 +278,7 @@ public class FtcDcMotor extends TrcMotor
         }
 
         calibrating = false;
+        if (motorSetElapsedTimer != null) motorSetElapsedTimer.recordStartTime();
         if (maxMotorVelocity != 0.0)
         {
             setMotorVelocity(value);
@@ -286,6 +287,7 @@ public class FtcDcMotor extends TrcMotor
         {
             setMotorPower(value);
         }
+        if (motorSetElapsedTimer != null) motorSetElapsedTimer.recordEndTime();
 
         if (debugEnabled)
         {
@@ -304,7 +306,7 @@ public class FtcDcMotor extends TrcMotor
      * @return current motor position.
      */
     @Override
-    public double getMotorPosition()
+    public synchronized double getMotorPosition()
     {
         final String funcName = "getMotorPosition";
         double currPos = analogSensor == null?
@@ -347,12 +349,25 @@ public class FtcDcMotor extends TrcMotor
     }   //getMotorPosition
 
     /**
+     * This method returns the motor velocity from the platform dependent motor hardware. If the hardware does
+     * not support velocity info, it should throw an UnsupportedOperationException.
+     *
+     * @return current motor velocity.
+     * @throws UnsupportedOperationException
+     */
+    @Override
+    public double getMotorVelocity()
+    {
+        throw new UnsupportedOperationException("DcMotor does not provide velocity info.");
+    }   //getMotorVelocity
+
+    /**
      * This method sets the raw motor power.
      *
      * @param value specifies the percentage power (range -1.0 to 1.0) to be set.
      */
     @Override
-    public void setMotorPower(double value)
+    public synchronized void setMotorPower(double value)
     {
         final String funcName = "setMotorPower";
 
@@ -379,7 +394,7 @@ public class FtcDcMotor extends TrcMotor
      *
      * @param value specifies the percentage of max motor velocity (range -1.0 to 1.0) to be set.
      */
-    private void setMotorVelocity(double value)
+    private synchronized void setMotorVelocity(double value)
     {
         final String funcName = "setMotorVelocity";
 
@@ -491,7 +506,7 @@ public class FtcDcMotor extends TrcMotor
      * @param hardware specifies true for resetting hardware position, false for resetting software position.
      */
     @Override
-    public void resetPosition(boolean hardware)
+    public synchronized void resetPosition(boolean hardware)
     {
         final String funcName = "resetPosition";
 
@@ -534,7 +549,7 @@ public class FtcDcMotor extends TrcMotor
      * @param inverted specifies true to invert position sensor direction, false otherwise.
      */
     @Override
-    public void setPositionSensorInverted(boolean inverted)
+    public synchronized void setPositionSensorInverted(boolean inverted)
     {
         final String funcName = "setPositionSensorInverted";
 

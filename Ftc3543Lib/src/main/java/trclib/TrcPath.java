@@ -65,12 +65,12 @@ public class TrcPath
     /**
      * This method loads waypoints from a CSV file and create a path with them.
      *
-     * @param path specifies the file path or the resource name where we load the waypoints.
      * @param inDegrees specifies true if the heading values are in degrees, false if they are radians.
+     * @param path specifies the file path or the resource name where we load the waypoints.
      * @param loadFromResources specifies true if waypoints are loaded from resources, false if from file path.
      * @return created path with the loaded waypoints.
      */
-    public static TrcPath loadPathFromCsv(String path, boolean inDegrees, boolean loadFromResources)
+    public static TrcPath loadPathFromCsv(boolean inDegrees, String path, boolean loadFromResources)
     {
         return new TrcPath(inDegrees, TrcWaypoint.loadPointsFromCsv(path, loadFromResources));
     }   //loadPathFromCsv
@@ -115,6 +115,7 @@ public class TrcPath
     public TrcPath toDegrees()
     {
         TrcWaypoint[] waypoints = new TrcWaypoint[this.waypoints.length];
+
         for (int i = 0; i < this.waypoints.length; i++)
         {
             TrcWaypoint waypoint = new TrcWaypoint(this.waypoints[i]);
@@ -122,8 +123,9 @@ public class TrcPath
             waypoint.heading = inDegrees ? waypoint.heading : Math.toDegrees(waypoint.heading);
             waypoints[i] = waypoint;
         }
+
         return new TrcPath(true, waypoints);
-    }
+    }   //toDegrees
 
     /**
      * Create a new path identical to this one, except the heading values are in radians. If this path's headings are
@@ -134,15 +136,17 @@ public class TrcPath
     public TrcPath toRadians()
     {
         TrcWaypoint[] waypoints = new TrcWaypoint[this.waypoints.length];
+
         for (int i = 0; i < this.waypoints.length; i++)
         {
             TrcWaypoint waypoint = new TrcWaypoint(this.waypoints[i]);
-            // If already in degree mode, don't convert again.
+            // If already in radian mode, don't convert again.
             waypoint.heading = inDegrees ? Math.toRadians(waypoint.heading) : waypoint.heading;
             waypoints[i] = waypoint;
         }
-        return new TrcPath(true, waypoints);
-    }
+
+        return new TrcPath(false, waypoints);
+    }   //toRadians
 
     /**
      * If not already in degrees, convert this path's heading values to degrees.
@@ -152,12 +156,13 @@ public class TrcPath
         if (!inDegrees)
         {
             inDegrees = true;
+
             for (TrcWaypoint waypoint : waypoints)
             {
                 waypoint.heading = Math.toDegrees(waypoint.heading);
             }
         }
-    }
+    }   //mapSelfToDegrees
 
     /**
      * If not already in radians, convert this path's heading values to radians.
@@ -167,12 +172,13 @@ public class TrcPath
         if (inDegrees)
         {
             inDegrees = false;
+
             for (TrcWaypoint waypoint : waypoints)
             {
                 waypoint.heading = Math.toRadians(waypoint.heading);
             }
         }
-    }
+    }   //mapSelfToRadians
 
     /**
      * Get the estimated duration of the entire path.
@@ -182,12 +188,14 @@ public class TrcPath
     public double getPathDuration()
     {
         double duration = 0;
+
         for (TrcWaypoint waypoint : waypoints)
         {
             duration += waypoint.timeStep;
         }
+
         return duration;
-    }
+    }   //getPathDuration
 
     /**
      * Get the curved length of the entire path.
@@ -198,13 +206,15 @@ public class TrcPath
     {
         double length = 0;
         TrcWaypoint waypoint = waypoints[0];
+
         for (int i = 1; i < waypoints.length; i++)
         {
             length += waypoint.distanceTo(waypoints[i]);
             waypoint = waypoints[i];
         }
+
         return length;
-    }
+    }   //getArcLength
 
     /**
      * Use velocity and position data to infer the timesteps of the waypoint.
@@ -222,5 +232,6 @@ public class TrcPath
         }
         // Assume last waypoint has the same timestep as second to last
         waypoints[waypoints.length - 1].timeStep = waypoints[waypoints.length - 2].timeStep;
-    }
-}
+    }   //inferTimeSteps
+
+}   //class TrcPath

@@ -52,7 +52,9 @@ public abstract class TrcServo
     public abstract boolean isInverted();
 
     /**
-     * This method sets the servo position. On a 180-degree servo, 0.0 is at 0-degree and 1.0 is at 180-degree.
+     * This method sets the servo logical position, mapping [0,1] => [min,max].
+     * <p>
+     * On a 180-degree servo, 0.0 is at 0-degree and 1.0 is at 180-degree. For a 90-degree servo, 0->0deg, 1->90deg.
      * If servo direction is inverted, then 0.0 is at 180-degree and 1.0 is at 0-degree. On a continuous servo,
      * 0.0 is rotating full speed in reverse, 0.5 is to stop the motor and 1.0 is rotating the motor full speed
      * forward. Again, motor direction can be inverted if setInverted is called.
@@ -62,8 +64,8 @@ public abstract class TrcServo
     public abstract void setPosition(double position);
 
     /**
-     * This method returns the position value set by the last setPosition call. Note that servo motors do not provide
-     * real time position feedback. So getPosition doesn't actually return the current position.
+     * This method returns the logical position value set by the last setPosition call. Note that servo motors do not
+     * provide real time position feedback. So getPosition doesn't actually return the current position.
      *
      * @return motor position value set by the last setPosition call.
      */
@@ -77,6 +79,7 @@ public abstract class TrcServo
     private static final double DEF_PHYSICAL_MAX    = 1.0;
     private static final double DEF_LOGICAL_MIN     = 0.0;
     private static final double DEF_LOGICAL_MAX     = 1.0;
+    protected static TrcElapsedTimer servoSetPosElapsedTimer = null;
 
     private final String instanceName;
     private TrcTimer timer;
@@ -113,6 +116,51 @@ public abstract class TrcServo
     {
         return instanceName;
     }   //toString
+
+    /**
+     * This method enables/disables the elapsed timers for performance monitoring.
+     *
+     * @param enabled specifies true to enable elapsed timers, false to disable.
+     */
+    public static void setElapsedTimerEnabled(boolean enabled)
+    {
+        if (enabled)
+        {
+            if (servoSetPosElapsedTimer == null)
+            {
+                servoSetPosElapsedTimer = new TrcElapsedTimer("TrcServo.setPos", 2.0);
+            }
+        }
+        else
+        {
+            servoSetPosElapsedTimer = null;
+        }
+    }   //setElapsedTimerEnabled
+
+    /**
+     * This method prints the elapsed time info using the given tracer.
+     *
+     * @param tracer specifies the tracer to use for printing elapsed time info.
+     */
+    public static void printElapsedTime(TrcDbgTrace tracer)
+    {
+        if (servoSetPosElapsedTimer != null)
+        {
+            servoSetPosElapsedTimer.printElapsedTime(tracer);
+        }
+    }   //printElapsedTime
+
+    /**
+     * This method returns the current physical position of the servo as read by an encoder.
+     * If there is no encoder (depending on the implementation) it will throw an exception.
+     *
+     * @return the physical position of the mechanism with an encoder.
+     * @throws UnsupportedOperationException if not supported by TrcServo implementation.
+     */
+    public double getEncoderPosition()
+    {
+        throw new UnsupportedOperationException("This implementation does not have an encoder!");
+    }    //getEncoderPosition
 
     /**
      * This method sets the servo motor position. If a notifier is given, it calls the notifier after the given amount

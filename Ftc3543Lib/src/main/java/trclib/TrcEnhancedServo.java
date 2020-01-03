@@ -277,6 +277,7 @@ public class TrcEnhancedServo
         return taskEnabled;
     }   //isTaskEnabled
 
+    // CodeReview: What is this for???
     /**
      * This method performs range calibration on a regular servo.
      *
@@ -293,6 +294,7 @@ public class TrcEnhancedServo
             dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API, "stepRate=%f", stepRate);
         }
 
+        // CodeReview: Why??? limit switches are for continuous servo, so this will always be false.
         if (!continuousServo && lowerLimitSwitch != null & upperLimitSwitch != null)
         {
             this.physicalRangeMax = physicalRangeMax;
@@ -341,6 +343,17 @@ public class TrcEnhancedServo
             dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API);
         }
     }   //stop
+
+    /**
+     * Uses the getPosition of the servo1, in case there's an encoder.
+     *
+     * @return The position of servo1. This is different from <code>getPosition</code> in the case of servo1 having an encoder.
+     * @throws UnsupportedOperationException if servo1 doesn't support encoders.
+     */
+    public double getEncoderPosition()
+    {
+        return servo1.getEncoderPosition();
+    }   //getEncoderPosition
 
     /**
      * This method returns the target position set by setPosition.

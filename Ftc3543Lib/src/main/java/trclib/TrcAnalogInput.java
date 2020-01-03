@@ -59,6 +59,7 @@ public abstract class TrcAnalogInput extends TrcSensor<TrcAnalogInput.DataType>
     public static final int ANALOGINPUT_INTEGRATE       = (1 << 0);
     public static final int ANALOGINPUT_DOUBLE_INTEGRATE= (1 << 1);
 
+    protected static TrcElapsedTimer getInputElapsedTimer = null;
     private final String instanceName;
     private TrcDataIntegrator<DataType> dataIntegrator = null;
 
@@ -152,6 +153,39 @@ public abstract class TrcAnalogInput extends TrcSensor<TrcAnalogInput.DataType>
             dataIntegrator.setEnabled(enabled);
         }
     }   //setEnabled
+
+    /**
+     * This method enables/disables the elapsed timers for performance monitoring.
+     *
+     * @param enabled specifies true to enable elapsed timers, false to disable.
+     */
+    public static void setElapsedTimerEnabled(boolean enabled)
+    {
+        if (enabled)
+        {
+            if (getInputElapsedTimer == null)
+            {
+                getInputElapsedTimer = new TrcElapsedTimer("TrcAnalogInput.getInput", 2.0);
+            }
+        }
+        else
+        {
+            getInputElapsedTimer = null;
+        }
+    }   //setElapsedTimerEnabled
+
+    /**
+     * This method prints the elapsed time info using the given tracer.
+     *
+     * @param tracer specifies the tracer to use for printing elapsed time info.
+     */
+    public static void printElapsedTime(TrcDbgTrace tracer)
+    {
+        if (getInputElapsedTimer != null)
+        {
+            getInputElapsedTimer.printElapsedTime(tracer);
+        }
+    }   //printElapsedTime
 
     /**
      * This method inverts the sensor data. This is useful if the orientation of the sensor is such that the data

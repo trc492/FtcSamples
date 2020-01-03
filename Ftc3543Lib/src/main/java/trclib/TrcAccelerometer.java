@@ -81,6 +81,7 @@ public abstract class TrcAccelerometer extends TrcSensor<TrcAccelerometer.DataTy
     private int xIndex = -1;
     private int yIndex = -1;
     private int zIndex = -1;
+    private TrcElapsedTimer getDataElapsedTimer = null;
 
     /**
      * Constructor: Creates an instance of the object.
@@ -196,6 +197,39 @@ public abstract class TrcAccelerometer extends TrcSensor<TrcAccelerometer.DataTy
             dataIntegrator.setEnabled(enabled);
         }
     }   //setEnabled
+
+    /**
+     * This method enables/disables the elapsed timers for performance monitoring.
+     *
+     * @param enabled specifies true to enable elapsed timers, false to disable.
+     */
+    public void setElapsedTimerEnabled(boolean enabled)
+    {
+        if (enabled)
+        {
+            if (getDataElapsedTimer == null)
+            {
+                getDataElapsedTimer = new TrcElapsedTimer(instanceName + ".getAccelData", 2.0);
+            }
+        }
+        else
+        {
+            getDataElapsedTimer = null;
+        }
+    }   //setElapsedTimerEnabled
+
+    /**
+     * This method prints the elapsed time info using the given tracer.
+     *
+     * @param tracer specifies the tracer to use for printing elapsed time info.
+     */
+    public void printElapsedTime(TrcDbgTrace tracer)
+    {
+        if (getDataElapsedTimer != null)
+        {
+            getDataElapsedTimer.printElapsedTime(tracer);
+        }
+    }   //printElapsedTime
 
     /**
      * This method inverts the x-axis. This is useful if the orientation of the accelerometer x-axis is such that
@@ -626,6 +660,7 @@ public abstract class TrcAccelerometer extends TrcSensor<TrcAccelerometer.DataTy
         final String funcName = "getRawData";
         SensorData<Double> data = null;
 
+        if (getDataElapsedTimer != null) getDataElapsedTimer.recordStartTime();
         if (index == xIndex)
         {
             data = getRawXData(dataType);
@@ -638,6 +673,7 @@ public abstract class TrcAccelerometer extends TrcSensor<TrcAccelerometer.DataTy
         {
             data = getRawZData(dataType);
         }
+        if (getDataElapsedTimer != null) getDataElapsedTimer.recordEndTime();
 
         if (debugEnabled)
         {

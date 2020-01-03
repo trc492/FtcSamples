@@ -29,7 +29,7 @@ package trclib;
  * the motor controllers may just past the requests to the underlying hardware. For other methods, it may need to
  * simulate the features in software. Yet for some other methods, it may just throw an UnsupportedOperationException.
  */
-public interface TrcMotorController
+public interface TrcMotorController extends TrcOdometrySensor
 {
     /**
      * This method returns the state of the motor controller direction.

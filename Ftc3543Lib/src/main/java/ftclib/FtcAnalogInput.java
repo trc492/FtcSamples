@@ -119,7 +119,9 @@ public class FtcAnalogInput extends TrcAnalogInput
         //
         if (dataType == DataType.INPUT_DATA || dataType == DataType.NORMALIZED_DATA)
         {
+            if (getInputElapsedTimer != null) getInputElapsedTimer.recordStartTime();
             double sensorData = sensor.getVoltage();
+            if (getInputElapsedTimer != null) getInputElapsedTimer.recordEndTime();
             data = new SensorData<>(
                     TrcUtil.getCurrentTime(), dataType == DataType.INPUT_DATA? sensorData: sensorData/maxVoltage);
         }

@@ -192,7 +192,7 @@ public class K9Robot
         motorLeft.setInverted(true);
 
         driveBase = new TrcSimpleDriveBase(motorLeft, motorRight, gyro);
-        driveBase.setPositionScales(DRIVE_INCHES_PER_COUNT);
+        driveBase.setOdometryScales(DRIVE_INCHES_PER_COUNT);
         //
         // PID drive.
         //

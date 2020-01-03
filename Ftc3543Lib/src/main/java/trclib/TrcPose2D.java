@@ -42,22 +42,16 @@ public class TrcPose2D
 
     public double x;
     public double y;
-    public double heading;
-    public double xVel;
-    public double yVel;
-    public double turnRate;
+    public double angle;
 
     /**
      * Constructor: Create an instance of the object.
      *
      * @param x specifies the x component of the position.
      * @param y specifies the y component of the position.
-     * @param heading specifies the heading.
-     * @param xVel specifies the x component of the velocity.
-     * @param yVel specifies the y component of the velocity.
-     * @param turnRate specifies the turn velocity.
+     * @param angle specifies the angle.
      */
-    public TrcPose2D(double x, double y, double heading, double xVel, double yVel, double turnRate)
+    public TrcPose2D(double x, double y, double angle)
     {
         if (debugEnabled)
         {
@@ -68,22 +62,7 @@ public class TrcPose2D
 
         this.x = x;
         this.y = y;
-        this.heading = heading;
-        this.xVel = xVel;
-        this.yVel = yVel;
-        this.turnRate = turnRate;
-    }   //TrcPose2D
-
-    /**
-     * Constructor: Create an instance of the object.
-     *
-     * @param x specifies the x coordinate of the position.
-     * @param y specifies the y coordinate of the position.
-     * @param heading specifies the heading.
-     */
-    public TrcPose2D(double x, double y, double heading)
-    {
-        this(x, y, heading, 0.0, 0.0, 0.0);
+        this.angle = angle;
     }   //TrcPose2D
 
     /**
@@ -94,7 +73,7 @@ public class TrcPose2D
      */
     public TrcPose2D(double x, double y)
     {
-        this(x, y, 0.0, 0.0, 0.0, 0.0);
+        this(x, y, 0.0);
     }   //TrcPose2D
 
     /**
@@ -102,7 +81,7 @@ public class TrcPose2D
      */
     public TrcPose2D()
     {
-        this(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+        this(0.0, 0.0, 0.0);
     }   //TrcPose2D
 
     /**
@@ -113,19 +92,8 @@ public class TrcPose2D
     @Override
     public String toString()
     {
-        return String.format(Locale.US, "(x=%.1f,y=%.1f,angle=%.1f,xVel=%.1f,yVel=%.1f,turnRate=%.1f)",
-                x, y, heading, xVel, yVel, turnRate);
+        return String.format(Locale.US, "(x=%.1f,y=%.1f,angle=%.1f)", x, y, angle);
     }   //toString
-
-    /**
-     * This method creates and returns a copy of the given pose.
-     *
-     * @return a copy of this pose.
-     */
-    public static TrcPose2D copyOf(TrcPose2D pose)
-    {
-        return new TrcPose2D(pose.x, pose.y, pose.heading, pose.xVel, pose.yVel, pose.turnRate);
-    }   //copyOf
 
     /**
      * This method creates and returns a copy of this pose.
@@ -134,7 +102,7 @@ public class TrcPose2D
      */
     public TrcPose2D clone()
     {
-        return TrcPose2D.copyOf(this);
+        return new TrcPose2D(this.x, this.y, this.angle);
     }   //clone
 
     /**
@@ -146,42 +114,25 @@ public class TrcPose2D
     {
         this.x = pose.x;
         this.y = pose.y;
-        this.heading = pose.heading;
-        this.xVel = pose.xVel;
-        this.yVel = pose.yVel;
-        this.turnRate = pose.turnRate;
+        this.angle = pose.angle;
     }   //setAs
 
     /**
-     * This method returns the position in vector form.
+     * This method returns a transformed pose relative to the given pose.
      *
-     * @return position vector.
+     * @param pose specifies the reference pose.
+     * @param transformAngle specifies true to also transform angle, false to leave it alone.
+     * @return pose relative to the given pose.
      */
-    public RealVector getPositionVector()
+    public TrcPose2D relativeTo(TrcPose2D pose, boolean transformAngle)
     {
-        return MatrixUtils.createRealVector(new double[] { x, y });
-    }   //getPositionVector
+        double deltaX = x - pose.x;
+        double deltaY = y - pose.y;
+        RealVector newPos = TrcUtil.rotateCCW(MatrixUtils.createRealVector(new double[] {deltaX, deltaY}), pose.angle);
 
-    /**
-     * This method returns the velocity in vector form.
-     *
-     * @return velocity vector.
-     */
-    public RealVector getVelocityVector()
-    {
-        return MatrixUtils.createRealVector(new double[] { xVel, yVel });
-    }   //getVelocityVector
-
-    /**
-     * This method subtracts the given pose from this pose and returns a relative position from the given pose.
-     *
-     * @param pose specifies the pose to be subtracted from this one.
-     * @return relative pose from the given pose.
-     */
-    public TrcPose2D poseDistance(TrcPose2D pose)
-    {
-        return new TrcPose2D(x - pose.x, y - pose.y, heading, xVel, yVel, turnRate);
-    }   //poseDistance
+        return new TrcPose2D(
+                newPos.getEntry(0), newPos.getEntry(1), transformAngle? angle - pose.angle: angle);
+    }   //relativeTo
 
     /**
      * This method returns a transformed pose relative to the given pose.
@@ -191,37 +142,26 @@ public class TrcPose2D
      */
     public TrcPose2D relativeTo(TrcPose2D pose)
     {
-        TrcPose2D transformed = poseDistance(pose);
-        RealVector newPos = TrcUtil.rotateCCW(transformed.getPositionVector(), pose.heading);
-        RealVector newVel = TrcUtil.rotateCCW(transformed.getVelocityVector(), pose.heading);
-
-        transformed.x = newPos.getEntry(0);
-        transformed.y = newPos.getEntry(1);
-        transformed.heading = heading - pose.heading;
-
-        transformed.xVel = newVel.getEntry(0);
-        transformed.yVel = newVel.getEntry(1);
-
-        return transformed;
+        return relativeTo(pose, true);
     }   //relativeTo
 
     /**
-     * This method translates this pose with the x and y offset in reference to the heading of the pose.
+     * This method translates this pose with the x and y offset in reference to the angle of the pose.
      *
-     * @param xOffset specifies the x offset in reference to the heading of the pose.
-     * @param yOffset specifies the y offset in reference to the heading of the pose.
+     * @param xOffset specifies the x offset in reference to the angle of the pose.
+     * @param yOffset specifies the y offset in reference to the angle of the pose.
      * @return translated pose.
      */
     public TrcPose2D translatePose(double xOffset, double yOffset)
     {
         final String funcName = "translatePose";
         TrcPose2D newPose = clone();
-        double headingRadians = Math.toRadians(newPose.heading);
-        double cosHeading = Math.cos(headingRadians);
-        double sinHeading = Math.sin(headingRadians);
+        double angleRadians = Math.toRadians(newPose.angle);
+        double cosAngle = Math.cos(angleRadians);
+        double sinAngle = Math.sin(angleRadians);
 
-        newPose.x += xOffset*cosHeading + yOffset*sinHeading;
-        newPose.y += -xOffset*sinHeading + yOffset*cosHeading;
+        newPose.x += xOffset*cosAngle + yOffset*sinAngle;
+        newPose.y += -xOffset*sinAngle + yOffset*cosAngle;
 
         if (debugEnabled)
         {
