@@ -22,8 +22,8 @@ SOFTWARE.
 -->
 <Robot type="FirstInspires-FTC" name="WildThumper">
     <MotorController name="Motor Controller 2" serialNumber="AH03ETUV">
-        <Motor name="lmWheel" port="1" />
-        <Motor name="rmWheel" port="2" />
+        <Motor name="lcWheel" port="1" />
+        <Motor name="rcWheel" port="2" />
     </MotorController>
     <DeviceInterfaceModule name="Device Interface Module 1" serialNumber="AI02RLBT">
         <Gyro name="gyroSensor" port="0" />
@@ -42,7 +42,7 @@ SOFTWARE.
     <ServoController name="Servo Controller 2" serialNumber="AI049LVZ">
     </ServoController>
     <MotorController name="Motor Controller 4" serialNumber="AH03ETUA">
-        <Motor name="lrWheel" port="1" />
-        <Motor name="rrWheel" port="2" />
+        <Motor name="lbWheel" port="1" />
+        <Motor name="rbWheel" port="2" />
     </MotorController>
 </Robot>

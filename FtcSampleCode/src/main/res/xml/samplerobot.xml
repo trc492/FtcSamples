@@ -23,11 +23,11 @@ SOFTWARE.
 <Robot type="FirstInspires-FTC" name="SampleRobot">
     <MotorController name="Motor Controller 1" serialNumber="AH03ETQH">
         <Motor name="lfWheel" port="1" />
-        <Motor name="lrWheel" port="2" />
+        <Motor name="lbWheel" port="2" />
     </MotorController>
     <MotorController name="Motor Controller 2" serialNumber="AH03ETUV">
         <Motor name="rfWheel" port="1" />
-        <Motor name="rrWheel" port="2" />
+        <Motor name="rbWheel" port="2" />
     </MotorController>
     <MotorController name="Motor Controller 3" serialNumber="AH03ETU9">
     </MotorController>

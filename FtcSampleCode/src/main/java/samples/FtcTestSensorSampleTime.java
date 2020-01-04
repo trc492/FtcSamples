@@ -37,8 +37,8 @@ public class FtcTestSensorSampleTime extends FtcOpMode
 
     private FtcDcMotor lfWheel;
     private FtcDcMotor rfWheel;
-    private FtcDcMotor lrWheel;
-    private FtcDcMotor rrWheel;
+    private FtcDcMotor lbWheel;
+    private FtcDcMotor rbWheel;
     private TrcGyro gyro = null;
 
     private long minLoopInterval = Long.MAX_VALUE;
@@ -60,17 +60,17 @@ public class FtcTestSensorSampleTime extends FtcOpMode
         Log.i(TAG, "initRobot started...");
         lfWheel = new FtcDcMotor("lfWheel");
         rfWheel = new FtcDcMotor("rfWheel");
-        lrWheel = new FtcDcMotor("lrWheel");
-        rrWheel = new FtcDcMotor("rrWheel");
+        lbWheel = new FtcDcMotor("lbWheel");
+        rbWheel = new FtcDcMotor("rbWheel");
         lfWheel.setInverted(LEFTWHEEL_INVERTED);
-        lrWheel.setInverted(LEFTWHEEL_INVERTED);
+        lbWheel.setInverted(LEFTWHEEL_INVERTED);
         rfWheel.setInverted(RIGHTWHEEL_INVERTED);
-        rrWheel.setInverted(RIGHTWHEEL_INVERTED);
+        rbWheel.setInverted(RIGHTWHEEL_INVERTED);
 
         lfWheel.resetPosition();
         rfWheel.resetPosition();
-        lrWheel.resetPosition();
-        rrWheel.resetPosition();
+        lbWheel.resetPosition();
+        rbWheel.resetPosition();
 
         switch (sensorType)
         {
@@ -114,9 +114,9 @@ public class FtcTestSensorSampleTime extends FtcOpMode
     public void stopMode(TrcRobot.RunMode prevMode, TrcRobot.RunMode nextMode)
     {
         lfWheel.set(0.0);
-        lrWheel.set(0.0);
+        lbWheel.set(0.0);
         rfWheel.set(0.0);
-        rrWheel.set(0.0);
+        rbWheel.set(0.0);
 
         switch (sensorType)
         {
@@ -185,7 +185,7 @@ public class FtcTestSensorSampleTime extends FtcOpMode
         {
             case DRIVEBASE_ENCODERS:
                 value = (lfWheel.getPosition() + rfWheel.getPosition() +
-                         lrWheel.getPosition() + rrWheel.getPosition())/4.0;
+                         lbWheel.getPosition() + rbWheel.getPosition())/4.0;
                 break;
 
             case MR_GYRO:
@@ -208,11 +208,11 @@ public class FtcTestSensorSampleTime extends FtcOpMode
                 //
                 lfWheel.set(DRIVE_POWER);
                 rfWheel.set(DRIVE_POWER);
-                lrWheel.set(DRIVE_POWER);
-                rrWheel.set(DRIVE_POWER);
-                Log.i(TAG, prefix + String.format("lf=%.0f, rf=%.0f, lr=%.0f, rr=%.0f",
+                lbWheel.set(DRIVE_POWER);
+                rbWheel.set(DRIVE_POWER);
+                Log.i(TAG, prefix + String.format("lf=%.0f, rf=%.0f, lb=%.0f, rb=%.0f",
                                                   lfWheel.getPosition(), rfWheel.getPosition(),
-                                                  lrWheel.getPosition(), rrWheel.getPosition()));
+                                                  lbWheel.getPosition(), rbWheel.getPosition()));
                 break;
 
             case MR_GYRO:
@@ -222,9 +222,9 @@ public class FtcTestSensorSampleTime extends FtcOpMode
                 // Turning right and checking gyro.
                 //
                 lfWheel.set(TURN_POWER);
-                lrWheel.set(TURN_POWER);
+                lbWheel.set(TURN_POWER);
                 rfWheel.set(-TURN_POWER);
-                rrWheel.set(-TURN_POWER);
+                rbWheel.set(-TURN_POWER);
                 Log.i(TAG, prefix);
                 break;
         }

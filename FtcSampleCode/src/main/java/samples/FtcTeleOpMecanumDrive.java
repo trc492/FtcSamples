@@ -46,8 +46,8 @@ public class FtcTeleOpMecanumDrive extends FtcOpMode implements TrcGameControlle
     private FtcGamepad gamepad;
     private FtcDcMotor lfWheel;
     private FtcDcMotor rfWheel;
-    private FtcDcMotor lrWheel;
-    private FtcDcMotor rrWheel;
+    private FtcDcMotor lbWheel;
+    private FtcDcMotor rbWheel;
     private TrcMecanumDriveBase driveBase;
 
     //
@@ -73,11 +73,11 @@ public class FtcTeleOpMecanumDrive extends FtcOpMode implements TrcGameControlle
         //
         lfWheel = new FtcDcMotor("lfWheel");
         rfWheel = new FtcDcMotor("rfWheel");
-        lrWheel = new FtcDcMotor("lrWheel");
-        rrWheel = new FtcDcMotor("rrWheel");
+        lbWheel = new FtcDcMotor("lbWheel");
+        rbWheel = new FtcDcMotor("rbWheel");
         rfWheel.setInverted(true);
-        rrWheel.setInverted(true);
-        driveBase = new TrcMecanumDriveBase(lfWheel, lrWheel, rfWheel, rrWheel, null);
+        rbWheel.setInverted(true);
+        driveBase = new TrcMecanumDriveBase(lfWheel, lbWheel, rfWheel, rbWheel, null);
     }   //initRobot
 
     //

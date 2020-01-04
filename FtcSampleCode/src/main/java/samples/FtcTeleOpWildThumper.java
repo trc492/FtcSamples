@@ -85,10 +85,10 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements TrcGameController
     //
     private FtcDcMotor lfMotor;
     private FtcDcMotor rfMotor;
-    private FtcDcMotor lmMotor;
-    private FtcDcMotor rmMotor;
-    private FtcDcMotor lrMotor;
-    private FtcDcMotor rrMotor;
+    private FtcDcMotor lcMotor;
+    private FtcDcMotor rcMotor;
+    private FtcDcMotor lbMotor;
+    private FtcDcMotor rbMotor;
     private TrcSimpleDriveBase driveBase;
 
     //
@@ -136,21 +136,21 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements TrcGameController
         rfMotor = new FtcDcMotor("rfWheel");
         if (SIX_WHEELS)
         {
-            lmMotor = new FtcDcMotor("lmWheel");
-            rmMotor = new FtcDcMotor("rmWheel");
+            lcMotor = new FtcDcMotor("lcWheel");
+            rcMotor = new FtcDcMotor("rcWheel");
         }
-        lrMotor = new FtcDcMotor("lrWheel");
-        rrMotor = new FtcDcMotor("rrWheel");
+        lbMotor = new FtcDcMotor("lbWheel");
+        rbMotor = new FtcDcMotor("rbWheel");
 
         lfMotor.setInverted(LEFTWHEEL_INVERTED);
         rfMotor.setInverted(RIGHTWHEEL_INVERTED);
         if (SIX_WHEELS)
         {
-            lmMotor.setInverted(LEFTWHEEL_INVERTED);
-            rmMotor.setInverted(RIGHTWHEEL_INVERTED);
+            lcMotor.setInverted(LEFTWHEEL_INVERTED);
+            rcMotor.setInverted(RIGHTWHEEL_INVERTED);
         }
-        lrMotor.setInverted(LEFTWHEEL_INVERTED);
-        rrMotor.setInverted(RIGHTWHEEL_INVERTED);
+        lbMotor.setInverted(LEFTWHEEL_INVERTED);
+        rbMotor.setInverted(RIGHTWHEEL_INVERTED);
         //
         // 6V motors are too fast when driven with 12V so we need to use coast mode or the Thumper will tip forward
         // when stopping.
@@ -159,19 +159,19 @@ public class FtcTeleOpWildThumper extends FtcOpMode implements TrcGameController
         rfMotor.setBrakeModeEnabled(BRAKE_MODE_ON);
         if (SIX_WHEELS)
         {
-            lmMotor.setBrakeModeEnabled(BRAKE_MODE_ON);
-            rmMotor.setBrakeModeEnabled(BRAKE_MODE_ON);
+            lcMotor.setBrakeModeEnabled(BRAKE_MODE_ON);
+            rcMotor.setBrakeModeEnabled(BRAKE_MODE_ON);
         }
-        lrMotor.setBrakeModeEnabled(BRAKE_MODE_ON);
-        rrMotor.setBrakeModeEnabled(BRAKE_MODE_ON);
+        lbMotor.setBrakeModeEnabled(BRAKE_MODE_ON);
+        rbMotor.setBrakeModeEnabled(BRAKE_MODE_ON);
 
         if (SIX_WHEELS)
         {
-            driveBase = new TrcSimpleDriveBase(lfMotor, lmMotor, lrMotor, rfMotor, rmMotor, rrMotor);
+            driveBase = new TrcSimpleDriveBase(lfMotor, lcMotor, lbMotor, rfMotor, rcMotor, rbMotor);
         }
         else
         {
-            driveBase = new TrcSimpleDriveBase(lfMotor, lrMotor, rfMotor, rrMotor);
+            driveBase = new TrcSimpleDriveBase(lfMotor, lbMotor, rfMotor, rbMotor);
         }
     }   //initRobot
 

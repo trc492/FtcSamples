@@ -29,8 +29,8 @@ public class SensorSampleTimeTest extends LinearOpMode
 
     private DcMotor lfWheel;
     private DcMotor rfWheel;
-    private DcMotor lrWheel;
-    private DcMotor rrWheel;
+    private DcMotor lbWheel;
+    private DcMotor rbWheel;
     private ModernRoboticsI2cGyro gyro;
 
     public void runOpMode()
@@ -105,21 +105,21 @@ public class SensorSampleTimeTest extends LinearOpMode
     {
         lfWheel = hardwareMap.dcMotor.get("lfWheel");
         rfWheel = hardwareMap.dcMotor.get("rfWheel");
-        lrWheel = hardwareMap.dcMotor.get("lrWheel");
-        rrWheel = hardwareMap.dcMotor.get("rrWheel");
+        lbWheel = hardwareMap.dcMotor.get("lbWheel");
+        rbWheel = hardwareMap.dcMotor.get("rbWheel");
         lfWheel.setDirection(LEFTWHEEL_DIRECTION);
-        lrWheel.setDirection(LEFTWHEEL_DIRECTION);
+        lbWheel.setDirection(LEFTWHEEL_DIRECTION);
         rfWheel.setDirection(RIGHTWHEEL_DIRECTION);
-        rrWheel.setDirection(RIGHTWHEEL_DIRECTION);
+        rbWheel.setDirection(RIGHTWHEEL_DIRECTION);
 
         lfWheel.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         rfWheel.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        lrWheel.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        rrWheel.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        lbWheel.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rbWheel.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         lfWheel.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         rfWheel.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        lrWheel.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        rrWheel.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        lbWheel.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        rbWheel.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         gyro = (ModernRoboticsI2cGyro)hardwareMap.gyroSensor.get("gyroSensor");
         gyro.resetZAxisIntegrator();
@@ -133,7 +133,7 @@ public class SensorSampleTimeTest extends LinearOpMode
         {
             case DRIVEBASE_ENCODERS:
                 value = (lfWheel.getCurrentPosition() + rfWheel.getCurrentPosition() +
-                         lrWheel.getCurrentPosition() + rrWheel.getCurrentPosition())/4;
+                         lbWheel.getCurrentPosition() + rbWheel.getCurrentPosition())/4;
                 break;
 
             case GYRO:
@@ -154,11 +154,11 @@ public class SensorSampleTimeTest extends LinearOpMode
                 //
                 lfWheel.setPower(DRIVE_POWER);
                 rfWheel.setPower(DRIVE_POWER);
-                lrWheel.setPower(DRIVE_POWER);
-                rrWheel.setPower(DRIVE_POWER);
-                Log.i(TAG, prefix + String.format("lf=%d, rf=%d, lr=%d, rr=%d",
+                lbWheel.setPower(DRIVE_POWER);
+                rbWheel.setPower(DRIVE_POWER);
+                Log.i(TAG, prefix + String.format("lf=%d, rf=%d, lb=%d, rb=%d",
                         lfWheel.getCurrentPosition(), rfWheel.getCurrentPosition(),
-                        lrWheel.getCurrentPosition(), rrWheel.getCurrentPosition()));
+                        lbWheel.getCurrentPosition(), rbWheel.getCurrentPosition()));
                 break;
 
             case GYRO:
@@ -166,9 +166,9 @@ public class SensorSampleTimeTest extends LinearOpMode
                 // Turning right and checking gyro.
                 //
                 lfWheel.setPower(TURN_POWER);
-                lrWheel.setPower(TURN_POWER);
+                lbWheel.setPower(TURN_POWER);
                 rfWheel.setPower(-TURN_POWER);
-                rrWheel.setPower(-TURN_POWER);
+                rbWheel.setPower(-TURN_POWER);
                 Log.i(TAG, prefix + String.format("heading=%d", -gyro.getIntegratedZValue()));
                 break;
         }
@@ -177,9 +177,9 @@ public class SensorSampleTimeTest extends LinearOpMode
     private void stopRobot()
     {
         lfWheel.setPower(0.0);
-        lrWheel.setPower(0.0);
+        lbWheel.setPower(0.0);
         rfWheel.setPower(0.0);
-        rrWheel.setPower(0.0);
+        rbWheel.setPower(0.0);
     }   //stopRobot
 
 }   //class SensorSampleTimeTest
