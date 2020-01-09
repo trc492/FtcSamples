@@ -871,6 +871,24 @@ public abstract class TrcGyro extends TrcSensor<TrcGyro.DataType> implements Trc
         return data;
     }   //getRawData
 
+    /**
+     * This method reads the raw gyro Z data and updates the odometry with it.
+     */
+    private void updateOdometry()
+    {
+        TrcSensor.SensorData<Double> zHeading = getZHeading();
+
+        odometry.prevTimestamp = odometry.currTimestamp;
+        odometry.prevPos = odometry.currPos;
+        odometry.currTimestamp = zHeading.timestamp;
+        odometry.currPos = zHeading.value;
+        double timeDelta = odometry.currTimestamp - odometry.prevTimestamp;
+        if (timeDelta != 0.0)
+        {
+            odometry.velocity = (odometry.currPos - odometry.prevPos) / timeDelta;
+        }
+    }   //updateOdometry
+
     //
     // Implements TrcOdometrySensor interface.
     //
@@ -890,9 +908,10 @@ public abstract class TrcGyro extends TrcSensor<TrcGyro.DataType> implements Trc
             {
                 resetZIntegrator();
             }
-            odometry.prevTimestamp = odometry.currTimestamp = TrcUtil.getCurrentTime();
-            odometry.prevPos = odometry.currPos = getZHeading().value;
-            odometry.velocity = getZRotationRate().value;
+
+            updateOdometry();
+            odometry.prevTimestamp = odometry.currTimestamp;
+            odometry.prevPos = odometry.currPos;
         }
     }   //resetOdometry
 
@@ -907,12 +926,7 @@ public abstract class TrcGyro extends TrcSensor<TrcGyro.DataType> implements Trc
     {
         synchronized (odometry)
         {
-            odometry.prevTimestamp = odometry.currTimestamp;
-            odometry.prevPos = odometry.currPos;
-            odometry.currTimestamp = TrcUtil.getCurrentTime();
-            odometry.currPos = getZHeading().value;
-            odometry.velocity = getZRotationRate().value;
-
+            updateOdometry();
             return odometry.clone();
         }
     }   //getOdometry

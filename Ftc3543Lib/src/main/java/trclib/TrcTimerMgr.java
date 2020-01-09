@@ -90,7 +90,7 @@ public class TrcTimerMgr
      */
     public static void shutdown()
     {
-        if (instance != null)
+        if (instance != null && instance.timerThread != null)
         {
             instance.timerThread.interrupt();
         }

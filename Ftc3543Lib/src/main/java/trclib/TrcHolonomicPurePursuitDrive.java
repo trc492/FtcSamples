@@ -476,7 +476,9 @@ public class TrcHolonomicPurePursuitDrive
 
     private TrcWaypoint getFollowingPoint(double robotX, double robotY)
     {
-        if (pathIndex == path.getSize() - 1)
+        // TODO: 99% sure this is correct. verify on actual robot, not simulation
+        TrcWaypoint last = path.getWaypoint(path.getSize() - 1);
+        if (TrcUtil.magnitude(robotX - last.x, robotY - last.y) < followingDistance)
         {
             return path.getWaypoint(pathIndex);
         }

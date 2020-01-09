@@ -178,6 +178,25 @@ public class TrcTimer
     }   //isExpired
 
     /**
+     * This method checks if the timer is active (i.e. running and not expired)
+     *
+     * @return true if the timer is active, false otherwise.
+     */
+    public synchronized boolean isActive()
+    {
+        final String funcName = "isActive";
+        boolean active = expiredTimeInMsec != 0.0 && !expired;
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%s", active);
+        }
+
+        return active;
+    }   //isActive
+
+    /**
      * This method is called by TrcTimerMgr when the timer has expired. DO NOT call this if you are not TrcTimerMgr.
      *
      * @param securityKey specifies the security key returned to you by TrcTimerMgr when you added your timer. This is
