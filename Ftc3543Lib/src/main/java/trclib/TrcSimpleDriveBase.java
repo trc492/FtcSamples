@@ -392,8 +392,8 @@ public class TrcSimpleDriveBase extends TrcDriveBase
         delta.velocity.x = 0.0;
         delta.velocity.y = (lVel + rVel)/2 * yScale;
 
-        delta.position.angle = Math.toDegrees((lPos - rPos) * angleScale);
-        delta.velocity.angle = Math.toDegrees((lVel - rVel) * angleScale);
+        delta.position.angle = (lPos - rPos)/2 * angleScale;
+        delta.velocity.angle = (lVel - rVel)/2 * angleScale;
 
         if (debugEnabled)
         {
