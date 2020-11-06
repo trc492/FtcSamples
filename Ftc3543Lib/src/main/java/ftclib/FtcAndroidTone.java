@@ -47,7 +47,7 @@ public class FtcAndroidTone extends TrcTone implements AudioTrack.OnPlaybackPosi
     private static final Waveform DEF_WAVEFORM = Waveform.TRIANGLE_WAVE;
     private static final int DEF_SAMPLERATE = 16*1024;  //approx. 16kHz
 
-    private int sampleRate;
+    private final int sampleRate;
     private AudioTrack audioTrack = null;
     private boolean playing = false;
     private double attack = 0.0;        //in seconds

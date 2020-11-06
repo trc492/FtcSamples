@@ -1,9 +1,8 @@
 dependencies {
     implementation project(path: ':OpenCVLib310')
-    implementation (name:'RobotCore-release', ext: 'aar')
-    implementation (name:'Hardware-release', ext: 'aar')
-    implementation (name:'FtcCommon-release', ext: 'aar')
-    implementation (name:'WirelessP2p-release', ext:'aar')
-    implementation 'com.android.support:support-compat:28.0.0'
+    implementation 'org.firstinspires.ftc:RobotCore:6.0.1'
+    implementation 'org.firstinspires.ftc:Hardware:6.0.1'
+    implementation 'org.firstinspires.ftc:FtcCommon:6.0.1'
+    implementation 'androidx.appcompat:appcompat:1.2.0'
     implementation (group: 'org.apache.commons', name: 'commons-math3', version: '3.6.1')
 }

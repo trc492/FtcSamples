@@ -35,6 +35,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackable;
 
+import java.util.Arrays;
 import java.util.Locale;
 
 import FtcSampleCode.R;
@@ -219,10 +220,7 @@ public class FtcTestVuforia extends FtcOpMode
                         }
                     });
             targetsFound = new boolean[imageTargets.length];
-            for (int i = 0; i < targetsFound.length; i++)
-            {
-                targetsFound[i] = false;
-            }
+            Arrays.fill(targetsFound, false);
         }
     }   //initRobot
 
