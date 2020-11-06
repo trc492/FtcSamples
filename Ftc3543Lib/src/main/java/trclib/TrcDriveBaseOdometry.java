@@ -24,28 +24,32 @@ package trclib;
 
 /**
  * This class implements a platform independent drive base odometry device. A drive base odometry device consists of
- * three to five sensors, one or two for the X direction and one or two for Y, and an angle sensor for orientation.
+ * two to five sensors, zero to two for the X direction and one to two for Y, and an angle sensor for orientation.
  * All sensors must be able to report position as well as velocity data. This class supports four different odometry
  * configurations.
  *
- * The first configuration has 2 sensors, 1 for Y and one for angle. The Y sensor must be installed at the centroid
+ * Configuration 1:
+ * This configuration has 2 sensors, 1 for Y and one for angle. The Y sensor must be installed at the centroid
  * of the robot so that an in-place turn will not produce any displacement in Y. It is most likely an encoder on
  * passive omni-wheels. The angle sensor is most likely a gyro. This configuration is not for holonomic drive base
  * since it doesn't provide X odometry.
  *
- * The second configuration has 3 sensors, two for Y and one for angle. The two Y sensors must be installed in-line
+ * Configuration 2:
+ * This configuration has 3 sensors, two for Y and one for angle. The two Y sensors must be installed in-line
  * with and equidistant from the centroid of the robot and are most likely installed in the middle between the front
  * and back wheels, one on the left and one on the right. The installation locations of the Y sensors are such that
  * if the robot is doing an in-place turn, the two Y sensors will cancel each other out netting a zero displacement.
  * Just like the first configuration, this configuration is not for holonomic drive base since it doesn't provide X
  * odometry.
  *
- * The third configuration has 4 sensors, two for Y, one for X and one for angle. The two Y sensors must be installed
+ * Configuration 3:
+ * This configuration has 4 sensors, two for Y, one for X and one for angle. The two Y sensors must be installed
  * just like the 3-sensor configuration. The X sensor must be installed at the centroid of the robot so in-place
  * turning will not produce any displacement in X. The X and Y sensors form an H-configuration. This is the minimum
  * configuration for drive base that's capable of holonomic drive.
  *
- * The fourth configuration has 5 sensors, two for Y, two for X and one for angle. The two Y sensors must be installed
+ * Configuration 4:
+ * This configuration has 5 sensors, two for Y, two for X and one for angle. The two Y sensors must be installed
  * just like the configurations with 3 or 4 sensors. The two X sensors must also be installed in-line with and
  * equidistant from the centroid of the robot and it must be orthogonal to the two Y sensors most likely one in mid
  * front and the other in mid back. With this configuration, the X and Y sensor pairs will cancel each other out
@@ -64,7 +68,7 @@ public class TrcDriveBaseOdometry
     private double prevAvgXPos, prevAvgYPos;
 
     /**
-     * Constructor: Create an instance of the object.
+     * Constructor: Create an instance of the object (Configuration 4).
      *
      * @param x1Sensor specifies the first X sensor if any.
      * @param y1Sensor specifies the first Y sensor.
@@ -93,7 +97,7 @@ public class TrcDriveBaseOdometry
     }   //TrcDriveBaseOdometry
 
     /**
-     * Constructor: Create an instance of the object.
+     * Constructor: Create an instance of the object (Configuration 3).
      *
      * @param x1Sensor specifies the first X sensor.
      * @param y1Sensor specifies the first Y sensor.
@@ -108,7 +112,7 @@ public class TrcDriveBaseOdometry
     }   //TrcDriveBaseOdometry
 
     /**
-     * Constructor: Create an instance of the object.
+     * Constructor: Create an instance of the object (Configuration 2).
      *
      * @param y1Sensor specifies the first Y sensor.
      * @param y2Sensor specifies the second Y sensor.
@@ -121,7 +125,7 @@ public class TrcDriveBaseOdometry
     }   //TrcDriveBaseOdometry
 
     /**
-     * Constructor: Create an instance of the object.
+     * Constructor: Create an instance of the object (Configuration 1).
      *
      * @param ySensor specifies the Y sensor.
      * @param angleSensor specifies the angle sensor.
@@ -224,10 +228,10 @@ public class TrcDriveBaseOdometry
      */
     public synchronized TrcDriveBase.Odometry getOdometryDelta()
     {
-        TrcOdometrySensor.Odometry x1Odometry = x1Sensor.getOdometry();
-        TrcOdometrySensor.Odometry x2Odometry = x2Sensor.getOdometry();
-        TrcOdometrySensor.Odometry y1Odometry = y1Sensor.getOdometry();
-        TrcOdometrySensor.Odometry y2Odometry = y2Sensor.getOdometry();
+        TrcOdometrySensor.Odometry x1Odometry = x1Sensor != null? x1Sensor.getOdometry(): null;
+        TrcOdometrySensor.Odometry x2Odometry = x2Sensor != null? x2Sensor.getOdometry(): null;
+        TrcOdometrySensor.Odometry y1Odometry = y1Sensor != null? y1Sensor.getOdometry(): null;
+        TrcOdometrySensor.Odometry y2Odometry = y2Sensor != null? y2Sensor.getOdometry(): null;
         TrcOdometrySensor.Odometry angleOdometry = angleSensor.getOdometry();
         TrcDriveBase.Odometry odometryDelta = new TrcDriveBase.Odometry();
 

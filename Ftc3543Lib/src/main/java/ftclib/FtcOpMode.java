@@ -24,11 +24,13 @@ package ftclib;
 
 import android.speech.tts.TextToSpeech;
 
+import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import java.lang.annotation.Annotation;
+import java.util.List;
 import java.util.Locale;
 
 import hallib.HalDashboard;
@@ -50,6 +52,7 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
     private static final TrcDbgTrace.MsgLevel msgLevel = TrcDbgTrace.MsgLevel.INFO;
     private TrcDbgTrace dbgTrace = null;
 
+    private static final LynxModule.BulkCachingMode bulkCachingMode = LynxModule.BulkCachingMode.AUTO;
     private static String opModeName = null;
     private TextToSpeech textToSpeech = null;
 
@@ -293,11 +296,6 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
             }
         }
         TrcRobot.setRunMode(runMode);
-        //
-        // Initialize mode start time before match starts in case somebody calls TrcUtil.getModeElapsedTime before
-        // competition starts (e.g. in initRobot) so it will report elapsed time from the "Init" button being pressed.
-        //
-        TrcUtil.recordModeStartTime();
 
         if (TrcMotor.getNumOdometryMotors() > 0)
         {
@@ -308,6 +306,18 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
             }
             TrcMotor.clearOdometryMotorsList();
         }
+
+        List<LynxModule> allHubs = hardwareMap.getAll(LynxModule.class);
+        for (LynxModule module: allHubs)
+        {
+            module.setBulkCachingMode(bulkCachingMode);
+        }
+
+        //
+        // Initialize mode start time before match starts in case somebody calls TrcUtil.getModeElapsedTime before
+        // competition starts (e.g. in initRobot) so it will report elapsed time from the "Init" button being pressed.
+        //
+        TrcUtil.recordModeStartTime();
 
         try
         {
@@ -336,11 +346,21 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
             {
                 loopCounter++;
                 loopStartNanoTime = TrcUtil.getCurrentTimeNanos();
+
                 if (debugEnabled)
                 {
                     dbgTrace.traceInfo(funcName, "[%d:%.3f]: InitPeriodic loop",
                             loopCounter, loopStartNanoTime/1000000000.0);
                 }
+
+                if (bulkCachingMode == LynxModule.BulkCachingMode.MANUAL)
+                {
+                    for (LynxModule module: allHubs)
+                    {
+                        module.clearBulkCache();
+                    }
+                }
+
                 initPeriodic();
             }
             dashboard.displayPrintf(0, "initPeriodic completed!");
@@ -371,6 +391,14 @@ public abstract class FtcOpMode extends LinearOpMode implements TrcRobot.RobotMo
                 loopCounter++;
                 sdkTotalNanoTime += loopStartNanoTime - startNanoTime;
                 double opModeElapsedTime = TrcUtil.getModeElapsedTime();
+
+                if (bulkCachingMode == LynxModule.BulkCachingMode.MANUAL)
+                {
+                    for (LynxModule module: allHubs)
+                    {
+                        module.clearBulkCache();
+                    }
+                }
 
                 if (debugEnabled)
                 {

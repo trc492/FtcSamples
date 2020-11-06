@@ -352,13 +352,27 @@ public class FtcDcMotor extends TrcMotor
      * This method returns the motor velocity from the platform dependent motor hardware. If the hardware does
      * not support velocity info, it should throw an UnsupportedOperationException.
      *
-     * @return current motor velocity.
-     * @throws UnsupportedOperationException
+     * @return current motor velocity in ticks per second.
      */
     @Override
     public double getMotorVelocity()
     {
-        throw new UnsupportedOperationException("DcMotor does not provide velocity info.");
+        final String funcName = "getMotorVelocity";
+        double currVel = ((DcMotorEx)motor).getVelocity();
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceEnter(funcName, TrcDbgTrace.TraceLevel.API);
+        }
+
+        currVel *= positionSensorSign;
+
+        if (debugEnabled)
+        {
+            dbgTrace.traceExit(funcName, TrcDbgTrace.TraceLevel.API, "=%d", currVel);
+        }
+
+        return currVel;
     }   //getMotorVelocity
 
     /**

@@ -23,6 +23,7 @@
 package trclib;
 
 import java.io.File;
+import java.util.Locale;
 
 import hallib.HalDbgLog;
 
@@ -248,6 +249,36 @@ public class TrcDbgTrace
         this.traceLevel = traceLevel;
         this.msgLevel = msgLevel;
     }   //setDbgTraceConfig
+
+    /**
+     * This method logs a MsgLevel.INFO entry that contains information about the match. The entry is in XML format
+     * and is intended to be parsed by tools such as TrcTraceLogVisualizer.
+     *
+     * @param funcName specifies the calling method name.
+     * @param infoName specifies the name to identify the information.
+     * @param format specifies the format string of the message.
+     * @param args specifies the message arguments.
+     */
+    public void logInfo(String funcName, String infoName, String format, Object ... args)
+    {
+        traceMsg(funcName, MsgLevel.INFO, "<Info name=\"" + infoName + "\" " + format + " />", args);
+    }   //logInfo
+
+    /**
+     * This method logs a MsgLevel.INFO entry that contains an event. The entry is in XML format and is intended to be
+     * parsed by tools such as TrcTraceLogVisualizer.
+     *
+     * @param funcName specifies the calling method name.
+     * @param eventName specifies the name to identify the event.
+     * @param format specifies the format string of the message.
+     * @param args specifies the message arguments.
+     */
+    public void logEvent(final String funcName, final String eventName, final String format, Object ... args)
+    {
+        String newFormat = String.format(Locale.US, "<Event name=\"%s\" time=%.3f %s />",
+                eventName, TrcUtil.getModeElapsedTime(), format);
+        traceMsg(funcName, MsgLevel.INFO, newFormat, args);
+    }   //logEvent
 
     /**
      * This method is typically called at the beginning of a method to trace the entry parameters of the method.
