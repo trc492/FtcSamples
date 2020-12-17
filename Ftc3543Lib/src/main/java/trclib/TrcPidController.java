@@ -621,7 +621,7 @@ public class TrcPidController
         try
         {
             limit = outputLimitStack.pop();
-            setOutputRange(-limit, limit);
+            setOutputLimit(limit);
         }
         catch (EmptyStackException e)
         {
