@@ -229,44 +229,23 @@ public class FtcTest extends FtcTeleOp
         }
         else if (test == Test.PURE_PURSUIT_DRIVE)
         {
-            /*
-            purePursuitDriveCommand.start(
-                    new TrcPose2D[] {
-                            new TrcPose2D(0,0),
-                            new TrcPose2D(0, 24, 0, 0, 50, 0),
-                            new TrcPose2D(0, 96, 180, 0, 50, 0),
-                            new TrcPose2D(0, 120, 180)});
-
-             */
-
-            /*
-            purePursuitDriveCommand.start(
-                    new TrcPose2D[] {
-                            new TrcPose2D(0,0),
-                            new TrcPose2D(0, 6, 90),
-                            new TrcPose2D(0, 12, 180),
-                            new TrcPose2D(0, 18, 270)});
-
-             */
-            ((CmdPurePursuitDrive)testCommand).start(
-                    new TrcPose2D(0,0),
-                    new TrcPose2D(0, 0, 90),
-                    new TrcPose2D(0, 0, 180),
-                    new TrcPose2D(0, 0, 270));
+            ((CmdPurePursuitDrive)testCommand).start(RobotInfo.PURE_PURSUIT_TEST_PATH);
         }
     }   //startMode
 
     @Override
     public void stopMode(TrcRobot.RunMode prevMode, TrcRobot.RunMode nextMode)
     {
+        if (testCommand != null)
+        {
+            testCommand.cancel();
+        }
+
         if (test == Test.SENSORS_TEST || test == Test.SUBSYSTEMS_TEST)
         {
             robot.setFlashLightOn(false, false);
         }
-        else if (test == Test.PURE_PURSUIT_DRIVE)
-        {
-            testCommand.cancel();
-        }
+
         super.stopMode(prevMode, nextMode);
     }   //stopMode
 

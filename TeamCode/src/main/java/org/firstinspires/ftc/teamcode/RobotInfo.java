@@ -26,6 +26,8 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 
+import trclib.TrcPose2D;
+
 import static org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer.CameraDirection.BACK;
 
 public class RobotInfo
@@ -84,6 +86,13 @@ public class RobotInfo
     // = 50.2654816 in./sec.
     // KF should be set to the reciprocal of max tangential velocity (time to travel unit distance), units: sec./in.
     static final double PURE_PURSUIT_VEL_KF                     = 1.0 / 50.2654816;
+    static final TrcPose2D[] PURE_PURSUIT_TEST_PATH             = new TrcPose2D[] {
+            new TrcPose2D(0.0, 0.0, 0.0),
+            new TrcPose2D(0.0, 36.0, 90.0),
+            new TrcPose2D(24.0, 36.0, 0.0),
+            new TrcPose2D(24.0, 48.0, 0.0)
+    };
+
     //
     // Vision subsystem.
     //

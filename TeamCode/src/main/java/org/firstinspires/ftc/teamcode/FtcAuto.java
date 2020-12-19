@@ -218,10 +218,17 @@ public class FtcAuto extends FtcOpMode
         robot.globalTracer.logInfo(moduleName, "AutoChoices", "%s", autoChoices);
 
         robot.startMode(nextMode);
+
         if (robot.battery != null)
         {
             robot.battery.setEnabled(true);
         }
+
+        if (autoChoices.strategy == AutoStrategy.PURE_PURSUIT_DRIVE)
+        {
+            ((CmdPurePursuitDrive)autoCommand).start(RobotInfo.PURE_PURSUIT_TEST_PATH);
+        }
+
         robot.dashboard.clearDisplay();
     }   //startMode
 
@@ -235,11 +242,18 @@ public class FtcAuto extends FtcOpMode
     @Override
     public void stopMode(TrcRobot.RunMode prevMode, TrcRobot.RunMode nextMode)
     {
+        if (autoCommand != null)
+        {
+            autoCommand.cancel();
+        }
+
         robot.stopMode(prevMode);
+
         if (robot.battery != null)
         {
             robot.battery.setEnabled(false);
         }
+
         printPerformanceMetrics(robot.globalTracer);
 
         if (robot.globalTracer.tracerLogIsOpened())
