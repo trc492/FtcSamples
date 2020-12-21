@@ -220,6 +220,11 @@ public class VuforiaVision
         {
             imageTargets[i] = vuforia.getTarget(imageTargetsInfo[i].name);
         }
+
+        if (robot.blinkin != null)
+        {
+            robot.blinkin.setNamedPatternMap(targetLEDPatternMap);
+        }
     }   //VuforiaVision
 
     /**
@@ -290,15 +295,15 @@ public class VuforiaVision
         {
             robotLocation = vuforia.getRobotLocation(target);
 
-            if (robot.ledIndicator != null && !Robot.Preferences.useBlinkinFlashLight)
+            if (robot.blinkin != null && !Robot.Preferences.useBlinkinFlashLight)
             {
                 if (robotLocation != null)
                 {
-                    robot.ledIndicator.setDetectedTarget(targetName);
+                    robot.blinkin.setNamedPattern(targetName);
                 }
                 else
                 {
-                    robot.ledIndicator.reset();
+                    robot.blinkin.reset();
                 }
             }
         }
@@ -347,15 +352,15 @@ public class VuforiaVision
             }
         }
 
-        if (robot.ledIndicator != null && !Robot.Preferences.useBlinkinFlashLight)
+        if (robot.blinkin != null && !Robot.Preferences.useBlinkinFlashLight)
         {
             if (robotLocation != null)
             {
-                robot.ledIndicator.setDetectedTarget(lastImageName);
+                robot.blinkin.setNamedPattern(lastImageName);
             }
             else
             {
-                robot.ledIndicator.reset();
+                robot.blinkin.reset();
             }
         }
 

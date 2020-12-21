@@ -32,6 +32,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import ftclib.FtcAndroidTone;
 import ftclib.FtcBNO055Imu;
 import ftclib.FtcOpMode;
+import ftclib.FtcRevBlinkin;
 import ftclib.FtcRobotBattery;
 import ftclib.FtcDcMotor;
 import ftclib.FtcMotorActuator;
@@ -47,6 +48,7 @@ import trclib.TrcMecanumDriveBase;
 import trclib.TrcMotor;
 import trclib.TrcPidController;
 import trclib.TrcPidDrive;
+import trclib.TrcRevBlinkin;
 import trclib.TrcRobot;
 import trclib.TrcServo;
 import trclib.TrcUtil;
@@ -120,7 +122,7 @@ public class Robot
     // Sensors and indicators.
     //
     public FtcRobotBattery battery;
-    public LEDIndicator ledIndicator;
+    public FtcRevBlinkin blinkin;
     public FtcBNO055Imu imu;
     public TrcGyro gyro;
     //
@@ -229,7 +231,7 @@ public class Robot
 
             if (Preferences.hasBlinkin)
             {
-                ledIndicator = new LEDIndicator();
+                blinkin = new FtcRevBlinkin("blinkin");
             }
             imu = new FtcBNO055Imu("imu");
             gyro = imu.gyro;
@@ -392,9 +394,10 @@ public class Robot
             vuforia.setFlashlightEnabled(phoneFlashOn);
         }
 
-        if (ledIndicator != null && Preferences.useBlinkinFlashLight)
+        if (blinkin != null && Preferences.useBlinkinFlashLight)
         {
-            ledIndicator.setFlashLightOn(blinkinFlashOn);
+            blinkin.setPattern(
+                    blinkinFlashOn? TrcRevBlinkin.LEDPattern.SolidWhite: TrcRevBlinkin.LEDPattern.SolidBlack);
         }
     }   //setFlashLightOn
 

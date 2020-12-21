@@ -222,7 +222,9 @@ public abstract class TrcRevBlinkin
 
     }   //class PatternState
 
+    private static final LEDPattern offPattern = LEDPattern.SolidBlack;
     private final String instanceName;
+    private TrcHashMap<String, LEDPattern> namedPatternMap;
     private PatternState[] patternPriorities = null;
 
     /**
@@ -240,6 +242,7 @@ public abstract class TrcRevBlinkin
         }
 
         this.instanceName = instanceName;
+        reset();
     }   //TrcRevBlinkin
 
     /**
@@ -252,6 +255,45 @@ public abstract class TrcRevBlinkin
     {
         return instanceName;
     }   //toString
+
+    /**
+     * This method turns the LED strip off.
+     */
+    public void reset()
+    {
+        setPattern(offPattern);
+    }   //reset
+
+    /**
+     * This method sets the LED pattern map associating string names to LED patterns.
+     *
+     * @param namedPatternMap specifies the LED named pattern map to be set.
+     */
+    public void setNamedPatternMap(TrcHashMap<String, LEDPattern> namedPatternMap)
+    {
+        this.namedPatternMap = namedPatternMap;
+    }   //setNamedPatternMap
+
+    /**
+     * This method returns the LED pattern mapped to the specified pattern name.
+     *
+     * @param patternName specifies the pattern name to look for.
+     * @return associated LED pattern.
+     */
+    public LEDPattern getNamedPattern(String patternName)
+    {
+        return namedPatternMap != null? namedPatternMap.get(patternName): null;
+    }   //getNamedPattern
+
+    /**
+     * This method sets the LED strip to the named pattern.
+     *
+     * @param patternName specifies the name associated with the LED pattern to turn on.
+     */
+    public void setNamedPattern(String patternName)
+    {
+        setPattern(getNamedPattern(patternName));
+    }   //setNamedPattern
 
     /**
      * This method sets the LED pattern priority list for operations that need it.
