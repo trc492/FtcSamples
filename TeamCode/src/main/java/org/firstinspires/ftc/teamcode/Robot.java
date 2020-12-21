@@ -305,7 +305,10 @@ public class Robot
             globalTracer.traceInfo(funcName, "Enabling Vuforia.");
             vuforiaVision.setEnabled(true);
         }
-
+        //
+        // The following are performance counters, could be disabled for competition if you want.
+        // But it might give you some insight if somehow autonomous wasn't performing as expected.
+        //
         if (gyro != null)
         {
             gyro.setElapsedTimerEnabled(true);
@@ -324,7 +327,9 @@ public class Robot
     public void stopMode(TrcRobot.RunMode runMode)
     {
         final String funcName = "Robot.stopMode";
-
+        //
+        // Print all performance counters if there are any.
+        //
         gyro.printElapsedTime(globalTracer);
         gyro.setElapsedTimerEnabled(false);
         TrcDigitalInput.printElapsedTime(globalTracer);
@@ -333,7 +338,9 @@ public class Robot
         TrcMotor.setElapsedTimerEnabled(false);
         TrcServo.printElapsedTime(globalTracer);
         TrcServo.setElapsedTimerEnabled(false);
-
+        //
+        // Diable vision.
+        //
         if (vuforiaVision != null)
         {
             globalTracer.traceInfo(funcName, "Disabling Vuforia.");
@@ -346,6 +353,9 @@ public class Robot
             tensorFlowVision.shutdown();
             tensorFlowVision = null;
         }
+        //
+        // Disable odometry.
+        //
         if (driveBase != null)
         {
             driveBase.setOdometryEnabled(false);
@@ -354,12 +364,16 @@ public class Robot
             leftBackWheel.setOdometryEnabled(false);
             rightBackWheel.setOdometryEnabled(false);
         }
-
+        //
+        // Disable gyro task.
+        //
         if (gyro != null)
         {
             gyro.setEnabled(false);
         }
-
+        //
+        // Shut down text to speech.
+        //
         if (textToSpeech != null)
         {
             textToSpeech.stop();
