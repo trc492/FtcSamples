@@ -228,17 +228,6 @@ public class VuforiaVision
     }   //VuforiaVision
 
     /**
-     * This method looks up the specified target name and returns the associated LED pattern.
-     *
-     * @param targetName specifies the target name.
-     * @return LED pattern associated with the target.
-     */
-    public static TrcRevBlinkin.LEDPattern getTargetLEDPattern(String targetName)
-    {
-        return targetLEDPatternMap.get(targetName);
-    }   //getTargetLEDPattern
-
-    /**
      * This method enables/disables Vuforia Vision.
      *
      * @param enabled specifies true to enable Vuforia Vision, false to disable.
